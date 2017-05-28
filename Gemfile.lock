@@ -19,6 +19,8 @@ GEM
     rainbow (2.2.2)
       rake
     rake (12.0.0)
+    rake-compiler (1.0.4)
+      rake
     rspec (3.6.0)
       rspec-core (~> 3.6.0)
       rspec-expectations (~> 3.6.0)
@@ -53,6 +55,7 @@ PLATFORMS
 DEPENDENCIES
   codeclimate-test-reporter (~> 0.6)
   rake (~> 12.0)
+  rake-compiler (~> 1.0)
   rspec (~> 3.5)
   rubocop (~> 0.49)
   seccomp-tools!

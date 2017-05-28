@@ -15,7 +15,8 @@ Gem::Specification.new do |s|
   s.license       = 'MIT'
   s.authors       = ['david942j']
   s.email         = ['david942j@gmail.com']
-  s.files         = Dir['lib/**/*.rb'] + Dir['bin/*'] + Dir['ext/*'] + %w(README.md)
+  s.files         = Dir['lib/**/*.rb'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md)
+  s.extensions    = %w[ext/ptrace/extconf.rb]
   s.homepage      = 'https://github.com/david942j/seccomp-tools'
 
   s.required_ruby_version = '>= 2.1.0'
@@ -24,6 +25,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'rspec', '~> 3.5'
   s.add_development_dependency 'rubocop', '~> 0.49'
   s.add_development_dependency 'rake', '~> 12.0'
+  s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'simplecov', '~> 0.13.0'
   s.add_development_dependency 'codeclimate-test-reporter', '~> 0.6'
 end

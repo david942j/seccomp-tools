@@ -1,3 +1,4 @@
+require "rake/extensiontask"
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 
@@ -10,4 +11,8 @@ end
 RSpec::Core::RakeTask.new(:spec) do |task|
   task.pattern = './spec/**/*_spec.rb'
   task.rspec_opts = ['--color', '--require spec_helper', '--order rand']
+end
+
+Rake::ExtensionTask.new 'ptrace' do |ext|
+    ext.lib_dir = "lib/seccomp-tools"
 end

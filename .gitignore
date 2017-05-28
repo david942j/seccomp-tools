@@ -1,2 +1,4 @@
 *.gem
+*.so
+/tmp/
 /coverage/

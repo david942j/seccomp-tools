@@ -3,7 +3,7 @@ task :readme do
   tpl = IO.binread('README.tpl')
   tpl.gsub!(/SHELL_OUTPUT_OF\(.*\)/) do |s|
     cmd = s[16...-1]
-    '$ ' + cmd + "\n" + `#{cmd}`.lines.map { |c| '# ' + c }.join
+    '$ ' + cmd + "\n" + `#{cmd}`
   end
 
   IO.binwrite('README.md', tpl)

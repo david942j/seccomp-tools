@@ -6,7 +6,7 @@ describe SeccompTools::CLI do
 Usage: seccomp-tools [--version] [--help] <command> [<options>]
 
 These are list of commands:
-	dump	Automatically dump seccomp bpf from execution file
+	dump	Automatically dump seccomp bpf from execution file.
 
 See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about a specific subcommand.
     EOS
@@ -16,13 +16,22 @@ See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about
     expect { described_class.work([]) }.to output(@usage).to_stdout
   end
 
-  it 'command' do
+  it 'help dump' do
     expect { described_class.work(%w[help dump]) }.to output(<<EOS).to_stdout
+dump - Automatically dump seccomp bpf from execution file.
+
 Usage: seccomp-tools dump [exec] [options]
     -e, --exec <command>             Executes the given command.
-                                     Use this option if want to pass arguments to target process.
+                                     Use this option if want to pass arguments to the execution file.
     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
                                      Default: disasm
+    -l, --limit LIMIT                Limit the number of calling "prctl(PR_SET_SECCOMP)".
+                                     The target process will be killed whenever its calling times reaches LIMIT.
+                                     Default: 1
+    -o, --output FILE                Output result into FILE instead of stdout.
+                                     If multiple seccomp syscalls have been invoked (see --limit),
+                                     results will be written to FILE, FILE_1, FILE_2.. etc.
+                                     For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
 EOS
   end
 

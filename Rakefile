@@ -3,7 +3,7 @@ require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 require 'yard'
 
-task default: %i(rubocop spec)
+task default: %i(rubocop compile spec)
 
 RuboCop::RakeTask.new(:rubocop) do |task|
   task.patterns = ['lib/**/*.rb', 'spec/**/*.rb', 'bin/*']

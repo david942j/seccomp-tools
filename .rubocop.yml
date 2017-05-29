@@ -2,6 +2,12 @@ AllCops:
   DisplayCopNames: true
   DisplayStyleGuide: true
 
+Layout/EndOfLine:
+  EnforcedStyle: lf
+
+Layout/IndentHeredoc:
+  Enabled: false
+
 Metrics/AbcSize:
   Enabled: false
 
@@ -24,13 +30,7 @@ Metrics/MethodLength:
 Rails:
   Enabled: false
 
-Style/EndOfLine:
-  EnforcedStyle: lf
-
 Style/FileName:
-  Enabled: false
-
-Style/IndentHeredoc:
   Enabled: false
 
 Style/PercentLiteralDelimiters:

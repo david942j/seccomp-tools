@@ -2,12 +2,16 @@ module SeccompTools
   # Record syscall number, arguments.
   class Syscall
     # TODO: move to const.rb
-    PR_SET_SECCOMP = 22 # option set seccomp
-    SECCOMP_MODE_FILTER = 2 # filter mode
+
+    # option set seccomp
+    PR_SET_SECCOMP = 22
+    # filter mode
+    SECCOMP_MODE_FILTER = 2
     # TODO: how to build this table efficiently?
-    # Offset of +struct user+ in different arch.
+    #
+    # Offsets of +struct user+ in different arch.
     ABI = {
-      'x86_64' => { number: 120, args: [112, 104, 96, 56, 72, 44], SYS_prctl: 157 }
+      'amd64' => { number: 120, args: [112, 104, 96, 56, 72, 44], SYS_prctl: 157 }
     }.freeze
 
     attr_reader :abi, :number, :args

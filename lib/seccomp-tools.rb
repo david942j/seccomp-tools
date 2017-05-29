@@ -4,5 +4,5 @@
 module SeccompTools
 end
 
-require 'seccomp-tools/ptrace'
+require 'seccomp-tools/dumper'
 require 'seccomp-tools/version'

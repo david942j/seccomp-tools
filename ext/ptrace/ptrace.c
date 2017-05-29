@@ -4,6 +4,12 @@
 #include "ruby.h"
 
 static VALUE
+ptrace_peekdata(VALUE _mod, VALUE pid, VALUE addr, VALUE _data) {
+  long val = ptrace(PTRACE_PEEKDATA, NUM2LONG(pid), NUM2LONG(addr), NULL);
+  return LONG2NUM(val);  
+}
+
+static VALUE
 ptrace_peekuser(VALUE _mod, VALUE pid, VALUE off, VALUE _data) {
   long val = ptrace(PTRACE_PEEKUSER, NUM2LONG(pid), NUM2LONG(off), NULL);
   return LONG2NUM(val);  
@@ -42,6 +48,7 @@ void Init_ptrace(void) {
   VALUE mSeccompTools = rb_define_module("SeccompTools");
   VALUE mPtrace = rb_define_module_under(mSeccompTools, "Ptrace");
 
+  rb_define_module_function(mPtrace, "peekdata", ptrace_peekdata, 3);
   rb_define_module_function(mPtrace, "peekuser", ptrace_peekuser, 3);
   rb_define_module_function(mPtrace, "setoptions", ptrace_setoptions, 3);
   rb_define_module_function(mPtrace, "syscall", ptrace_syscall, 3);

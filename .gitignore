@@ -1,4 +1,6 @@
 *.gem
 *.so
-/tmp/
+/.yardoc/
 /coverage/
+/doc/
+/tmp/

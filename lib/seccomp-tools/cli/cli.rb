@@ -1,3 +1,4 @@
+require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/version'
 
@@ -6,7 +7,8 @@ module SeccompTools
   module CLI
     # Handled commands
     COMMANDS = {
-      'dump' => SeccompTools::CLI::Dump
+      'dump' => SeccompTools::CLI::Dump,
+      'disasm' => SeccompTools::CLI::Disasm
     }.freeze
 
     # Main usage message.
@@ -48,13 +50,23 @@ EOS
       COMMANDS[cmd].new(argv).handle
     end
 
+    # Just write message to stdout.
+    # @param [String] msg
+    #   The message.
+    # @return [false]
+    #   Always return +false+.
     def show(msg)
       puts msg
       false
     end
 
-    def invalid(cmd)
-      format("Invalid command '%s'\n\nSee 'seccomp-tools --help' for list of valid commands", cmd)
+    class << self
+      private
+
+      # Invalid command message.
+      def invalid(cmd)
+        format("Invalid command '%s'\n\nSee 'seccomp-tools --help' for list of valid commands", cmd)
+      end
     end
   end
 end

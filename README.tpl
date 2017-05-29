@@ -10,8 +10,8 @@ Provides powerful tools for seccomp analysis.
 
 ## Features
 * Automatically dump seccomp-bpf from binary.
-* (TODO) Convert bpf to more readable format than libseccomp/tools.
-* (TODO) Resolve constraints for syscalls (e.g. `execve/open/read/write`).
+* (WIP) Convert bpf to more readable format than libseccomp/tools.
+* (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * (TODO) Support multi-architecture.
 
 ## Installation
@@ -28,6 +28,13 @@ SHELL_OUTPUT_OF(seccomp-tools help dump)
 
 ### dump
 ```bash
+SHELL_OUTPUT_OF(file spec/binary/twctf-2016-diary)
+SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary)
 SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f inspect)
 SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
+```
+
+### disasm
+```bash
+SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```

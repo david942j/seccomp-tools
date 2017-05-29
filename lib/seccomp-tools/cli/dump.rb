@@ -1,25 +1,26 @@
 require 'shellwords'
 
 require 'seccomp-tools/cli/base'
+require 'seccomp-tools/disasm'
 require 'seccomp-tools/dumper'
 
 module SeccompTools
   module CLI
     # Handle 'dump' command.
     class Dump < Base
+      # Summary of this command.
       SUMMARY = 'Automatically dump seccomp bpf from execution file.'.freeze
+      # Usage of this command.
       USAGE = ('dump - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools dump [exec] [options]').freeze
 
-      def initialize(argv)
+      def initialize(*)
         super
         option[:format] = :disasm
         option[:limit] = 1
       end
 
-      def usage
-        USAGE
-      end
-
+      # Define option parser.
+      # @return [OptionParser]
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
@@ -49,6 +50,8 @@ module SeccompTools
         end
       end
 
+      # Handle options.
+      # @return [void]
       def handle
         return unless super
         option[:command] = argv.shift unless argv.empty?
@@ -56,28 +59,9 @@ module SeccompTools
           case option[:format]
           when :inspect then output('"' + bpf.bytes.map { |b| format('\\x%02X', b) }.join + "\"\n")
           when :raw then output(bpf)
-          when :disasm then nil # TODO: output(SeccompTools::Disasm.disasm(bpf))
+          when :disasm then output(SeccompTools::Disasm.disasm(bpf))
           end
         end
-      end
-
-      private
-
-      # Write data to stdout or file(s).
-      def output(data)
-        # if file name not present, just output to stdout.
-        return $stdout.write(data) if option[:ofile].nil?
-        # times of calling output
-        @serial ||= 0
-        IO.binwrite(file_of(option[:ofile], @serial), data)
-        @serial += 1
-      end
-
-      def file_of(file, serial)
-        suffix = serial.zero? ? '' : "_#{serial}"
-        ext = File.extname(file)
-        base = File.basename(file, ext)
-        File.join(File.dirname(file), base + suffix) + ext
       end
     end
   end

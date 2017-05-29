@@ -7,6 +7,7 @@ Usage: seccomp-tools [--version] [--help] <command> [<options>]
 
 These are list of commands:
 	dump	Automatically dump seccomp bpf from execution file.
+	disasm	Disassembly seccomp bpf.
 
 See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about a specific subcommand.
     EOS
@@ -32,6 +33,15 @@ Usage: seccomp-tools dump [exec] [options]
                                      If multiple seccomp syscalls have been invoked (see --limit),
                                      results will be written to FILE, FILE_1, FILE_2.. etc.
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+EOS
+  end
+
+  it 'help disasm' do
+    expect { described_class.work(%w[help disasm]) }.to output(<<EOS).to_stdout
+disasm - Disassembly seccomp bpf.
+
+Usage: seccomp-tools disasm BPF_FILE [options]
+    -o, --output FILE                Output result into FILE instead of stdout.
 EOS
   end
 

@@ -10,8 +10,8 @@ Provides powerful tools for seccomp analysis.
 
 ## Features
 * Automatically dump seccomp-bpf from binary.
-* (TODO) Convert bpf to more readable format than libseccomp/tools.
-* (TODO) Resolve constraints for syscalls (e.g. `execve/open/read/write`).
+* (WIP) Convert bpf to more readable format than libseccomp/tools.
+* (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * (TODO) Support multi-architecture.
 
 ## Installation
@@ -27,6 +27,7 @@ Usage: seccomp-tools [--version] [--help] <command> [<options>]
 
 These are list of commands:
 	dump	Automatically dump seccomp bpf from execution file.
+	disasm	Disassembly seccomp bpf.
 
 See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about a specific subcommand.
 
@@ -50,6 +51,31 @@ Usage: seccomp-tools dump [exec] [options]
 
 ### dump
 ```bash
+$ file spec/binary/twctf-2016-diary
+spec/binary/twctf-2016-diary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, BuildID[sha1]=3648e29153ac0259a0b7c3e25537a5334f50107f, not stripped
+
+$ seccomp-tools dump spec/binary/twctf-2016-diary
+ line  OP   JT   JF   K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000
+ 0001: 0x15 0x00 0x01 0x00000002
+ 0002: 0x06 0x00 0x00 0x00000000
+ 0003: 0x15 0x00 0x01 0x00000101
+ 0004: 0x06 0x00 0x00 0x00000000
+ 0005: 0x15 0x00 0x01 0x0000003b
+ 0006: 0x06 0x00 0x00 0x00000000
+ 0007: 0x15 0x00 0x01 0x00000038
+ 0008: 0x06 0x00 0x00 0x00000000
+ 0009: 0x15 0x00 0x01 0x00000039
+ 0010: 0x06 0x00 0x00 0x00000000
+ 0011: 0x15 0x00 0x01 0x0000003a
+ 0012: 0x06 0x00 0x00 0x00000000
+ 0013: 0x15 0x00 0x01 0x00000055
+ 0014: 0x06 0x00 0x00 0x00000000
+ 0015: 0x15 0x00 0x01 0x00000142
+ 0016: 0x06 0x00 0x00 0x00000000
+ 0017: 0x06 0x00 0x00 0x7fff0000
+
 $ seccomp-tools dump spec/binary/twctf-2016-diary -f inspect
 "\x20\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x02\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3B\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x38\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x39\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3A\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x55\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x42\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F"
 
@@ -63,5 +89,31 @@ $ seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd
 00000060: 0600 0000 0000 0000 1500 0001 5500 0000  ............U...
 00000070: 0600 0000 0000 0000 1500 0001 4201 0000  ............B...
 00000080: 0600 0000 0000 0000 0600 0000 0000 ff7f  ................
+
+```
+
+### disasm
+```bash
+$ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
+ line  OP   JT   JF   K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000
+ 0001: 0x15 0x00 0x01 0x00000002
+ 0002: 0x06 0x00 0x00 0x00000000
+ 0003: 0x15 0x00 0x01 0x00000101
+ 0004: 0x06 0x00 0x00 0x00000000
+ 0005: 0x15 0x00 0x01 0x0000003b
+ 0006: 0x06 0x00 0x00 0x00000000
+ 0007: 0x15 0x00 0x01 0x00000038
+ 0008: 0x06 0x00 0x00 0x00000000
+ 0009: 0x15 0x00 0x01 0x00000039
+ 0010: 0x06 0x00 0x00 0x00000000
+ 0011: 0x15 0x00 0x01 0x0000003a
+ 0012: 0x06 0x00 0x00 0x00000000
+ 0013: 0x15 0x00 0x01 0x00000055
+ 0014: 0x06 0x00 0x00 0x00000000
+ 0015: 0x15 0x00 0x01 0x00000142
+ 0016: 0x06 0x00 0x00 0x00000000
+ 0017: 0x06 0x00 0x00 0x7fff0000
 
 ```

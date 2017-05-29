@@ -45,11 +45,12 @@ EOS
         argv = %w[--help]
       end
       return show(invalid(cmd)) if COMMANDS[cmd].nil?
-      COMMANDS[cmd].new.handle(argv)
+      COMMANDS[cmd].new(argv).handle
     end
 
     def show(msg)
       puts msg
+      false
     end
 
     def invalid(cmd)

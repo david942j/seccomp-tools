@@ -18,8 +18,11 @@ See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about
 
   it 'command' do
     expect { described_class.work(%w[help dump]) }.to output(<<EOS).to_stdout
-Usage: seccomp-tools dump -c exec [options]
-    -e, --exec <command>             Executes the given command
+Usage: seccomp-tools dump [exec] [options]
+    -e, --exec <command>             Executes the given command.
+                                     Use this option if want to pass arguments to target process.
+    -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
+                                     Default: disasm
 EOS
   end
 

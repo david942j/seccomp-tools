@@ -16,8 +16,8 @@ module SeccompTools
 
     attr_reader :abi, :number, :args
     def initialize(arch)
-      raise ArgumentError unless block_given?
-      raise ArgumentError("Only supports #{ABI.keys.join(', ')}") if ABI[arch].nil?
+      raise ArgumentError, 'Block must be given' unless block_given?
+      raise ArgumentError, "Only supports #{ABI.keys.join(', ')}" if ABI[arch].nil?
       @arch = arch
       @abi = ABI[arch]
       @number = yield(abi[:number])

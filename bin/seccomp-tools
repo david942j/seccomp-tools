@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+require 'seccomp-tools/cli/cli'
+
+SeccompTools::CLI.work(ARGV)

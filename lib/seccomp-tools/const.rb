@@ -70,7 +70,7 @@ module SeccompTools
         lsh: 0x60,
         rsh: 0x70,
         neg: 0x80,
-        mod: 0x90,
+        # mod: 0x90, # not support
         xor: 0xa0
       }.freeze
 

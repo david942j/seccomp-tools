@@ -12,6 +12,7 @@ module SeccompTools
         # jt == 0 => if(!) goto jf
         # jf == 0 => if() goto jt;
         # otherwise => if () goto jt; else goto jf;
+        return '/* no-op */' if jt.zero? && jf.zero?
         return if_str + goto(jt) + ' else ' + goto(jf) unless jt.zero? || jf.zero?
         return if_str + goto(jt) if jf.zero?
         if_str(true) + goto(jf)
@@ -22,8 +23,8 @@ module SeccompTools
       def jop
         case Const::BPF::JMP.invert[code & 0x70]
         when :ja then :none
-        when :jgt then :>=
-        when :jge then :>
+        when :jgt then :>
+        when :jge then :>=
         when :jeq then :==
         when :jset then :&
         else invalid

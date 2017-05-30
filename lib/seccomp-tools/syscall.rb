@@ -1,12 +1,8 @@
+require 'seccomp-tools/const'
+
 module SeccompTools
   # Record syscall number, arguments.
   class Syscall
-    # TODO: move to const.rb
-
-    # option set seccomp
-    PR_SET_SECCOMP = 22
-    # filter mode
-    SECCOMP_MODE_FILTER = 2
     # TODO: how to build this table efficiently?
     #
     # Offsets of +struct user+ in different arch.
@@ -27,7 +23,7 @@ module SeccompTools
     # Is this a +prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, addr)+ syscall?
     def set_seccomp?
       # TODO: handle SECCOMP_MODE_STRICT
-      number == abi[:SYS_prctl] && args[0] == PR_SET_SECCOMP && args[1] == SECCOMP_MODE_FILTER
+      number == abi[:SYS_prctl] && args[0] == Const::BPF::PR_SET_SECCOMP && args[1] == Const::BPF::SECCOMP_MODE_FILTER
     end
   end
 end

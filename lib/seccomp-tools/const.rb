@@ -3,6 +3,15 @@ module SeccompTools
   module Const
     # For BPF / seccomp.
     module BPF
+      # sizeof(struct seccomp_data)
+      SIZEOF_SECCOMP_DATA = 64
+
+      # option set seccomp
+      PR_SET_SECCOMP = 22
+
+      # filter mode
+      SECCOMP_MODE_FILTER = 2
+
       # bpf command classes
       COMMAND = {
         ld:   0x0,
@@ -27,7 +36,8 @@ module SeccompTools
       # register
       SRC = {
         k: 0x0,
-        x: 0x8
+        x: 0x8,
+        a: 0x10
       }.freeze
 
       # seccomp action values
@@ -39,13 +49,6 @@ module SeccompTools
         ALLOW: 0x7fff0000
       }.freeze
 
-      # word / short / byte
-      SIZE = {
-        w: 0x00,
-        h: 0x08,
-        b: 0x10
-      }.freeze
-
       # mode used in ld / ldx
       MODE = {
         imm: 0x00,
@@ -54,6 +57,27 @@ module SeccompTools
         mem: 0x60,
         len: 0x80,
         msh: 0xa0
+      }.freeze
+
+      # operation for alu
+      OP = {
+        add: 0x00,
+        sub: 0x10,
+        mul: 0x20,
+        div: 0x30,
+        or:  0x40,
+        and: 0x50,
+        lsh: 0x60,
+        rsh: 0x70,
+        neg: 0x80,
+        mod: 0x90,
+        xor: 0xa0
+      }.freeze
+
+      # operation for misc
+      MISCOP = {
+        tax: 0x00,
+        txa: 0x80
       }.freeze
     end
   end

@@ -31,11 +31,16 @@ module SeccompTools
 
     # @return [String]
     def decompile
-      {
-        jmp: SeccompTools::Instruction::JMP,
-        ld: SeccompTools::Instruction::LD,
-        ret: SeccompTools::Instruction::RET
-      }[command].new(self).decompile
+      case command
+      when :alu  then SeccompTools::Instruction::ALU
+      when :jmp  then SeccompTools::Instruction::JMP
+      when :ld   then SeccompTools::Instruction::LD
+      when :ldx  then SeccompTools::Instruction::LDX
+      when :misc then SeccompTools::Instruction::MISC
+      when :ret  then SeccompTools::Instruction::RET
+      when :st   then SeccompTools::Instruction::ST
+      when :stx  then SeccompTools::Instruction::STX
+      end.new(self).decompile
     end
   end
 end

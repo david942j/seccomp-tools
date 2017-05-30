@@ -6,20 +6,26 @@ module SeccompTools
     class LD < Base
       # Decompile instruction.
       def decompile
-        ret = 'A = '
+        ret = reg + ' = '
         return ret + k.to_s if mode == :imm
         return ret + "mem[#{k}]" if mode == :mem
         # what happend if len with BPF_B ?
-        return ret + 'len(data)' if mode == :len # TODO: this is a constant
-        # TODO: convert data[] to struct seccomp_data
-        ret + cast + seccomp_data_str
+        return ret + SIZEOF_SECCOMP_DATA.to_s if mode == :len
+        ret + seccomp_data_str
+      end
+
+      # Accumulator register.
+      # @return ['A']
+      def reg
+        'A'
       end
 
       private
 
       def mode
         @mode ||= MODE.invert[code & 0xe0]
-        invalid if @mode.nil?
+        # Seccomp doesn't support this mode
+        invalid if @mode.nil? || @mode == :ind
         @mode
       end
 
@@ -30,7 +36,6 @@ module SeccompTools
       #   __u64 args[6];
       # };
       def seccomp_data_str
-        return "data[X + #{k}]" if mode == :ind
         case k
         when 0 then 'sys_number'
         when 4 then 'arch'

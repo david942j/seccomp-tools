@@ -22,18 +22,6 @@ module SeccompTools
       def invalid
         raise ArgumentError, "Line #{line} is invalid"
       end
-
-      # Seems seccomp not allows load short/byte,
-      # but let's still support to figure out it.
-      # @return [Symbol]
-      def cast
-        case SIZE.invert[code & 0x18]
-        when :w then '' # word, no need cast
-        when :h then '(u16)'
-        when :b then '(u8)'
-        else invalid
-        end
-      end
     end
   end
 end

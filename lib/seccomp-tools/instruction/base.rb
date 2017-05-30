@@ -19,8 +19,8 @@ module SeccompTools
       end
 
       # @raise [ArgumentError]
-      def invalid
-        raise ArgumentError, "Line #{line} is invalid"
+      def invalid(msg = 'unknown')
+        raise ArgumentError, "Line #{line} is invalid: #{msg}"
       end
     end
   end

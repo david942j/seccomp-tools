@@ -3,14 +3,10 @@
 require 'seccomp-tools/disasm'
 
 describe SeccompTools::Disasm do
-  before do
-    @bpf = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
-    @all = IO.binread(File.join(__dir__, 'data', 'all_inst.bpf'))
-  end
-
   it 'normal' do
-    expect(described_class.disasm(@bpf)).to eq <<EOS
- line  OP   JT   JF   K
+    bpf = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
+    expect(described_class.disasm(bpf)).to eq <<EOS
+ line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
  0001: 0x15 0x00 0x01 0x00000002  if (A != 2) goto 0003
@@ -33,9 +29,10 @@ describe SeccompTools::Disasm do
 EOS
   end
 
-  it 'all instruction' do
-    expect(described_class.disasm(@all)).to eq <<EOS
- line  OP   JT   JF   K
+  it 'all instructions' do
+    bpf = IO.binread(File.join(__dir__, 'data', 'all_inst.bpf'))
+    expect(described_class.disasm(bpf)).to eq <<EOS
+ line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
  0001: 0x20 0x00 0x00 0x00000004  A = arch
@@ -87,5 +84,22 @@ EOS
  0047: 0x45 0x08 0x9b 0x0000004d  if (A & 77) goto 0056 else goto 0203
  0048: 0x4d 0x1a 0x61 0x000000bf  if (A & X) goto 0075 else goto 0146
 EOS
+  end
+
+  it 'else jmp' do
+    bpf = [0x15, 0x25, 0x35, 0x45].map { |c| c.chr + "\x00\x00\x01\x00\x00\x00\x00" }.join
+    expect(described_class.disasm(bpf)).to eq(<<EOS)
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x15 0x00 0x01 0x00000000  if (A != 0) goto 0002
+ 0001: 0x25 0x00 0x01 0x00000000  if (A <= 0) goto 0003
+ 0002: 0x35 0x00 0x01 0x00000000  if (A < 0) goto 0004
+ 0003: 0x45 0x00 0x01 0x00000000  if (!(A & 0)) goto 0005
+EOS
+  end
+
+  it 'invalid jmp' do
+    expect { described_class.disasm(0x55.chr + "\x00" * 7) }.to raise_error(ArgumentError,
+                                                                            'Line 0 is invalid: unknown jmp type')
   end
 end

@@ -16,7 +16,7 @@ module SeccompTools
 
       def op
         o = MISCOP.invert[code & 0xf8]
-        invalid if o.nil?
+        invalid('MISC operation only supports txa/tax') if o.nil?
         o
       end
     end

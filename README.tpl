@@ -9,8 +9,10 @@
 Provides powerful tools for seccomp analysis.
 
 ## Features
-* Automatically dump seccomp-bpf from binary.
-* (WIP) Convert bpf to more readable format than libseccomp/tools.
+* Dump - Automatically dump seccomp-bpf from binary.
+* Disasm - (WIP) Convert bpf to human readable format.
+  - Simple decompile.
+  - (TODO) Show syscall names.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * (TODO) Support multi-architecture.
 
@@ -21,12 +23,19 @@ Provides powerful tools for seccomp analysis.
 ## Command Line Interface
 
 ### seccomp-tools
+
+All commands start from `seccomp-tools`.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools)
 SHELL_OUTPUT_OF(seccomp-tools help dump)
 ```
 
 ### dump
+
+Dump the seccomp bpf from a execution file.
+This work is done by the `ptrace` syscall.
+
+NOTICE: beware of the execution file will be executed.
 ```bash
 SHELL_OUTPUT_OF(file spec/binary/twctf-2016-diary)
 SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary)
@@ -35,6 +44,8 @@ SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
 ```
 
 ### disasm
+
+Disassemble the seccomp bpf.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```

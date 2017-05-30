@@ -27,7 +27,7 @@ module SeccompTools
         when :jge then :>=
         when :jeq then :==
         when :jset then :&
-        else invalid
+        else invalid('unknown jmp type')
         end
       end
 
@@ -46,7 +46,6 @@ module SeccompTools
              when :>= then :<
              when :> then :<=
              when :== then :!=
-             else invalid
              end
         "if (A #{op} #{src_str}) "
       end

@@ -14,7 +14,7 @@ module SeccompTools
 
       def op
         o = OP.invert[code & 0xf0]
-        invalid if o.nil?
+        invalid('unknown op') if o.nil?
         o
       end
 
@@ -31,7 +31,6 @@ module SeccompTools
         # when :neg then :- # should not invoke this method
         # when :mod then :% # unsupported
         when :xor then :^
-        else invalid
         end
       end
 

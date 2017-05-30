@@ -9,8 +9,10 @@
 Provides powerful tools for seccomp analysis.
 
 ## Features
-* Automatically dump seccomp-bpf from binary.
-* (WIP) Convert bpf to more readable format than libseccomp/tools.
+* Dump - Automatically dump seccomp-bpf from binary.
+* Disasm - (WIP) Convert bpf to human readable format.
+  - Simple decompile.
+  - (TODO) Show syscall names.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * (TODO) Support multi-architecture.
 
@@ -21,6 +23,8 @@ Provides powerful tools for seccomp analysis.
 ## Command Line Interface
 
 ### seccomp-tools
+
+All commands start from `seccomp-tools`.
 ```bash
 $ seccomp-tools
 Usage: seccomp-tools [--version] [--help] <command> [<options>]
@@ -50,12 +54,17 @@ Usage: seccomp-tools dump [exec] [options]
 ```
 
 ### dump
+
+Dump the seccomp bpf from a execution file.
+This work is done by the `ptrace` syscall.
+
+NOTICE: beware of the execution file will be executed.
 ```bash
 $ file spec/binary/twctf-2016-diary
 spec/binary/twctf-2016-diary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, BuildID[sha1]=3648e29153ac0259a0b7c3e25537a5334f50107f, not stripped
 
 $ seccomp-tools dump spec/binary/twctf-2016-diary
- line  OP   JT   JF   K
+ line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
  0001: 0x15 0x00 0x01 0x00000002  if (A != 2) goto 0003
@@ -93,9 +102,11 @@ $ seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd
 ```
 
 ### disasm
+
+Disassemble the seccomp bpf.
 ```bash
 $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
- line  OP   JT   JF   K
+ line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
  0001: 0x15 0x00 0x01 0x00000002  if (A != 2) goto 0003

@@ -13,7 +13,7 @@ module SeccompTools
     def disasm(bpf)
       codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, i) }
       <<EOS + codes.map(&:disasm).join("\n") + "\n"
- line  OP   JT   JF   K
+ line  CODE  JT   JF      K
 =================================
 EOS
     end

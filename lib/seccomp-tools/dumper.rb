@@ -38,7 +38,6 @@ module SeccompTools
 
     # Do the tracer things.
     class Handler
-      attr_reader :pid
       def initialize(pid)
         @pid = pid
       end
@@ -52,21 +51,29 @@ module SeccompTools
       # @return [Array<Object>, Array<String>]
       #   Return the block returned. If block is not given, array of raw bytes will be returned.
       def handle(limit, &block)
-        Process.waitpid(pid)
-        SeccompTools::Ptrace.setoptions(pid, 0, 1) # TODO: PTRACE_O_TRACESYSGOOD
+        Process.waitpid(@pid)
+        SeccompTools::Ptrace.setoptions(@pid, 0, 1 | 2 | 4 | 8) # TODO: PTRACE_O_TRACESYSGOOD ..
+        SeccompTools::Ptrace.syscall(@pid, 0, 0)
         collect = []
-        loop do
-          break unless wait_syscall
-          sys = syscall
-          break unless wait_syscall
+        status = {}
+        loop while wait_syscall do |child|
+          if status[child].nil? # invoke syscall
+            status[child] = syscall(child)
+            next true
+          end
+          # syscall finished
+          sys = status[child]
+          status[child] = nil
           # TODO: maybe the prctl(SET_SECCOMP) call failed?
-          next unless sys.set_seccomp?
-          bpf = dump_bpf(sys.args[2])
-          collect << (block.nil? ? bpf : yield(bpf))
-          limit -= 1
-          break if limit.zero?
+          if sys.set_seccomp?
+            bpf = dump_bpf(child, sys.args[2])
+            collect << (block.nil? ? bpf : yield(bpf))
+            limit -= 1
+            next false if limit.zero?
+          end
+          true
         end
-        Process.kill('KILL', pid) if alive?
+        status.keys.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
         collect
       end
 
@@ -75,30 +82,37 @@ module SeccompTools
       # @return [Boolean]
       #   Return +false+ if and only if child exited.
       def wait_syscall
-        loop do
-          SeccompTools::Ptrace.syscall(pid, 0, 0)
-          _, status = Process.waitpid2(pid)
-          return true if status.stopped? && status.stopsig & 0x80 != 0
-          return false if status.exited?
+        child, status = Process.wait2
+        cont = true
+        if status >> 16 == 1 # PTRACE_EVENT_FORK
+          newpid = SeccompTools::Ptrace.geteventmsg(child)
+          Process.waitpid(newpid)
+          SeccompTools::Ptrace.syscall(newpid, 0, 0)
+        elsif status.stopped? && status.stopsig & 0x80 != 0
+          cont = yield(child)
         end
+        SeccompTools::Ptrace.syscall(child, 0, 0) unless status.exited?
+        return cont
+      rescue Errno::ECHILD
+        return false
       end
 
       # @return [SeccompTools::Syscall]
-      def syscall
+      def syscall(pid)
         SeccompTools::Syscall.new('amd64') do |offset|
           Ptrace.peekuser(pid, offset, 0)
         end
       end
 
       # Dump bpf from addr.
-      def dump_bpf(addr)
+      def dump_bpf(pid, addr)
         len = Ptrace.peekdata(pid, addr, 0) & 0xffff # len is unsigned short
         # TODO: Use __buildin_offset instead of hardcode
         filter = Ptrace.peekdata(pid, addr + 8, 0)
         Array.new(len) { |i| Ptrace.peekdata(pid, filter + i * 8, 0) }.pack('Q*')
       end
 
-      def alive?
+      def alive?(pid)
         Process.getpgid(pid)
         true
       rescue Errno::ESRCH

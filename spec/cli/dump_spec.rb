@@ -7,6 +7,7 @@ describe SeccompTools::CLI::Dump do
   before do
     @binpath = File.join(__dir__, '..', 'binary')
     @bin = File.join(@binpath, 'twctf-2016-diary')
+    @mul = File.join(@binpath, 'clone_two_seccomp')
     @bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
   end
 
@@ -18,10 +19,18 @@ EOS
   end
 
   it 'output to file' do
-    # TODO: output to files
     tmp = File.join('/tmp', SecureRandom.hex)
-    described_class.new([@bin, '-f', 'raw', '-o', tmp]).handle
-    expect(IO.binread(tmp).size).to be 144
+    described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '-1']).handle
+    c0 = IO.binread(tmp)
+    c1 = IO.binread(tmp + '_1')
     FileUtils.rm(tmp)
+    FileUtils.rm(tmp + '_1')
+    expect(c0.size).to be 16
+    expect(c1.size).to be 8
+  end
+
+  it 'wrap with sh' do
+    out = SeccompTools::Disasm.disasm(@bpf)
+    expect { described_class.new(['-e', "/bin/sh -c #{@bin}"]).handle }.to output(out).to_stdout
   end
 end

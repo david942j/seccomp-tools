@@ -15,10 +15,11 @@ module SeccompTools
     USAGE = <<EOS.sub('%COMMANDS', COMMANDS.map { |k, v| "\t#{k}\t#{v::SUMMARY}" }.join("\n")).freeze
 Usage: seccomp-tools [--version] [--help] <command> [<options>]
 
-These are list of commands:
+List of commands:
+
 %COMMANDS
 
-See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about a specific subcommand.
+See 'seccomp-tools --help <command>' to read about a specific subcommand.
 EOS
 
     module_function
@@ -33,19 +34,18 @@ EOS
     #   work(argv: %w[--version])
     #   #=> # version message
     def work(argv)
+      # all -h equivalent to --help
+      argv = argv.map { |a| a == '-h' ? '--help' : a }
       idx = argv.index { |c| !c.start_with?('-') }
       preoption = idx.nil? ? argv.shift(argv.size) : argv.shift(idx)
 
       # handle --version or --help or nothing
       return show("SeccompTools Version #{SeccompTools::VERSION}") if preoption.include?('--version')
-      return show(USAGE) if preoption.include?('--help') || idx.nil?
+      return show(USAGE) if idx.nil?
 
       # let's handle commands
       cmd = argv.shift
-      if cmd == 'help' # special case
-        cmd = argv.shift
-        argv = %w[--help]
-      end
+      argv = %w[--help] if preoption.include?('--help')
       return show(invalid(cmd)) if COMMANDS[cmd].nil?
       COMMANDS[cmd].new(argv).handle
     end

@@ -5,8 +5,11 @@
 [![Inline docs](https://inch-ci.org/github/david942j/seccomp-tools.svg?branch=master)](https://inch-ci.org/github/david942j/seccomp-tools)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://choosealicense.com/licenses/mit/)
 
-# seccomp-tools
+# Seccomp Tools
 Provides powerful tools for seccomp analysis.
+
+This project is targeted to (but not limited to) analyze seccomp sandbox in CTF pwn challenges.
+Some features might be CTF-specific, but still useful for analysis of seccomp in real-case.
 
 ## Features
 * Dump - Automatically dump seccomp-bpf from binary.
@@ -18,16 +21,16 @@ Provides powerful tools for seccomp analysis.
 
 ## Installation
 
+Will be available on RubyGems.org!
 (TODO)
 
 ## Command Line Interface
 
 ### seccomp-tools
 
-All commands start from `seccomp-tools`.
 ```bash
-SHELL_OUTPUT_OF(seccomp-tools)
-SHELL_OUTPUT_OF(seccomp-tools help dump)
+SHELL_OUTPUT_OF(seccomp-tools --help)
+SHELL_OUTPUT_OF(seccomp-tools --help dump)
 ```
 
 ### dump
@@ -49,3 +52,8 @@ Disassemble the seccomp bpf.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```
+
+## I Need You
+Any suggestion or feature request is welcome!
+Feel free to file an issue or send a pull request.
+And, if you like this work, I'll be happy to be [stared](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:

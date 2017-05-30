@@ -5,11 +5,12 @@ describe SeccompTools::CLI do
     @usage = <<-EOS
 Usage: seccomp-tools [--version] [--help] <command> [<options>]
 
-These are list of commands:
+List of commands:
+
 	dump	Automatically dump seccomp bpf from execution file.
 	disasm	Disassembly seccomp bpf.
 
-See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about a specific subcommand.
+See 'seccomp-tools --help <command>' to read about a specific subcommand.
     EOS
   end
 
@@ -17,8 +18,8 @@ See 'seccomp-tools help <command>' or 'seccomp-tools <command> -h' to read about
     expect { described_class.work([]) }.to output(@usage).to_stdout
   end
 
-  it 'help dump' do
-    expect { described_class.work(%w[help dump]) }.to output(<<EOS).to_stdout
+  it '--help dump' do
+    expect { described_class.work(%w[--help dump]) }.to output(<<EOS).to_stdout
 dump - Automatically dump seccomp bpf from execution file.
 
 Usage: seccomp-tools dump [exec] [options]
@@ -37,7 +38,7 @@ EOS
   end
 
   it 'help disasm' do
-    expect { described_class.work(%w[help disasm]) }.to output(<<EOS).to_stdout
+    expect { described_class.work(%w[disasm --help]) }.to output(<<EOS).to_stdout
 disasm - Disassembly seccomp bpf.
 
 Usage: seccomp-tools disasm BPF_FILE [options]
@@ -46,7 +47,7 @@ EOS
   end
 
   it 'invalid' do
-    expect { described_class.work(%w[help qqpie]) }.to output(<<EOS).to_stdout
+    expect { described_class.work(%w[qqpie --help]) }.to output(<<EOS).to_stdout
 Invalid command 'qqpie'
 
 See 'seccomp-tools --help' for list of valid commands

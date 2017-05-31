@@ -1,5 +1,3 @@
-require 'shellwords'
-
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm'
 require 'seccomp-tools/dumper'
@@ -24,8 +22,8 @@ module SeccompTools
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
-          opt.on('-e', '--exec <command>', 'Executes the given command.',
-                 'Use this option if want to pass arguments to the execution file.') do |command|
+          opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh).',
+                 'Use this option if want to pass arguments or do pipe things to the execution file.') do |command|
             option[:command] = command
           end
 
@@ -55,7 +53,7 @@ module SeccompTools
       def handle
         return unless super
         option[:command] = argv.shift unless argv.empty?
-        SeccompTools::Dumper.dump(*Shellwords.split(option[:command]), limit: option[:limit]) do |bpf|
+        SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit]) do |bpf|
           case option[:format]
           when :inspect then output('"' + bpf.bytes.map { |b| format('\\x%02X', b) }.join + "\"\n")
           when :raw then output(bpf)

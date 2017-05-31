@@ -30,9 +30,9 @@ EOS
     expect(c1.size).to be 8
   end
 
-  it 'wrap with sh' do
+  it 'close stdin' do
     out = SeccompTools::Disasm.disasm(@bpf)
-    argv = ['-e', "/bin/sh -c '#{@bin} < /dev/null'", '--limit', '-1']
+    argv = ['-c', "echo 0|#{@bin}", '--limit', '-1']
     expect { described_class.new(argv).handle }.to output(out).to_stdout
   end
 end

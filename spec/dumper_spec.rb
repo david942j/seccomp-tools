@@ -24,10 +24,15 @@ describe SeccompTools::Dumper do
       end
     end
 
-    context 'no seccomp' do
-      it 'ls' do
-        expect(described_class.dump('ls', '-lh')).to be_empty
+    context 'clone_two_seccomp' do
+      it 'check' do
+        @bin = File.join(@binpath, 'clone_two_seccomp')
+        expect(described_class.dump(@bin, limit: -1).size).to be 2
       end
+    end
+
+    context 'no seccomp' do
+      it { expect(described_class.dump('ls', '-lh')).to be_empty }
     end
 
     context 'no such binary' do

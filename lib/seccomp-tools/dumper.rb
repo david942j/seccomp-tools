@@ -17,7 +17,7 @@ module SeccompTools
     #   Set +limit+ to the number of calling +prctl(SET_SECCOMP)+ then the child process will be killed when number of
     #   calling +prctl+ reaches +limit+.
     #
-    #   Negative number or zero for unlimited.
+    #   Negative number for unlimited.
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
     # @return [Array<Object>, Array<String>]
@@ -65,14 +65,12 @@ module SeccompTools
           # syscall finished
           sys = syscalls[child]
           syscalls[child] = nil
-          # TODO: maybe the prctl(SET_SECCOMP) call failed?
-          if sys.set_seccomp?
+          if sys.set_seccomp? && syscall(child).ret.zero? # consider successful call only
             bpf = dump_bpf(child, sys.args[2])
             collect << (block.nil? ? bpf : yield(bpf))
             limit -= 1
-            next false if limit.zero?
           end
-          true
+          !limit.zero?
         end
         syscalls.keys.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
         collect

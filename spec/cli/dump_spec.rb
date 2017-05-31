@@ -19,7 +19,7 @@ EOS
     expect { described_class.new([@bin]).handle }.to output(SeccompTools::Disasm.disasm(@bpf)).to_stdout
   end
 
-  it 'output to file' do
+  it 'output to files' do
     tmp = File.join('/tmp', SecureRandom.hex)
     described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '2']).handle
     c0 = IO.binread(tmp)

@@ -52,18 +52,19 @@ module SeccompTools
       #   Return the block returned. If block is not given, array of raw bytes will be returned.
       def handle(limit, &block)
         Process.waitpid(@pid)
-        SeccompTools::Ptrace.setoptions(@pid, 0, 1 | 2 | 4 | 8) # TODO: PTRACE_O_TRACESYSGOOD ..
-        SeccompTools::Ptrace.syscall(@pid, 0, 0)
+        opt = Ptrace::O_TRACESYSGOOD | Ptrace::O_TRACECLONE | Ptrace::O_TRACEFORK | Ptrace::O_TRACEVFORK
+        Ptrace.setoptions(@pid, 0, opt)
+        Ptrace.syscall(@pid, 0, 0)
         collect = []
-        status = {}
+        syscalls = {} # record last syscall
         loop while wait_syscall do |child|
-          if status[child].nil? # invoke syscall
-            status[child] = syscall(child)
+          if syscalls[child].nil? # invoke syscall
+            syscalls[child] = syscall(child)
             next true
           end
           # syscall finished
-          sys = status[child]
-          status[child] = nil
+          sys = syscalls[child]
+          syscalls[child] = nil
           # TODO: maybe the prctl(SET_SECCOMP) call failed?
           if sys.set_seccomp?
             bpf = dump_bpf(child, sys.args[2])
@@ -73,25 +74,27 @@ module SeccompTools
           end
           true
         end
-        status.keys.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
+        syscalls.keys.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
         collect
       end
 
       private
 
+      # @yieldparam [Integer] pid
       # @return [Boolean]
-      #   Return +false+ if and only if child exited.
+      #   +true+ for continue,
+      #   +false+ for break.
       def wait_syscall
         child, status = Process.wait2
         cont = true
-        if status >> 16 == 1 # PTRACE_EVENT_FORK
-          newpid = SeccompTools::Ptrace.geteventmsg(child)
-          Process.waitpid(newpid)
-          SeccompTools::Ptrace.syscall(newpid, 0, 0)
+        # TODO: Test if clone / vfork works
+        if [Ptrace::EVENT_CLONE, Ptrace::EVENT_FORK, Ptrace::EVENT_VFORK].include?(status >> 16)
+          # New child launched!
+          # newpid = SeccompTools::Ptrace.geteventmsg(child)
         elsif status.stopped? && status.stopsig & 0x80 != 0
           cont = yield(child)
         end
-        SeccompTools::Ptrace.syscall(child, 0, 0) unless status.exited?
+        Ptrace.syscall(child, 0, 0) unless status.exited?
         return cont
       rescue Errno::ECHILD
         return false
@@ -124,9 +127,11 @@ module SeccompTools
       private
 
       def handle_child(*args)
-        SeccompTools::Ptrace.traceme_and_stop
+        Ptrace.traceme_and_stop
         exec(*args)
       rescue # exec fail
+        # TODO: use logger
+        $stderr.puts("Failed to execute #{args.join(' ')}")
         exit(1)
       end
     end

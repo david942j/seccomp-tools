@@ -7,7 +7,7 @@ static VALUE
 ptrace_geteventmsg(VALUE _mod, VALUE pid) {
   unsigned long val;
   ptrace(PTRACE_GETEVENTMSG, NUM2LONG(pid), NULL, &val);
-  return LONG2NUM(val);  
+  return ULONG2NUM(val);  
 }
 
 static VALUE
@@ -55,6 +55,16 @@ void Init_ptrace(void) {
   VALUE mSeccompTools = rb_define_module("SeccompTools");
   VALUE mPtrace = rb_define_module_under(mSeccompTools, "Ptrace");
 
+  /* consts */
+  rb_define_const(mPtrace, "EVENT_CLONE", UINT2NUM(PTRACE_EVENT_CLONE));
+  rb_define_const(mPtrace, "EVENT_FORK", UINT2NUM(PTRACE_EVENT_FORK));
+  rb_define_const(mPtrace, "EVENT_VFORK", UINT2NUM(PTRACE_EVENT_VFORK));
+  rb_define_const(mPtrace, "O_TRACECLONE", UINT2NUM(PTRACE_O_TRACECLONE));
+  rb_define_const(mPtrace, "O_TRACEFORK", UINT2NUM(PTRACE_O_TRACEFORK));
+  rb_define_const(mPtrace, "O_TRACESYSGOOD", UINT2NUM(PTRACE_O_TRACESYSGOOD));
+  rb_define_const(mPtrace, "O_TRACEVFORK", UINT2NUM(PTRACE_O_TRACEVFORK));
+
+  /* ptrace wrapper */
   rb_define_module_function(mPtrace, "geteventmsg", ptrace_geteventmsg, 1);
   rb_define_module_function(mPtrace, "peekdata", ptrace_peekdata, 3);
   rb_define_module_function(mPtrace, "peekuser", ptrace_peekuser, 3);

@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'securerandom'
 
 require 'seccomp-tools/cli/dump'
@@ -20,7 +21,7 @@ EOS
 
   it 'output to file' do
     tmp = File.join('/tmp', SecureRandom.hex)
-    described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '-1']).handle
+    described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '2']).handle
     c0 = IO.binread(tmp)
     c1 = IO.binread(tmp + '_1')
     FileUtils.rm(tmp)
@@ -31,6 +32,7 @@ EOS
 
   it 'wrap with sh' do
     out = SeccompTools::Disasm.disasm(@bpf)
-    expect { described_class.new(['-e', "/bin/sh -c #{@bin}"]).handle }.to output(out).to_stdout
+    argv = ['-e', "/bin/sh -c '#{@bin} < /dev/null'", '--limit', '-1']
+    expect { described_class.new(argv).handle }.to output(out).to_stdout
   end
 end

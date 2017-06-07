@@ -38,6 +38,13 @@ module SeccompTools
       inst.decompile
     end
 
+    # @param [Context] context
+    #   Current context.
+    # @yieldparam [Integer] pc
+    #   Program conter after this instruction.
+    # @yieldparam [Context] ctx
+    #   Context after this instruction.
+    # @return [void]
     def emulate(context, &block)
       # TODO: consider alu
       inst.emulate(context).each(&block)

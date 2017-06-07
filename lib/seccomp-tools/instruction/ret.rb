@@ -10,6 +10,7 @@ module SeccompTools
         "return #{ACTION.invert[k & 0x7fff0000]}"
       end
 
+      # @return [[]]
       def emulate(*)
         []
       end

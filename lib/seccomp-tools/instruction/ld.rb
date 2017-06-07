@@ -10,8 +10,7 @@ module SeccompTools
         type = load_val
         return ret + type[:val].to_s if type[:rel] == :immi
         return ret + "mem[#{type[:val]}]" if type[:rel] == :mem
-        # what happend if len with BPF_B ?
-        ret + seccomp_data_str.to_s
+        ret + seccomp_data_str
       end
 
       # Accumulator register.
@@ -20,6 +19,7 @@ module SeccompTools
         'A'
       end
 
+      # @return [Array<(Integer, Context)>]
       def emulate(context)
         nctx = context.dup
         type = load_val

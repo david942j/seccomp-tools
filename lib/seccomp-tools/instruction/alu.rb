@@ -10,8 +10,10 @@ module SeccompTools
         "A #{op_sym}= #{src}"
       end
 
-      def emulate(ctx)
-        [line + 1, ctx.dup]
+      # @todo
+      #   Implement here!
+      def emulate(context)
+        [[line + 1, context]]
       end
 
       private

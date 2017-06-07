@@ -86,10 +86,12 @@ module SeccompTools
     module Syscall
       module_function
 
+      # To dynamically fetch constants from files.
       def const_missing(cons)
         load_const(cons) || super
       end
 
+      # Load from file and define const value.
       def load_const(cons)
         arch = cons.to_s.downcase
         filename = File.join(__dir__, 'consts', "#{arch}.rb")
@@ -98,7 +100,9 @@ module SeccompTools
       end
     end
 
+    # Constants from https://github.com/torvalds/linux/blob/master/include/uapi/linux/audit.h.
     module Audit
+      # AUDIT_ARCH_*
       ARCH = {
         'ARCH_X86_64' => 0xc000003e,
         'ARCH_I386' => 0x40000003

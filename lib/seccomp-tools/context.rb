@@ -11,11 +11,14 @@ module SeccompTools
       @mem = mem
     end
 
+    # Implement a deep dup.
+    # @return [Context]
     def dup
       Context.new(a: a, x: x, mem: mem.dup)
     end
 
     # For conveniently get instance variable.
+    # @param [String, Symbol] key
     def [](key)
       case key.downcase.to_sym
       when :a then a

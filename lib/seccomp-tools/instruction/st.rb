@@ -9,6 +9,7 @@ module SeccompTools
         "mem[#{k}] = #{reg}"
       end
 
+      # @return [Array<(Integer, Context)>]
       def emulate(context)
         ctx = context.dup
         ctx.mem[k] = ctx[reg]

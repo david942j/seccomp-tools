@@ -19,6 +19,7 @@ module SeccompTools
         if_str(true) + goto(jf)
       end
 
+      # @return [Array<(Integer, Context)>]
       def emulate(context)
         return [[at(k), context]] if jop == :none
         return [[at(jt), context]] if jt == jf

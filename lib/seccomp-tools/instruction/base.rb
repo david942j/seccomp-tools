@@ -7,15 +7,9 @@ module SeccompTools
     class Base
       include SeccompTools::Const::BPF
 
-      attr_reader :code, :jt, :jf, :k, :line
       # @param [SeccompTools::BPF] bpf
       #   An instruction.
       def initialize(bpf)
-        @code = bpf.code
-        @jt = bpf.jt
-        @jf = bpf.jf
-        @k = bpf.k
-        @line = bpf.line
         @bpf = bpf
       end
 
@@ -26,8 +20,10 @@ module SeccompTools
 
       private
 
-      def contexts
-        @bpf.contexts
+      %i(code jt jf k line contexts).each do |sym|
+        define_method(sym) do
+          @bpf.send(sym)
+        end
       end
     end
   end

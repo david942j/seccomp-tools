@@ -9,6 +9,10 @@ module SeccompTools
         return 'return A' if code & 0x18 == SRC[:a]
         "return #{ACTION.invert[k & 0x7fff0000]}"
       end
+
+      def emulate(*)
+        []
+      end
     end
   end
 end

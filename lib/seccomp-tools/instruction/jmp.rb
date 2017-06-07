@@ -19,6 +19,12 @@ module SeccompTools
         if_str(true) + goto(jf)
       end
 
+      def emulate(context)
+        return [[at(k), context]] if jop == :none
+        return [[at(jt), context]] if jt == jf
+        [[at(jt), context], [at(jf), context]]
+      end
+
       private
 
       def jop
@@ -33,7 +39,17 @@ module SeccompTools
       end
 
       def src_str
-        SRC.invert[code & 8] == :k ? k.to_s : 'X'
+        return 'X' if SRC.invert[code & 8] == :x
+        # if A in all contexts are same
+        a = contexts.map(&:a).uniq
+        return k.to_s if a.size != 1
+        a = a[0]
+        return k.to_s unless a.instance_of?(Array) && a.first == :data
+        case a.last
+        when 0 then (Const::Syscall::AMD64.invert[k] || k).to_s
+        when 4 then Const::Audit::ARCH.invert[k] || k.to_s(16)
+        else '0x' + k.to_s(16)
+        end
       end
 
       def goto(off)

@@ -10,6 +10,10 @@ module SeccompTools
         "A #{op_sym}= #{src}"
       end
 
+      def emulate(ctx)
+        [line + 1, ctx.dup]
+      end
+
       private
 
       def op

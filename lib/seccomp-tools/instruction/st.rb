@@ -8,6 +8,12 @@ module SeccompTools
       def decompile
         "mem[#{k}] = #{reg}"
       end
+
+      def emulate(context)
+        ctx = context.dup
+        ctx.mem[k] = ctx[reg]
+        [[line + 1, ctx]]
+      end
     end
   end
 end

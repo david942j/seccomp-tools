@@ -13,7 +13,18 @@ module SeccompTools
     #   Pass +arch+ as argument. (To support show syscall name)
     def disasm(bpf)
       codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, i) }
-      <<EOS + codes.map(&:disasm).join("\n") + "\n"
+      contexts = Array.new(codes.size) { [] }
+      contexts[0].push(Context.new)
+      dis = codes.zip(contexts).map do |code, ctxs|
+        ctxs.each do |ctx|
+          code.emulate(ctx) do |pc, c|
+            contexts[pc].push(c) unless c.nil? || pc >= contexts.size
+          end
+        end
+        code.contexts = ctxs
+        code.disasm
+      end.join("\n")
+      <<EOS + dis + "\n"
  line  CODE  JT   JF      K
 =================================
 EOS

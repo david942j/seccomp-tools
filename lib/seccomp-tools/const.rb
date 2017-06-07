@@ -97,5 +97,12 @@ module SeccompTools
         const_set(cons, instance_eval(IO.read(filename)))
       end
     end
+
+    module Audit
+      ARCH = {
+        'ARCH_X86_64' => 0xc000003e,
+        'ARCH_I386' => 0x40000003
+      }.freeze
+    end
   end
 end

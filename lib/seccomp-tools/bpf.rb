@@ -35,16 +35,27 @@ module SeccompTools
 
     # @return [String]
     def decompile
-      case command
-      when :alu  then SeccompTools::Instruction::ALU
-      when :jmp  then SeccompTools::Instruction::JMP
-      when :ld   then SeccompTools::Instruction::LD
-      when :ldx  then SeccompTools::Instruction::LDX
-      when :misc then SeccompTools::Instruction::MISC
-      when :ret  then SeccompTools::Instruction::RET
-      when :st   then SeccompTools::Instruction::ST
-      when :stx  then SeccompTools::Instruction::STX
-      end.new(self).decompile
+      inst.decompile
+    end
+
+    def emulate(context, &block)
+      # TODO: consider alu
+      inst.emulate(context).each(&block)
+    end
+
+    private
+
+    def inst
+      @inst ||= case command
+                when :alu  then SeccompTools::Instruction::ALU
+                when :jmp  then SeccompTools::Instruction::JMP
+                when :ld   then SeccompTools::Instruction::LD
+                when :ldx  then SeccompTools::Instruction::LDX
+                when :misc then SeccompTools::Instruction::MISC
+                when :ret  then SeccompTools::Instruction::RET
+                when :st   then SeccompTools::Instruction::ST
+                when :stx  then SeccompTools::Instruction::STX
+                end.new(self)
     end
   end
 end

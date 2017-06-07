@@ -17,6 +17,7 @@ matrix:
     - rvm: ruby-head
 before_install:
   - uname -a
+  - sudo apt-get install gcc-multilib
   - gem update --system
   - gem install bundler
   - gem --version

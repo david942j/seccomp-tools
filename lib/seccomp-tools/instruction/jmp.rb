@@ -13,6 +13,7 @@ module SeccompTools
         # jf == 0 => if() goto jt;
         # otherwise => if () goto jt; else goto jf;
         return '/* no-op */' if jt.zero? && jf.zero?
+        return goto(jt) if jt == jf
         return if_str + goto(jt) + ' else ' + goto(jf) unless jt.zero? || jf.zero?
         return if_str + goto(jt) if jf.zero?
         if_str(true) + goto(jf)
@@ -36,7 +37,11 @@ module SeccompTools
       end
 
       def goto(off)
-        format('goto %04d', line + off + 1)
+        format('goto %04d', at(off))
+      end
+
+      def at(off)
+        line + off + 1
       end
 
       def if_str(neg = false)

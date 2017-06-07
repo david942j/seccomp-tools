@@ -35,7 +35,7 @@ SHELL_OUTPUT_OF(seccomp-tools --help dump)
 
 ### dump
 
-Dump the seccomp bpf from a execution file.
+Dump the seccomp bpf from an execution file.
 This work is done by the `ptrace` syscall.
 
 NOTICE: beware of the execution file will be executed.

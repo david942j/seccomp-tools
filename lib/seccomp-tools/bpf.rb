@@ -19,6 +19,7 @@ module SeccompTools
     end
 
     # Pretty display the disassemble result.
+    # @return [String]
     def disasm
       format(' %04d: 0x%02x 0x%02x 0x%02x 0x%08x  %s',
              line, code, jt, jf, k, decompile)

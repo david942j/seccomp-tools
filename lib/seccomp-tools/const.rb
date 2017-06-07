@@ -80,5 +80,22 @@ module SeccompTools
         txa: 0x80
       }.freeze
     end
+
+    # Define syscall numbers for all architectures.
+    # Since the list is too long, split it to files in consts/*.rb and load them in this module.
+    module Syscall
+      module_function
+
+      def const_missing(cons)
+        load_const(cons) || super
+      end
+
+      def load_const(cons)
+        arch = cons.to_s.downcase
+        filename = File.join(__dir__, 'consts', "#{arch}.rb")
+        return unless File.exist?(filename)
+        const_set(cons, instance_eval(IO.read(filename)))
+      end
+    end
   end
 end

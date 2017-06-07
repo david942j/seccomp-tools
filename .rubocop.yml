@@ -27,6 +27,9 @@ Metrics/LineLength:
 Metrics/MethodLength:
   Enabled: false
 
+Metrics/PerceivedComplexity:
+  Enabled: false
+
 Rails:
   Enabled: false
 

@@ -39,7 +39,10 @@ module SeccompTools
     # Do the tracer things.
     class Handler
       def initialize(pid)
-        @pid = pid
+        Process.waitpid(pid)
+        opt = Ptrace::O_TRACESYSGOOD | Ptrace::O_TRACECLONE | Ptrace::O_TRACEFORK | Ptrace::O_TRACEVFORK
+        Ptrace.setoptions(pid, 0, opt)
+        Ptrace.syscall(pid, 0, 0)
       end
 
       # Tracer.
@@ -51,10 +54,6 @@ module SeccompTools
       # @return [Array<Object>, Array<String>]
       #   Return the block returned. If block is not given, array of raw bytes will be returned.
       def handle(limit, &block)
-        Process.waitpid(@pid)
-        opt = Ptrace::O_TRACESYSGOOD | Ptrace::O_TRACECLONE | Ptrace::O_TRACEFORK | Ptrace::O_TRACEVFORK
-        Ptrace.setoptions(@pid, 0, opt)
-        Ptrace.syscall(@pid, 0, 0)
         collect = []
         syscalls = {} # record last syscall
         loop while wait_syscall do |child|
@@ -66,7 +65,7 @@ module SeccompTools
           sys = syscalls[child]
           syscalls[child] = nil
           if sys.set_seccomp? && syscall(child).ret.zero? # consider successful call only
-            bpf = dump_bpf(child, sys.args[2])
+            bpf = sys.dump_bpf
             collect << (block.nil? ? bpf : yield(bpf))
             limit -= 1
           end
@@ -100,17 +99,7 @@ module SeccompTools
 
       # @return [SeccompTools::Syscall]
       def syscall(pid)
-        SeccompTools::Syscall.new('amd64') do |offset|
-          Ptrace.peekuser(pid, offset, 0)
-        end
-      end
-
-      # Dump bpf from addr.
-      def dump_bpf(pid, addr)
-        len = Ptrace.peekdata(pid, addr, 0) & 0xffff # len is unsigned short
-        # TODO: Use __buildin_offset instead of hardcode
-        filter = Ptrace.peekdata(pid, addr + 8, 0)
-        Array.new(len) { |i| Ptrace.peekdata(pid, filter + i * 8, 0) }.pack('Q*')
+        SeccompTools::Syscall.new(pid)
       end
 
       def alive?(pid)

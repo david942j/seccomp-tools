@@ -1,4 +1,5 @@
 require 'seccomp-tools/bpf'
+require 'seccomp-tools/context'
 
 module SeccompTools
   # Disassembler of seccomp bpf.

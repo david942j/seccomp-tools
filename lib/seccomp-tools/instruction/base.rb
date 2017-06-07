@@ -16,11 +16,18 @@ module SeccompTools
         @jf = bpf.jf
         @k = bpf.k
         @line = bpf.line
+        @bpf = bpf
       end
 
       # @raise [ArgumentError]
       def invalid(msg = 'unknown')
         raise ArgumentError, "Line #{line} is invalid: #{msg}"
+      end
+
+      private
+
+      def contexts
+        @bpf.contexts
       end
     end
   end

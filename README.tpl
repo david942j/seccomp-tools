@@ -50,6 +50,7 @@ SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
 
 Disassemble the seccomp bpf.
 ```bash
+SHELL_OUTPUT_OF(xxd spec/data/twctf-2016-diary.bpf | head -n 3)
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```
 

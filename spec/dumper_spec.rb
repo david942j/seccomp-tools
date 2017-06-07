@@ -39,4 +39,18 @@ describe SeccompTools::Dumper do
       it { expect(described_class.dump('this_is_not_exist')).to eq [] }
     end
   end
+
+  describe 'i386' do
+    context 'amigo' do
+      it 'normal' do
+        bin = File.join(@binpath, 'CONFidence-2017-amigo')
+        bpf = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+        got = described_class.dump(bin).first
+        # there's pid inside seccomp rules.. ignore it
+        expect(got.size).to be bpf.size
+        expect(got[0, 0x1ec]).to eq bpf[0, 0x1ec]
+        expect(got[0x1ee..-1]).to eq bpf[0x1ee..-1]
+      end
+    end
+  end
 end

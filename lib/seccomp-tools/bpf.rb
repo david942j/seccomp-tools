@@ -16,7 +16,7 @@ module SeccompTools
     attr_reader :k
     # @return [Symbol] Architecture.
     attr_reader :arch
-    # @return [Array<Context>] Possible contexts on this instruction.
+    # @return [Array<Context>] Possible contexts before this instruction.
     attr_accessor :contexts
 
     # Instantiate a {BPF} object.
@@ -43,7 +43,7 @@ module SeccompTools
              line, code, jt, jf, k, decompile)
     end
 
-    # Command according +code+.
+    # Command according to +code+.
     # @return [Symbol]
     #   See {Const::BPF::COMMAND} for list of commands.
     def command

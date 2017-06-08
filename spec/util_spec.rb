@@ -19,5 +19,10 @@ describe SeccompTools::Util do
   it 'colorize' do
     described_class.stub(:colorize_enabled?) { true }
     expect(described_class.colorize('meow', t: :syscall)).to eq "\e[38;5;120mmeow\e[0m"
+
+    described_class.disable_color!
+    expect(described_class.instance_variable_get(:@disable_color)).to be true
+    described_class.enable_color!
+    expect(described_class.instance_variable_get(:@disable_color)).to be false
   end
 end

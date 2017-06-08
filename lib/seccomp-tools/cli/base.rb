@@ -22,15 +22,19 @@ module SeccompTools
       end
 
       # Write data to stdout or file(s).
-      # @param [String] data
-      #   Data.
+      # @yieldreturn [String]
+      #   The data to be written.
       # @return [void]
-      def output(data)
+      def output
         # if file name not present, just output to stdout.
-        return $stdout.write(data) if option[:ofile].nil?
+        return $stdout.write(yield) if option[:ofile].nil?
         # times of calling output
         @serial ||= 0
-        IO.binwrite(file_of(option[:ofile], @serial), data)
+        # Write to file, we should disable colorize
+        enabled = Util.colorize_enabled?
+        Util.disable_color! if enabled
+        IO.binwrite(file_of(option[:ofile], @serial), yield)
+        Util.enable_color! if enabled
         @serial += 1
       end
 

@@ -20,6 +20,10 @@ module SeccompTools
       end
     end
 
+    def enable_color!
+      @disable_color = false
+    end
+
     def disable_color!
       @disable_color = true
     end

@@ -34,7 +34,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        output(SeccompTools::Disasm.disasm(IO.binread(option[:ifile]), arch: option[:arch]))
+        output { SeccompTools::Disasm.disasm(IO.binread(option[:ifile]), arch: option[:arch]) }
       end
     end
   end

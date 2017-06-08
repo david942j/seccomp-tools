@@ -4,7 +4,14 @@ module SeccompTools
   module CLI
     # Base class for handlers.
     class Base
-      attr_reader :option, :argv
+      # @return [Hash{Symbol => Object}] Options.
+      attr_reader :option
+      # @return [Array<String>] Arguments array.
+      attr_reader :argv
+
+      # Instantiate a {Base} object.
+      # @param [Array<String>] argv
+      #   Arguments array.
       def initialize(argv)
         @option = {}
         @argv = argv

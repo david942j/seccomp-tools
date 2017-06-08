@@ -10,7 +10,18 @@ module SeccompTools
       i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172 }
     }.freeze
 
-    attr_reader :pid, :abi, :number, :args, :ret
+    # @return [Integer] Process id.
+    attr_reader :pid
+    # @return [Hash{Symbol => Integer, Array<Integer>}] See {ABI}.
+    attr_reader :abi
+    # @return [Integer] Syscall number.
+    attr_reader :number
+    # @return [Integer] Syscall arguments.
+    attr_reader :args
+    # @return [Integer] Syscall return value.
+    attr_reader :ret
+
+    # Instantiate a {Syscall} object.
     # @param [String] pid
     #   Process-id.
     def initialize(pid)

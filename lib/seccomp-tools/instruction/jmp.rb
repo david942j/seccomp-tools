@@ -19,6 +19,9 @@ module SeccompTools
         if_str(true) + goto(jf)
       end
 
+      # See {Base#branch}.
+      # @param [Context] context
+      #   Current context.
       # @return [Array<(Integer, Context)>]
       def branch(context)
         return [[at(k), context]] if jop == :none

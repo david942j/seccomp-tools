@@ -19,6 +19,9 @@ module SeccompTools
         'A'
       end
 
+      # See {Base#branch}.
+      # @param [Context] context
+      #   Current context.
       # @return [Array<(Integer, Context)>]
       def branch(context)
         nctx = context.dup

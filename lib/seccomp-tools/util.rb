@@ -20,10 +20,14 @@ module SeccompTools
       end
     end
 
+    # Enable colorize.
+    # @return [void]
     def enable_color!
       @disable_color = false
     end
 
+    # Disable colorize.
+    # @return [void]
     def disable_color!
       @disable_color = true
     end
@@ -43,8 +47,8 @@ module SeccompTools
     # Wrapper color codes.
     # @param [String] s
     #   Contents to wrapper.
-    # @param [Symbol?] sev
-    #   Specific which kind of color to use, valid symbols are defined in +#COLOR_CODE+.
+    # @param [Symbol?] t
+    #   Specific which kind of color to use, valid symbols are defined in {Util.COLOR_CODE}.
     # @return [String]
     #   Wrapper with color codes.
     def colorize(s, t: nil)

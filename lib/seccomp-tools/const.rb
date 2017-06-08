@@ -87,11 +87,18 @@ module SeccompTools
       module_function
 
       # To dynamically fetch constants from files.
+      # @param [Symbol] cons
+      #   Name of const.
+      # @return [Object]
+      #   Value of that +cons+.
       def const_missing(cons)
         load_const(cons) || super
       end
 
       # Load from file and define const value.
+      # @param [Symbol] cons
+      #   Name of const.
+      # @return [Object]
       def load_const(cons)
         arch = cons.to_s.downcase
         filename = File.join(__dir__, 'consts', "#{arch}.rb")

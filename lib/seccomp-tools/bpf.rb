@@ -4,10 +4,22 @@ require 'seccomp-tools/instruction/instruction'
 module SeccompTools
   # Define the +struct sock_filter+, while more powerful.
   class BPF
-    attr_reader :line, :code, :jt, :jf, :k, :arch
-    # @return [Array<SeccompTools::Context>]
+    # @return [Integer] Line number.
+    attr_reader :line
+    # @return [Integer] BPF code.
+    attr_reader :code
+    # @return [Integer] BPF JT.
+    attr_reader :jt
+    # @return [Integer] BPF JF.
+    attr_reader :jf
+    # @return [Integer] BPF K.
+    attr_reader :k
+    # @return [Symbol] Architecture.
+    attr_reader :arch
+    # @return [Array<Context>] Possible contexts on this instruction.
     attr_accessor :contexts
 
+    # Instantiate a {BPF} object.
     # @param [String] raw
     #   One +struct sock_filter+ in bytes, should exactly 8 bytes.
     # @param [Symbol] arch
@@ -31,12 +43,16 @@ module SeccompTools
              line, code, jt, jf, k, decompile)
     end
 
+    # Command according +code+.
     # @return [Symbol]
+    #   See {Const::BPF::COMMAND} for list of commands.
     def command
       Const::BPF::COMMAND.invert[code & 7]
     end
 
+    # Decompile.
     # @return [String]
+    #   Decompile string.
     def decompile
       inst.decompile
     end

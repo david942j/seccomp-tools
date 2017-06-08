@@ -20,7 +20,7 @@ module SeccompTools
       end
 
       # @return [Array<(Integer, Context)>]
-      def emulate(context)
+      def branch(context)
         return [[at(k), context]] if jop == :none
         return [[at(jt), context]] if jt == jf
         [[at(jt), context], [at(jf), context]]
@@ -47,7 +47,7 @@ module SeccompTools
         a = a[0]
         return k.to_s unless a.instance_of?(Array) && a.first == :data
         case a.last
-        when 0 then (Const::Syscall::AMD64.invert[k] || k).to_s
+        when 0 then (Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || k).to_s
         when 4 then Const::Audit::ARCH.invert[k] || k.to_s(16)
         else '0x' + k.to_s(16)
         end

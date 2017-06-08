@@ -20,7 +20,7 @@ module SeccompTools
       end
 
       # @return [Array<(Integer, Context)>]
-      def emulate(context)
+      def branch(context)
         nctx = context.dup
         type = load_val
         nctx[reg] = case type[:rel]

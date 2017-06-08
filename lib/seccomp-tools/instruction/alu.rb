@@ -12,7 +12,7 @@ module SeccompTools
 
       # @todo
       #   Implement here!
-      def emulate(context)
+      def branch(context)
         [[line + 1, context]]
       end
 

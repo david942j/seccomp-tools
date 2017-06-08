@@ -20,7 +20,7 @@ module SeccompTools
 
       private
 
-      %i(code jt jf k line contexts).each do |sym|
+      %i(code jt jf k arch line contexts).each do |sym|
         define_method(sym) do
           @bpf.send(sym)
         end

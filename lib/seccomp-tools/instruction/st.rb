@@ -10,7 +10,7 @@ module SeccompTools
       end
 
       # @return [Array<(Integer, Context)>]
-      def emulate(context)
+      def branch(context)
         ctx = context.dup
         ctx.mem[k] = ctx[reg]
         [[line + 1, ctx]]

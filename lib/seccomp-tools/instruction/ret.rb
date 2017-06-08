@@ -11,7 +11,7 @@ module SeccompTools
       end
 
       # @return [[]]
-      def emulate(*)
+      def branch(*)
         []
       end
     end

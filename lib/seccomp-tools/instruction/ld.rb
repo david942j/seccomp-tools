@@ -59,8 +59,9 @@ module SeccompTools
         when 4 then 'arch'
         when 8 then 'instruction_pointer'
         else
-          idx = Array.new(6) { |i| i * 8 + 16 }.index(k)
-          idx.nil? ? "data[#{k}]" : "args[#{idx}]"
+          idx = Array.new(12) { |i| i * 4 + 16 }.index(k)
+          return 'INVALID' if idx.nil?
+          idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
         end
       end
     end

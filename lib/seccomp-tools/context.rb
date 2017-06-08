@@ -20,18 +20,12 @@ module SeccompTools
     # For conveniently get instance variable.
     # @param [String, Symbol] key
     def [](key)
-      case key.downcase.to_sym
-      when :a then a
-      when :x then x
-      end
+      instance_variable_get(('@' + key.downcase).to_sym)
     end
 
     # For conveniently set instance variable.
     def []=(key, val)
-      case key.downcase.to_sym
-      when :a then @a = val
-      when :x then @x = val
-      end
+      instance_variable_set(('@' + key.downcase).to_sym, val)
     end
   end
 end

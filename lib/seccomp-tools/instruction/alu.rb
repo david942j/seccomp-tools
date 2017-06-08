@@ -10,12 +10,6 @@ module SeccompTools
         "A #{op_sym}= #{src}"
       end
 
-      # @todo
-      #   Implement here!
-      def branch(context)
-        [[line + 1, context]]
-      end
-
       private
 
       def op

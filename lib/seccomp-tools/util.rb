@@ -13,11 +13,7 @@ module SeccompTools
     # Detect system architecture.
     # @return [Symbol]
     def system_arch
-      case RbConfig::CONFIG['host_cpu']
-      when /x86_64/ then :amd64
-      when /i386/ then :i386
-      else :unknown
-      end
+      RbConfig::CONFIG['host_cpu'] =~ /x86_64/ ? :amd64 : :i386
     end
   end
 end

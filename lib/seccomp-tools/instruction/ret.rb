@@ -10,7 +10,9 @@ module SeccompTools
         "return #{ACTION.invert[k & 0x7fff0000]}"
       end
 
+      # See {Base#branch}.
       # @return [[]]
+      #   Always return an empty array.
       def branch(*)
         []
       end

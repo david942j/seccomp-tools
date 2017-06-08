@@ -40,6 +40,9 @@ module SeccompTools
 
     # Do the tracer things.
     class Handler
+      # Instantiate a {Handler} object.
+      # @param [Integer] pid
+      #   The process id after fork.
       def initialize(pid)
         Process.waitpid(pid)
         opt = Ptrace::O_TRACESYSGOOD | Ptrace::O_TRACECLONE | Ptrace::O_TRACEFORK | Ptrace::O_TRACEVFORK

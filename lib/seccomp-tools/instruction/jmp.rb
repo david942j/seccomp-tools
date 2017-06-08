@@ -47,8 +47,8 @@ module SeccompTools
         a = a[0]
         return k.to_s unless a.instance_of?(Array) && a.first == :data
         case a.last
-        when 0 then (Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || k).to_s
-        when 4 then Const::Audit::ARCH.invert[k] || k.to_s(16)
+        when 0 then Util.colorize((Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || k).to_s, t: :syscall)
+        when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || k.to_s(16), t: :arch)
         else '0x' + k.to_s(16)
         end
       end

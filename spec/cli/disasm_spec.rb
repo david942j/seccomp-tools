@@ -2,10 +2,12 @@ require 'securerandom'
 
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/disasm'
+require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Disasm do
   before do
     @bpf = File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf')
+    SeccompTools::Util.disable_color!
   end
 
   it 'normal' do

@@ -1,8 +1,13 @@
 # encoding: ascii-8bit
 
 require 'seccomp-tools/disasm'
+require 'seccomp-tools/util'
 
 describe SeccompTools::Disasm do
+  before do
+    SeccompTools::Util.disable_color!
+  end
+
   it 'normal' do
     bpf = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS

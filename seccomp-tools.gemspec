@@ -11,6 +11,7 @@ Gem::Specification.new do |s|
   s.date          = Date.today.to_s
   s.summary       = 'seccomp-tools'
   s.description   = <<-EOS
+Provide useful tools to analyze seccomp rules.
   EOS
   s.license       = 'MIT'
   s.authors       = ['david942j']
@@ -21,7 +22,6 @@ Gem::Specification.new do |s|
   s.homepage      = 'https://github.com/david942j/seccomp-tools'
 
   s.required_ruby_version = '>= 2.1.0'
-
 
   s.add_development_dependency 'codeclimate-test-reporter', '~> 0.6'
   s.add_development_dependency 'rake', '~> 12.0'

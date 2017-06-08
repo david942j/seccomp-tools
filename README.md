@@ -38,7 +38,7 @@ $ seccomp-tools --help
 # List of commands:
 #
 # 	dump	Automatically dump seccomp bpf from execution file.
-# 	disasm	Disassembly seccomp bpf.
+# 	disasm	Disassemble seccomp bpf.
 #
 # See 'seccomp-tools --help <command>' to read about a specific subcommand.
 

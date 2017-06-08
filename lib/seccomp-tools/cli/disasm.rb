@@ -7,7 +7,7 @@ module SeccompTools
     # Handle 'dump' command.
     class Disasm < Base
       # Summary of this command.
-      SUMMARY = 'Disassembly seccomp bpf.'.freeze
+      SUMMARY = 'Disassemble seccomp bpf.'.freeze
       # Usage of this command.
       USAGE = ('disasm - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools disasm BPF_FILE [options]').freeze
 

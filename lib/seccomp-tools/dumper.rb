@@ -20,6 +20,8 @@ module SeccompTools
     #   Negative number for unlimited.
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
+    # @yieldparam [Symbol] arch
+    #   Architecture of the target process.
     # @return [Array<Object>, Array<String>]
     #   Return the block returned. If block is not given, array of raw bytes will be returned.
     # @example
@@ -66,7 +68,7 @@ module SeccompTools
           syscalls[child] = nil
           if sys.set_seccomp? && syscall(child).ret.zero? # consider successful call only
             bpf = sys.dump_bpf
-            collect << (block.nil? ? bpf : yield(bpf))
+            collect << (block.nil? ? bpf : yield(bpf, sys.arch))
             limit -= 1
           end
           !limit.zero?

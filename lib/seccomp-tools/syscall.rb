@@ -6,8 +6,8 @@ module SeccompTools
   class Syscall
     # Syscall arguments offset of +struct user+ in different arch.
     ABI = {
-      'amd64' => { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157 },
-      'i386' => { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172 }
+      amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157 },
+      i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172 }
     }.freeze
 
     attr_reader :pid, :abi, :number, :args, :ret
@@ -39,22 +39,24 @@ module SeccompTools
       Array.new(len) { |i| Ptrace.peekdata(pid, filter + i * 8, 0) }.pack('Q*')
     end
 
-    private
-
+    # @return [Symbol]
+    #   Architecture of this syscall.
     def arch
       @arch ||= File.open("/proc/#{pid}/exe", 'rb') do |f|
         f.pos = 4
         case f.read(1).ord
-        when 1 then 'i386'
-        when 2 then 'amd64'
+        when 1 then :i386
+        when 2 then :amd64
         end
       end
     end
 
+    private
+
     def bits
       case arch
-      when 'i386' then 32
-      when 'amd64' then 64
+      when :i386 then 32
+      when :amd64 then 64
       end
     end
 

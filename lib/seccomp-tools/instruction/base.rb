@@ -7,20 +7,23 @@ module SeccompTools
     class Base
       include SeccompTools::Const::BPF
 
-      attr_reader :code, :jt, :jf, :k, :line
       # @param [SeccompTools::BPF] bpf
       #   An instruction.
       def initialize(bpf)
-        @code = bpf.code
-        @jt = bpf.jt
-        @jf = bpf.jf
-        @k = bpf.k
-        @line = bpf.line
+        @bpf = bpf
       end
 
       # @raise [ArgumentError]
       def invalid(msg = 'unknown')
         raise ArgumentError, "Line #{line} is invalid: #{msg}"
+      end
+
+      private
+
+      %i(code jt jf k arch line contexts).each do |sym|
+        define_method(sym) do
+          @bpf.send(sym)
+        end
       end
     end
   end

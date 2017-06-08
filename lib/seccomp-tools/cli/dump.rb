@@ -53,11 +53,11 @@ module SeccompTools
       def handle
         return unless super
         option[:command] = argv.shift unless argv.empty?
-        SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit]) do |bpf|
+        SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit]) do |bpf, arch|
           case option[:format]
           when :inspect then output('"' + bpf.bytes.map { |b| format('\\x%02X', b) }.join + "\"\n")
           when :raw then output(bpf)
-          when :disasm then output(SeccompTools::Disasm.disasm(bpf))
+          when :disasm then output(SeccompTools::Disasm.disasm(bpf, arch: arch))
           end
         end
       end

@@ -3,6 +3,7 @@ require 'securerandom'
 
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/disasm'
+require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Dump do
   before do
@@ -10,6 +11,7 @@ describe SeccompTools::CLI::Dump do
     @bin = File.join(@binpath, 'twctf-2016-diary')
     @mul = File.join(@binpath, 'clone_two_seccomp')
     @bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
+    SeccompTools::Util.disable_color!
   end
 
   it 'normal' do

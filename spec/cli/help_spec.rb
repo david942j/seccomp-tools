@@ -43,6 +43,8 @@ disasm - Disassembly seccomp bpf.
 
 Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
+    -a, --arch ARCH                  Specify architecture.
+                                     Supported architectures are <amd64|i386>.
 EOS
   end
 

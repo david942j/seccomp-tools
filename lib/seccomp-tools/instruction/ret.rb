@@ -9,6 +9,11 @@ module SeccompTools
         return 'return A' if code & 0x18 == SRC[:a]
         "return #{ACTION.invert[k & 0x7fff0000]}"
       end
+
+      # @return [[]]
+      def branch(*)
+        []
+      end
     end
   end
 end

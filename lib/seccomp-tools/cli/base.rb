@@ -10,6 +10,8 @@ module SeccompTools
         @argv = argv
       end
 
+      private
+
       # Handle show help message.
       # @return [Boolean]
       #   For decestors to check if needs to conitnue.

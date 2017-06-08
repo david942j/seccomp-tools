@@ -1,5 +1,6 @@
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm'
+require 'seccomp-tools/util'
 
 module SeccompTools
   module CLI
@@ -18,6 +19,12 @@ module SeccompTools
           opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.') do |o|
             option[:ofile] = o
           end
+
+          supported = Util.supported_archs
+          opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
+                 "Supported architectures are <#{supported.join('|')}>.") do |a|
+            option[:arch] = a
+          end
         end
       end
 
@@ -27,7 +34,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        output(SeccompTools::Disasm.disasm(IO.binread(option[:ifile])))
+        output(SeccompTools::Disasm.disasm(IO.binread(option[:ifile]), arch: option[:arch]))
       end
     end
   end

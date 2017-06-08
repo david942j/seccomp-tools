@@ -7,10 +7,9 @@ module SeccompTools
       # Decompile instruction.
       def decompile
         ret = reg + ' = '
-        return ret + k.to_s if mode == :imm
-        return ret + "mem[#{k}]" if mode == :mem
-        # what happend if len with BPF_B ?
-        return ret + SIZEOF_SECCOMP_DATA.to_s if mode == :len
+        type = load_val
+        return ret + type[:val].to_s if type[:rel] == :immi
+        return ret + "mem[#{type[:val]}]" if type[:rel] == :mem
         ret + seccomp_data_str
       end
 
@@ -20,6 +19,18 @@ module SeccompTools
         'A'
       end
 
+      # @return [Array<(Integer, Context)>]
+      def branch(context)
+        nctx = context.dup
+        type = load_val
+        nctx[reg] = case type[:rel]
+                    when :immi then type[:val]
+                    when :mem then context.mem[type[:val]]
+                    when :data then [:data, type[:val]]
+                    end
+        [[line + 1, nctx]]
+      end
+
       private
 
       def mode
@@ -27,6 +38,13 @@ module SeccompTools
         # Seccomp doesn't support this mode
         invalid if @mode.nil? || @mode == :ind
         @mode
+      end
+
+      def load_val
+        return { rel: :immi, val: k } if mode == :imm
+        return { rel: :immi, val: SIZEOF_SECCOMP_DATA } if mode == :len
+        return { rel: :mem, val: k } if mode == :mem
+        { rel: :data, val: k }
       end
 
       # struct seccomp_data {
@@ -41,8 +59,9 @@ module SeccompTools
         when 4 then 'arch'
         when 8 then 'instruction_pointer'
         else
-          idx = Array.new(6) { |i| i * 8 + 16 }.index(k)
-          idx.nil? ? "data[#{k}]" : "args[#{idx}]"
+          idx = Array.new(12) { |i| i * 4 + 16 }.index(k)
+          return 'INVALID' if idx.nil?
+          idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
         end
       end
     end

@@ -13,11 +13,12 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 
 ## Features
 * Dump - Automatically dump seccomp-bpf from binary.
-* Disasm - (WIP) Convert bpf to human readable format.
+* Disasm - Convert bpf to human readable format.
   - Simple decompile.
-  - (TODO) Show syscall names.
+  - Show syscall names.
+  - (TODO) Simplify disassemble result.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
-* (TODO) Support multi-architecture.
+* Support multi-architectures.
 
 ## Installation
 
@@ -50,8 +51,15 @@ SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
 
 Disassemble the seccomp bpf.
 ```bash
+SHELL_OUTPUT_OF(xxd spec/data/twctf-2016-diary.bpf | head -n 3)
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```
+
+## Screenshots
+
+### Dump
+![dump](https://github.com/david942j/seccomp-tools/blob/master/examples/dump-diary.png?raw=true)
+
 
 ## I Need You
 Any suggestion or feature request is welcome!

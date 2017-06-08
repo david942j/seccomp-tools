@@ -7,7 +7,7 @@ module SeccompTools
     # @return [Array<Symbol>]
     #   Architectures.
     def supported_archs
-      @archs ||= Dir.glob(File.join(__dir__, 'consts', '*.rb')).map { |f| File.basename(f, '.rb').to_sym }
+      @archs ||= Dir.glob(File.join(__dir__, 'consts', '*.rb')).map { |f| File.basename(f, '.rb').to_sym }.sort
     end
 
     # Detect system architecture.

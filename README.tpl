@@ -22,8 +22,10 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 
 ## Installation
 
-Will be available on RubyGems.org!
-(TODO)
+Available on RubyGems.org!
+```
+$ gem install seccomp-tools
+```
 
 ## Command Line Interface
 

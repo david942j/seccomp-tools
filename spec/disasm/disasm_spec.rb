@@ -216,6 +216,26 @@ EOS
 EOS
   end
 
+  it 'test branch function' do
+    bpf = "\x20\x00\x00\x00\x00\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x2C\x00\x00\x00\x69\xEB\x00\x00\x15\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x87\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F" # rubocop:disable Metrics/LineLength
+    expect(described_class.disasm(bpf)).to eq(<<EOS)
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0001: 0x07 0x00 0x00 0x00000000  X = A
+ 0002: 0x15 0x00 0x01 0x00000000  if (A != read) goto 0004
+ 0003: 0x06 0x00 0x00 0x00000000  return KILL
+ 0004: 0x03 0x00 0x00 0x00000000  mem[0] = X
+ 0005: 0x2c 0x00 0x00 0x0000eb69  A *= X
+ 0006: 0x15 0x00 0x01 0x00000000  if (A != 0) goto 0008
+ 0007: 0x06 0x00 0x00 0x00000000  return KILL
+ 0008: 0x87 0x00 0x00 0x00000000  A = X
+ 0009: 0x15 0x00 0x01 0x00000001  if (A != write) goto 0011
+ 0010: 0x06 0x00 0x00 0x00000000  return KILL
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+EOS
+  end
+
   it 'else jmp' do
     bpf = [0x15, 0x25, 0x35, 0x45].map { |c| c.chr + "\x00\x00\x01\x00\x00\x00\x00" }.join
     expect(described_class.disasm(bpf)).to eq(<<EOS)

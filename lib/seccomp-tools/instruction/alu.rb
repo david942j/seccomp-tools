@@ -11,7 +11,9 @@ module SeccompTools
       end
 
       def branch(context)
-        [[line + 1, context]]
+        ctx = context.dup
+        ctx[:a] = nil
+        [[line + 1, ctx]]
       end
 
       private

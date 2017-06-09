@@ -30,8 +30,6 @@ module SeccompTools
     #   dump('spec/binary/twctf-2016-diary') { |c| c[0, 10] }
     #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
     # @todo
-    #   Detect execution file architecture to know which syscall number should be traced.
-    # @todo
     #   +timeout+ option.
     def dump(*args, limit: 1, &block)
       pid = fork { handle_child(*args) }

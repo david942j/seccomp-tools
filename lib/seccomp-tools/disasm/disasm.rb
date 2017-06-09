@@ -14,8 +14,6 @@ module SeccompTools
     #   The bpf codes.
     # @param [Symbol] arch
     #   Architecture.
-    # @todo
-    #   Detect system architecture as default.
     def disasm(bpf, arch: nil)
       arch ||= Util.system_arch
       codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
@@ -25,7 +23,7 @@ module SeccompTools
       dis = codes.zip(contexts).map do |code, ctxs|
         ctxs.each do |ctx|
           code.branch(ctx) do |pc, c|
-            contexts[pc].add(c) unless c.nil? || pc >= contexts.size
+            contexts[pc].add(c) unless pc >= contexts.size
           end
         end
         code.contexts = ctxs

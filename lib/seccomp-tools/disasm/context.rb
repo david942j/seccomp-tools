@@ -27,11 +27,13 @@ module SeccompTools
         Context.new(a: a, x: x, mem: values.dup)
       end
 
+      # Register A.
       # @return [Integer?]
       def a
         values[:a]
       end
 
+      # Register X.
       # @return [Integer?]
       def x
         values[:x]
@@ -53,6 +55,7 @@ module SeccompTools
       # @return [void]
       def []=(key, val)
         if key.is_a?(Integer)
+          raise RangeError, "Expect 0 <= key < 16, got #{key}." unless key.between?(0, 15)
           raise RangeError, "Expect 0 <= val < 64, got #{val}." unless val.nil? || val.between?(0, 63)
           values[key] = val
         else
@@ -67,6 +70,8 @@ module SeccompTools
         values.eql?(other.values)
       end
 
+      # For +Set+ to get hash key.
+      # @return [Integer]
       def hash
         values.hash
       end

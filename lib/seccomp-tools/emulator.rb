@@ -110,7 +110,7 @@ module SeccompTools
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
-        raise ArgumentError, "Undefined value of #{arg}" if @values[arg].nil?
+        undefined(arg.upcase) if @values[arg].nil?
         return @values[arg]
       end
       return @values[arg[1]] if arg.first == :mem
@@ -121,13 +121,18 @@ module SeccompTools
       raise ArgumentError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
       index /= 4
       case index
-      when 0 then @sys_nr
-      when 1 then @arch
-      when 2 then @ip & 0xffffffff
-      when 3 then @ip >> 32
+      when 0 then @sys_nr || undefined('sys_number')
+      when 1 then @arch || undefined('arch')
+      when 2 then @ip & 0xffffffff || undefined('instruction_pointer')
+      when 3 then @ip >> 32 || undefined('instruction_pointer')
       else
-        (@args[(index - 4) / 2] >> (index.even? ? 0 : 32)) & 0xffffffff
+        val = @args[(index - 4) / 2] || undefined("args[#{(index - 4) / 2}]")
+        (val >> (index.even? ? 0 : 32)) & 0xffffffff
       end
+    end
+
+    def undefined(var)
+      raise ArgumentError, format('Undefined variable `%s` in line %04d: %s', var, pc, @instructions[pc].decompile)
     end
   end
 end

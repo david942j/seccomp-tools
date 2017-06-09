@@ -47,6 +47,11 @@ describe SeccompTools::Emulator do
     it 'kill' do
       expect(described_class.new(@insts, sys_nr: 59).run[:ret]).to be 0x0
     end
+
+    it 'raise undefined' do
+      error = 'Undefined variable `sys_number` in line 0000: A = sys_number'
+      expect { described_class.new(@insts).run }.to raise_error(ArgumentError, error)
+    end
   end
 
   context 'CONFidence-2017-amigo' do

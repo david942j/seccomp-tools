@@ -16,7 +16,7 @@ module SeccompTools
     attr_reader :k
     # @return [Symbol] Architecture.
     attr_reader :arch
-    # @return [Array<Context>] Possible contexts before this instruction.
+    # @return [Set<Context>] Possible contexts before this instruction.
     attr_accessor :contexts
 
     # Instantiate a {BPF} object.
@@ -34,6 +34,7 @@ module SeccompTools
       @k = io.read(4).unpack('L').first
       @arch = arch
       @line = line
+      @contexts = Set.new
     end
 
     # Pretty display the disassemble result.

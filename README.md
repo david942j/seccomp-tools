@@ -146,6 +146,14 @@ $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
 
 Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
 ```bash
+$ seccomp-tools emu --help
+# emu - Emulate seccomp rules.
+#
+# Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <amd64|i386>.
+#     -q, --[no-]quiet                 Run quietly, only show emulation result.
+
 $ seccomp-tools emu spec/data/libseccomp.bpf 0x3
 #  line  CODE  JT   JF      K
 # =================================

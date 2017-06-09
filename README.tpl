@@ -61,6 +61,7 @@ SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 
 Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
 ```bash
+SHELL_OUTPUT_OF(seccomp-tools emu --help)
 SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf 0x3)
 ```
 

@@ -69,7 +69,7 @@ module SeccompTools
       inst.branch(context).each(&block)
     end
 
-    # Correspond instruction object.
+    # Corresponding instruction object.
     # @return [SeccompTools::Instruction::Base]
     def inst
       @inst ||= case command

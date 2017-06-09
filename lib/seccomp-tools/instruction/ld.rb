@@ -27,9 +27,9 @@ module SeccompTools
         nctx = context.dup
         type = load_val
         nctx[reg] = case type[:rel]
-                    when :immi then type[:val]
-                    when :mem then context.mem[type[:val]]
-                    when :data then [:data, type[:val]]
+                    when :immi then nil
+                    when :mem then context[type[:val]]
+                    when :data then type[:val]
                     end
         [[line + 1, nctx]]
       end

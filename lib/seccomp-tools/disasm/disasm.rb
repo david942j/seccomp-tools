@@ -1,5 +1,7 @@
+require 'set'
+
 require 'seccomp-tools/bpf'
-require 'seccomp-tools/context'
+require 'seccomp-tools/disasm/context'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -12,17 +14,16 @@ module SeccompTools
     #   The bpf codes.
     # @param [Symbol] arch
     #   Architecture.
-    # @todo
-    #   Detect system architecture as default.
     def disasm(bpf, arch: nil)
       arch ||= Util.system_arch
       codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
-      contexts = Array.new(codes.size) { [] }
-      contexts[0].push(Context.new)
+      contexts = Array.new(codes.size) { Set.new }
+      contexts[0].add(Context.new)
+      # all we care is if A is exactly one of data[*]
       dis = codes.zip(contexts).map do |code, ctxs|
         ctxs.each do |ctx|
           code.branch(ctx) do |pc, c|
-            contexts[pc].push(c) unless c.nil? || pc >= contexts.size
+            contexts[pc].add(c) unless pc >= contexts.size
           end
         end
         code.contexts = ctxs

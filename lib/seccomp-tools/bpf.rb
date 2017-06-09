@@ -65,7 +65,6 @@ module SeccompTools
     #   Context after this instruction.
     # @return [void]
     def branch(context, &block)
-      # TODO: consider alu
       inst.branch(context).each(&block)
     end
 

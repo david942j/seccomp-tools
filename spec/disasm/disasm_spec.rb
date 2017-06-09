@@ -1,6 +1,6 @@
 # encoding: ascii-8bit
 
-require 'seccomp-tools/disasm'
+require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/util'
 
 describe SeccompTools::Disasm do
@@ -9,7 +9,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'normal' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -35,7 +35,7 @@ EOS
   end
 
   it 'libseccomp' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'libseccomp.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -54,7 +54,7 @@ EOS
   end
 
   it 'i386' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'CONFidence-2017-amigo.bpf'))
     expect(described_class.disasm(bpf, arch: :i386)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -160,7 +160,7 @@ EOS
   end
 
   it 'all instructions' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'all_inst.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -213,6 +213,26 @@ EOS
  0046: 0x2d 0x06 0x68 0x00000005  if (A > X) goto 0053 else goto 0151
  0047: 0x45 0x08 0x9b 0x0000004d  if (A & 77) goto 0056 else goto 0203
  0048: 0x4d 0x1a 0x61 0x000000bf  if (A & X) goto 0075 else goto 0146
+EOS
+  end
+
+  it 'test branch function' do
+    bpf = "\x20\x00\x00\x00\x00\x00\x00\x00\x07\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x00\x2C\x00\x00\x00\x69\xEB\x00\x00\x15\x00\x00\x01\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x87\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F" # rubocop:disable Metrics/LineLength
+    expect(described_class.disasm(bpf)).to eq(<<EOS)
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0001: 0x07 0x00 0x00 0x00000000  X = A
+ 0002: 0x15 0x00 0x01 0x00000000  if (A != read) goto 0004
+ 0003: 0x06 0x00 0x00 0x00000000  return KILL
+ 0004: 0x03 0x00 0x00 0x00000000  mem[0] = X
+ 0005: 0x2c 0x00 0x00 0x0000eb69  A *= X
+ 0006: 0x15 0x00 0x01 0x00000000  if (A != 0) goto 0008
+ 0007: 0x06 0x00 0x00 0x00000000  return KILL
+ 0008: 0x87 0x00 0x00 0x00000000  A = X
+ 0009: 0x15 0x00 0x01 0x00000001  if (A != write) goto 0011
+ 0010: 0x06 0x00 0x00 0x00000000  return KILL
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
 EOS
   end
 

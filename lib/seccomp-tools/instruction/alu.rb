@@ -10,6 +10,16 @@ module SeccompTools
         "A #{op_sym}= #{src}"
       end
 
+      # See {Base#branch}.
+      # @param [Context] context
+      #   Current context.
+      # @return [Array<(Integer, Context)>]
+      def branch(context)
+        ctx = context.dup
+        ctx[:a] = nil
+        [[line + 1, ctx]]
+      end
+
       private
 
       def op

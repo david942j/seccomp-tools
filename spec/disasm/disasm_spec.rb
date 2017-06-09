@@ -1,6 +1,6 @@
 # encoding: ascii-8bit
 
-require 'seccomp-tools/disasm'
+require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/util'
 
 describe SeccompTools::Disasm do
@@ -9,7 +9,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'normal' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -35,7 +35,7 @@ EOS
   end
 
   it 'libseccomp' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'libseccomp.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -54,7 +54,7 @@ EOS
   end
 
   it 'i386' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'CONFidence-2017-amigo.bpf'))
     expect(described_class.disasm(bpf, arch: :i386)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================
@@ -160,7 +160,7 @@ EOS
   end
 
   it 'all instructions' do
-    bpf = IO.binread(File.join(__dir__, 'data', 'all_inst.bpf'))
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
     expect(described_class.disasm(bpf)).to eq <<EOS
  line  CODE  JT   JF      K
 =================================

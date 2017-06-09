@@ -1,6 +1,6 @@
-require 'seccomp-tools/context'
+require 'seccomp-tools/disasm/context'
 
-describe SeccompTools::Context do
+describe SeccompTools::Disasm::Context do
   it 'dup' do
     ctx = described_class.new
     nctx = ctx.dup

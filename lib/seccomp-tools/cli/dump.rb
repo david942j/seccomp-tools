@@ -1,5 +1,5 @@
 require 'seccomp-tools/cli/base'
-require 'seccomp-tools/disasm'
+require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 
 module SeccompTools

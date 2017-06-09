@@ -1,5 +1,5 @@
 require 'seccomp-tools/bpf'
-require 'seccomp-tools/context'
+require 'seccomp-tools/disasm/context'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -19,6 +19,7 @@ module SeccompTools
       codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
       contexts = Array.new(codes.size) { [] }
       contexts[0].push(Context.new)
+      # all we care is if A is exactly one of data[*]
       dis = codes.zip(contexts).map do |code, ctxs|
         ctxs.each do |ctx|
           code.branch(ctx) do |pc, c|

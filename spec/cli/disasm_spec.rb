@@ -1,7 +1,7 @@
 require 'securerandom'
 
 require 'seccomp-tools/cli/disasm'
-require 'seccomp-tools/disasm'
+require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Disasm do

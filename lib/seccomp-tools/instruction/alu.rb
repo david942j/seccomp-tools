@@ -10,6 +10,10 @@ module SeccompTools
         "A #{op_sym}= #{src}"
       end
 
+      def branch(context)
+        [[line + 1, context]]
+      end
+
       private
 
       def op

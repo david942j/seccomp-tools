@@ -1,5 +1,6 @@
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
+require 'seccomp-tools/cli/emu'
 require 'seccomp-tools/version'
 
 module SeccompTools
@@ -8,7 +9,8 @@ module SeccompTools
     # Handled commands
     COMMANDS = {
       'dump' => SeccompTools::CLI::Dump,
-      'disasm' => SeccompTools::CLI::Disasm
+      'disasm' => SeccompTools::CLI::Disasm,
+      'emu' => SeccompTools::CLI::Emu
     }.freeze
 
     # Main usage message.

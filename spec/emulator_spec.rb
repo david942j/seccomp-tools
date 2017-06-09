@@ -49,8 +49,8 @@ describe SeccompTools::Emulator do
     end
 
     it 'raise undefined' do
-      error = 'Undefined variable `sys_number` in line 0000: A = sys_number'
-      expect { described_class.new(@insts).run }.to raise_error(ArgumentError, error)
+      error = "Undefined Variable\n\t0000: A = sys_number <- `sys_number` is undefined"
+      expect { described_class.new(@insts).run }.to raise_error(RuntimeError, error)
     end
   end
 

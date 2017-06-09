@@ -29,7 +29,7 @@ module SeccompTools
     def run
       @values = { pc: 0 }
       loop do
-        break unless pc # returned or error occured
+        break if @values[:ret] # break when returned
         inst = @instructions[pc]
         op, *args = inst.symbolize
         case op
@@ -61,7 +61,6 @@ module SeccompTools
     private
 
     def ret(num)
-      set(:pc, false)
       set(:ret, num == :a ? get(:a) : num)
     end
 
@@ -77,7 +76,7 @@ module SeccompTools
     end
 
     def st(reg, index)
-      raise RangeError, "Expect 0 <= index < 16, got: #{index}" unless index.between?(0, 15)
+      raise IndexError, "Expect 0 <= index < 16, got: #{index}" unless index.between?(0, 15)
       set(:mem, index, get(reg))
     end
 
@@ -117,7 +116,7 @@ module SeccompTools
         @values[arg] = val & 0xffffffff
       else
         raise ArgumentError, arg.to_s unless arg.first == :mem
-        # TODO: handle RangeError
+        raise IndexError, "Invalid index: #{arg[1]}" unless arg[1].between?(0, 15)
         @values[arg[1]] = val & 0xffffffff
       end
     end
@@ -134,7 +133,7 @@ module SeccompTools
     end
 
     def data_of(index)
-      raise ArgumentError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
+      raise IndexError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
       index /= 4
       case index
       when 0 then @sys_nr || undefined('sys_number')
@@ -148,7 +147,7 @@ module SeccompTools
     end
 
     def undefined(var)
-      raise ArgumentError, format('Undefined variable `%s` in line %04d: %s', var, pc, @instructions[pc].decompile)
+      raise format("Undefined Variable\n\t%04d: %s <- `%s` is undefined", pc, @instructions[pc].decompile, var)
     end
   end
 end

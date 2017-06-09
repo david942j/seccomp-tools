@@ -39,6 +39,7 @@ $ seccomp-tools --help
 #
 # 	dump	Automatically dump seccomp bpf from execution file.
 # 	disasm	Disassemble seccomp bpf.
+# 	emu	Emulate seccomp rules.
 #
 # See 'seccomp-tools --help <command>' to read about a specific subcommand.
 

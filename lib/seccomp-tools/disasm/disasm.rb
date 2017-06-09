@@ -15,7 +15,7 @@ module SeccompTools
     # @param [Symbol] arch
     #   Architecture.
     def disasm(raw, arch: nil)
-      codes = to_bpf(raw, arch || Util.system_arch)
+      codes = to_bpf(raw, arch)
       contexts = Array.new(codes.size) { Set.new }
       contexts[0].add(Context.new)
       # all we care is if A is exactly one of data[*]
@@ -39,6 +39,7 @@ EOS
     # @param [Symbol] arch
     # @return [Array<BPF>]
     def to_bpf(raw, arch)
+      arch ||= Util.system_arch
       raw.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
     end
   end

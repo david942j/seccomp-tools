@@ -43,7 +43,7 @@ module SeccompTools
         end
         set(:pc, get(:pc) + 1) if %i[ld st alu misc].include?(op)
       end
-      p @values
+      @values
     end
 
     def audit(arch)
@@ -74,6 +74,15 @@ module SeccompTools
             when :data then get(:data, src[:val])
             end
       set(dst, val)
+    end
+
+    def st(reg, index)
+      raise RangeError, "Expect 0 <= index < 16, got: #{index}" unless index.between?(0, 15)
+      set(:mem, index, get(reg))
+    end
+
+    def jmp(k)
+      set(:pc, get(:pc) + k + 1)
     end
 
     def cmp(op, src, jt, jf)

@@ -1,8 +1,9 @@
 require 'ostruct'
 
-require 'seccomp-tools/instruction/instruction'
 require 'seccomp-tools/const'
+require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/emulator'
+require 'seccomp-tools/instruction/instruction'
 
 describe SeccompTools::Emulator do
   before do
@@ -38,12 +39,31 @@ describe SeccompTools::Emulator do
       raw = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
       @insts = SeccompTools::Disasm.to_bpf(raw, :amd64).map(&:inst)
     end
+
     it 'allow' do
       expect(described_class.new(@insts, sys_nr: 1).run[:ret]).to be 0x7fff0000
     end
 
     it 'kill' do
       expect(described_class.new(@insts, sys_nr: 59).run[:ret]).to be 0x0
+    end
+  end
+
+  context 'CONFidence-2017-amigo' do
+    before do
+      raw = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+      @insts = SeccompTools::Disasm.to_bpf(raw, :i386).map(&:inst)
+    end
+
+    it 'allow' do
+      expect(described_class.new(@insts, sys_nr: 4, arch: :i386).run[:ret]).to be 0x7fff0000
+    end
+
+    it 'args' do
+      args = [0, 0, 0, 0, 0, 0]
+      expect(described_class.new(@insts, sys_nr: 4, args: args, arch: :amd64).run[:ret]).to be 0
+      args = [0, 0, 0, 0, 0, 0x313373133731337]
+      expect(described_class.new(@insts, sys_nr: 4, args: args, arch: :amd64).run[:ret]).to be 0x7fff0000
     end
   end
 end

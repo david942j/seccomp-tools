@@ -16,7 +16,7 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 * Disasm - Convert bpf to human readable format.
   - Simple decompile.
   - Show syscall names.
-* (TODO) Sim - Simulator of seccomp.
+* (WIP) Emu - Emulator of seccomp.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * Support multi-architectures.
 

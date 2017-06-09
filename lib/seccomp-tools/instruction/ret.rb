@@ -6,8 +6,12 @@ module SeccompTools
     class RET < Base
       # Decompile instruction.
       def decompile
-        return 'return A' if code & 0x18 == SRC[:a]
-        "return #{ACTION.invert[k & 0x7fff0000]}"
+        _, type = symbolize
+        "return #{type == :a ? 'A' : ACTION.invert[type & 0x7fff0000]}"
+      end
+
+      def symbolize
+        [:ret, code & 0x18 == SRC[:a] ? :a : k]
       end
 
       # See {Base#branch}.

@@ -7,10 +7,16 @@ module SeccompTools
       # Decompile instruction.
       def decompile
         ret = reg + ' = '
-        type = load_val
+        _, _reg, type = symbolize
         return ret + type[:val].to_s if type[:rel] == :immi
         return ret + "mem[#{type[:val]}]" if type[:rel] == :mem
         ret + seccomp_data_str
+      end
+
+      # @return [void]
+      def symbolize
+        type = load_val
+        [:ld, reg.downcase.to_sym, type]
       end
 
       # Accumulator register.

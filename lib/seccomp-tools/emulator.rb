@@ -76,16 +76,24 @@ module SeccompTools
       set(dst, val)
     end
 
+    def cmp(op, src, jt, jf)
+      src = get(:x) if src == :x
+      a = get(:a)
+      val = a.send(op, src)
+      val = (val != 0) if val.is_a?(Integer) # handle & operator
+      j = val ? jt : jf
+      set(:pc, get(:pc) + j + 1)
+    end
+
     def set(*arg, val)
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
         @values[arg] = val
-      elsif arg.first == :mem # TODO: handle RangeError
-        @values[arg[1]] = val
       else
-        # Access data
-        raise ArgumentError, arg.to_s
+        raise ArgumentError, arg.to_s unless arg.first == :mem
+        # TODO: handle RangeError
+        @values[arg[1]] = val
       end
     end
 
@@ -93,10 +101,24 @@ module SeccompTools
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
+        raise ArgumentError, "Undefined value of #{arg}" if @values[arg].nil?
         return @values[arg]
       end
       return @values[arg[1]] if arg.first == :mem
-      raise ArgumentError, arg.to_s
+      data_of(arg[1])
+    end
+
+    def data_of(index)
+      raise ArgumentError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
+      index /= 4
+      case index
+      when 0 then @sys_nr
+      when 1 then @arch
+      when 2 then @ip & 0xffffffff
+      when 3 then @ip >> 32
+      else
+        (@args[(index - 4) / 2] >> (index.even? ? 0 : 32)) & 0xffffffff
+      end
     end
   end
 end

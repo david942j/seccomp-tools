@@ -68,8 +68,6 @@ module SeccompTools
       inst.branch(context).each(&block)
     end
 
-    private
-
     def inst
       @inst ||= case command
                 when :alu  then SeccompTools::Instruction::ALU

@@ -33,8 +33,17 @@ describe SeccompTools::Emulator do
     end
   end
 
-  context 'ALU' do
-    it 'multiply' do
+  context 'diary' do
+    before do
+      raw = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
+      @insts = SeccompTools::Disasm.to_bpf(raw, :amd64).map(&:inst)
+    end
+    it 'allow' do
+      expect(described_class.new(@insts, sys_nr: 1).run[:ret]).to be 0x7fff0000
+    end
+
+    it 'kill' do
+      expect(described_class.new(@insts, sys_nr: 59).run[:ret]).to be 0x0
     end
   end
 end

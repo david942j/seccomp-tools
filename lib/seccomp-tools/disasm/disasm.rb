@@ -10,13 +10,12 @@ module SeccompTools
     module_function
 
     # Disassemble bpf codes.
-    # @param [String] bpf
-    #   The bpf codes.
+    # @param [String] raw
+    #   The raw bpf bytes.
     # @param [Symbol] arch
     #   Architecture.
-    def disasm(bpf, arch: nil)
-      arch ||= Util.system_arch
-      codes = bpf.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
+    def disasm(raw, arch: nil)
+      codes = to_bpf(raw, arch || Util.system_arch)
       contexts = Array.new(codes.size) { Set.new }
       contexts[0].add(Context.new)
       # all we care is if A is exactly one of data[*]
@@ -33,6 +32,14 @@ module SeccompTools
  line  CODE  JT   JF      K
 =================================
 EOS
+    end
+
+    # Convert raw bpf string to array of {BPF}.
+    # @param [String] raw
+    # @param [Symbol] arch
+    # @return [Array<BPF>]
+    def to_bpf(raw, arch)
+      raw.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }
     end
   end
 end

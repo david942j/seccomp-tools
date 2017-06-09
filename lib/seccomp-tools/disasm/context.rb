@@ -1,6 +1,6 @@
 module SeccompTools
   module Disasm
-    # Context for disassembly to analyze.
+    # Context for disassembler to analyze.
     #
     # This context only care if +reg/mem+ can be one of +data[*]+.
     class Context
@@ -16,7 +16,7 @@ module SeccompTools
       #   Value to be set to +mem+.
       def initialize(a: nil, x: nil, mem: {})
         @values = mem
-        16.times { |i| @values[i] ||= nil } # make mem always has all keys
+        16.times { |i| @values[i] ||= nil } # make @values always has all keys
         @values[:a] = a
         @values[:x] = x
       end
@@ -48,7 +48,7 @@ module SeccompTools
       end
 
       # For conveniently set instance variable.
-      # @param [#downcase] key
+      # @param [#downcase, Integer] key
       #   Can be +'A', 'a', :a, 'X', 'x', :x+ or an integer.
       # @param [Integer?] val
       #   Value to set.

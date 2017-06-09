@@ -9,6 +9,12 @@ module SeccompTools
         "mem[#{k}] = #{reg}"
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:misc, (:a, :x), Integer]]
+      def symbolize
+        [:st, reg.downcase.to_sym, k]
+      end
+
       # @return [Array<(Integer, Context)>]
       def branch(context)
         ctx = context.dup

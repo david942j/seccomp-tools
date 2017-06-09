@@ -19,6 +19,13 @@ module SeccompTools
         if_str(true) + goto(jf)
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:cmp, Symbol, (:x, Integer), Integer, Integer], [:jmp, Integer]]
+      def symbolize
+        return [:jmp, k] if jop == :none
+        [:cmp, jop, src, jt, jf]
+      end
+
       # See {Base#branch}.
       # @param [Context] context
       #   Current context.
@@ -43,7 +50,7 @@ module SeccompTools
       end
 
       def src_str
-        return 'X' if SRC.invert[code & 8] == :x
+        return 'X' if src == :x
         # if A in all contexts are same
         a = contexts.map(&:a).uniq
         return k.to_s if a.size != 1
@@ -55,6 +62,10 @@ module SeccompTools
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || hex, t: :arch)
         else hex
         end
+      end
+
+      def src
+        SRC.invert[code & 8] == :x ? :x : k
       end
 
       def goto(off)

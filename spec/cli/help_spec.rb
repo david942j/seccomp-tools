@@ -9,6 +9,7 @@ List of commands:
 
 	dump	Automatically dump seccomp bpf from execution file.
 	disasm	Disassemble seccomp bpf.
+	emu	Emulate seccomp rules.
 
 See 'seccomp-tools --help <command>' to read about a specific subcommand.
     EOS
@@ -45,6 +46,17 @@ Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <amd64|i386>.
+EOS
+  end
+
+  it 'help emu' do
+    expect { described_class.work(%w[emu --help]) }.to output(<<EOS).to_stdout
+emu - Emulate seccomp rules.
+
+Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
+    -a, --arch ARCH                  Specify architecture.
+                                     Supported architectures are <amd64|i386>.
+    -q, --[no-]quiet                 Run quietly, only show emulation result.
 EOS
   end
 

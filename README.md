@@ -16,7 +16,7 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 * Disasm - Convert bpf to human readable format.
   - Simple decompile.
   - Show syscall names.
-* (TODO) Sim - Simulator of seccomp.
+* Emu - Emulate seccomp rules.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * Support multi-architectures.
 
@@ -39,6 +39,7 @@ $ seccomp-tools --help
 #
 # 	dump	Automatically dump seccomp bpf from execution file.
 # 	disasm	Disassemble seccomp bpf.
+# 	emu	Emulate seccomp rules.
 #
 # See 'seccomp-tools --help <command>' to read about a specific subcommand.
 
@@ -141,11 +142,46 @@ $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
 
 ```
 
+### Emu
+
+Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
+```bash
+$ seccomp-tools emu --help
+# emu - Emulate seccomp rules.
+#
+# Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <amd64|i386>.
+#     -q, --[no-]quiet                 Run quietly, only show emulation result.
+
+$ seccomp-tools emu spec/data/libseccomp.bpf 0x3
+#  line  CODE  JT   JF      K
+# =================================
+#  0000: 0x20 0x00 0x00 0x00000004  A = arch
+#  0001: 0x15 0x00 0x08 0xc000003e  if (A != ARCH_X86_64) goto 0010
+#  0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+#  0003: 0x35 0x06 0x00 0x40000000  if (A >= 0x40000000) goto 0010
+#  0004: 0x15 0x04 0x00 0x00000001  if (A == write) goto 0009
+#  0005: 0x15 0x03 0x00 0x00000003  if (A == close) goto 0009
+#  0006: 0x15 0x02 0x00 0x00000020  if (A == dup) goto 0009
+#  0007: 0x15 0x01 0x00 0x0000003c  if (A == exit) goto 0009
+#  0008: 0x06 0x00 0x00 0x00050005  return ERRNO
+#  0009: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+#  0010: 0x06 0x00 0x00 0x00000000  return KILL
+#
+# return ALLOW at line 0009
+
+```
+
 ## Screenshots
 
 ### Dump
 ![dump](https://github.com/david942j/seccomp-tools/blob/master/examples/dump-diary.png?raw=true)
 
+### Emu
+![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-libseccomp.png?raw=true)
+
+![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-amigo.png?raw=true)
 
 ## I Need You
 Any suggestion or feature request is welcome!

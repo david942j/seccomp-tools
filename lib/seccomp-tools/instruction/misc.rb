@@ -12,6 +12,12 @@ module SeccompTools
         end
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:misc, (:tax, :txa)]]
+      def symbolize
+        [:misc, op]
+      end
+
       # See {Base#branch}.
       # @param [Context] context
       #   Current context.

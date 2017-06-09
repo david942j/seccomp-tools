@@ -16,7 +16,7 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 * Disasm - Convert bpf to human readable format.
   - Simple decompile.
   - Show syscall names.
-* (TODO) Sim - Simulator of seccomp.
+* Emu - Emulate seccomp rules.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * Support multi-architectures.
 
@@ -57,11 +57,23 @@ SHELL_OUTPUT_OF(xxd spec/data/twctf-2016-diary.bpf | head -n 3)
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ```
 
+### Emu
+
+Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
+```bash
+SHELL_OUTPUT_OF(seccomp-tools emu --help)
+SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf 0x3)
+```
+
 ## Screenshots
 
 ### Dump
 ![dump](https://github.com/david942j/seccomp-tools/blob/master/examples/dump-diary.png?raw=true)
 
+### Emu
+![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-libseccomp.png?raw=true)
+
+![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-amigo.png?raw=true)
 
 ## I Need You
 Any suggestion or feature request is welcome!

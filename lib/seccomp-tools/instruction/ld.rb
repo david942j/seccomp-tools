@@ -67,6 +67,7 @@ module SeccompTools
         when 0 then 'sys_number'
         when 4 then 'arch'
         when 8 then 'instruction_pointer'
+        when 12 then 'instruction_pointer >> 32'
         else
           idx = Array.new(12) { |i| i * 4 + 16 }.index(k)
           return 'INVALID' if idx.nil?

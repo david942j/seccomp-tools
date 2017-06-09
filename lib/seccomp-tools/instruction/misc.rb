@@ -12,6 +12,10 @@ module SeccompTools
         end
       end
 
+      def symbolize
+        [:misc, op]
+      end
+
       # See {Base#branch}.
       # @param [Context] context
       #   Current context.

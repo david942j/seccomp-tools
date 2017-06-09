@@ -29,7 +29,7 @@ module SeccompTools
     def run
       @values = { pc: 0 }
       loop do
-        break if pc.nil? # returned or error occured
+        break unless pc # returned or error occured
         inst = @instructions[pc]
         op, *args = inst.symbolize
         case op
@@ -61,7 +61,7 @@ module SeccompTools
     private
 
     def ret(num)
-      set(:pc, nil)
+      set(:pc, false)
       set(:ret, num == :a ? get(:a) : num)
     end
 
@@ -94,15 +94,31 @@ module SeccompTools
       set(:pc, get(:pc) + j + 1)
     end
 
+    def alu(op, src)
+      if op == :neg
+        set(:a, 2**32 - get(:a))
+      else
+        src = get(:x) if src == :x
+        set(:a, get(:a).send(op, src))
+      end
+    end
+
+    def misc(op)
+      case op
+      when :txa then set(:a, get(:x))
+      when :tax then set(:x, get(:a))
+      end
+    end
+
     def set(*arg, val)
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
-        @values[arg] = val
+        @values[arg] = val & 0xffffffff
       else
         raise ArgumentError, arg.to_s unless arg.first == :mem
         # TODO: handle RangeError
-        @values[arg[1]] = val
+        @values[arg[1]] = val & 0xffffffff
       end
     end
 

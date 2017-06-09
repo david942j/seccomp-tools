@@ -71,4 +71,17 @@ describe SeccompTools::Emulator do
       expect(described_class.new(@insts, sys_nr: 4, args: args, arch: :amd64).run[:ret]).to be 0x7fff0000
     end
   end
+
+  context 'misc_alu' do
+    before do
+      raw = IO.binread(File.join(__dir__, 'data', 'misc_alu.bpf'))
+      @insts = SeccompTools::Disasm.to_bpf(raw, :i386).map(&:inst)
+    end
+
+    it 'run' do
+      expect(described_class.new(@insts, instruction_pointer: 0x123).run[:ret]).to be 0
+      expect(described_class.new(@insts, sys_nr: 1, instruction_pointer: 0x12300000edd).run[:ret]).to be 0
+      expect(described_class.new(@insts, sys_nr: 137, instruction_pointer: 0x12300000edd).run[:ret]).to be 0x7fff0000
+    end
+  end
 end

@@ -28,11 +28,7 @@ module SeccompTools
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
 
-          supported = Util.supported_archs
-          opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
-                 "Supported architectures are <#{supported.join('|')}>.") do |a|
-            option[:arch] = a
-          end
+          option_arch(opt)
 
           opt.on('-q', '--[no-]quiet', 'Run quietly, only show emulation result.') do |v|
             option[:verbose] = 0 if v

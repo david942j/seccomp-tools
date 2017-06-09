@@ -1,6 +1,5 @@
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm/disasm'
-require 'seccomp-tools/util'
 
 module SeccompTools
   module CLI
@@ -20,11 +19,7 @@ module SeccompTools
             option[:ofile] = o
           end
 
-          supported = Util.supported_archs
-          opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
-                 "Supported architectures are <#{supported.join('|')}>.") do |a|
-            option[:arch] = a
-          end
+          option_arch(opt)
         end
       end
 

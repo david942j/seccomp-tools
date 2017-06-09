@@ -1,5 +1,7 @@
 require 'optparse'
 
+require 'seccomp-tools/util'
+
 module SeccompTools
   module CLI
     # Base class for handlers.
@@ -72,6 +74,14 @@ module SeccompTools
       #   Usage information.
       def usage
         self.class.const_get(:USAGE)
+      end
+
+      def option_arch(opt)
+        supported = Util.supported_archs
+        opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
+               "Supported architectures are <#{supported.join('|')}>.") do |a|
+          option[:arch] = a
+        end
       end
     end
   end

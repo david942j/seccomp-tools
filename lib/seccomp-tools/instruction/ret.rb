@@ -10,6 +10,8 @@ module SeccompTools
         "return #{type == :a ? 'A' : ACTION.invert[type & 0x7fff0000]}"
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:ret, (:a, Integer)]]
       def symbolize
         [:ret, code & 0x18 == SRC[:a] ? :a : k]
       end

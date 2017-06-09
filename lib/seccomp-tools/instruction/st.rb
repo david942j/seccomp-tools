@@ -9,6 +9,8 @@ module SeccompTools
         "mem[#{k}] = #{reg}"
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:misc, (:a, :x), Integer]]
       def symbolize
         [:st, reg.downcase.to_sym, k]
       end

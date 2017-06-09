@@ -10,6 +10,8 @@ module SeccompTools
         "A #{op_sym}= #{src_str}"
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:alu, Symbol, (:x, Integer, nil)]]
       def symbolize
         return [:alu, :neg, nil] if op == :neg
         [:alu, op_sym, src]

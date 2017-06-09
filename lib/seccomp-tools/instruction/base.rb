@@ -34,6 +34,15 @@ module SeccompTools
       def branch(_context); raise NotImplmentedError
       end
 
+      # Return tokens stand for this instruction.
+      # @return [Array<Symbol, Integer>]
+      # @example
+      #   ret_a.symbolize #=> [:ret, :a]
+      #   ret_k.symbolize #=> [:ret, 0x7fff0000]
+      #   jeq.symbolize #=> [:cmp, :==, 0, 0, 1]
+      def symbolize; raise NotImplmentedError
+      end
+
       private
 
       %i(code jt jf k arch line contexts).each do |sym|

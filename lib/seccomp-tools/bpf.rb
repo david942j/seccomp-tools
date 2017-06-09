@@ -69,6 +69,8 @@ module SeccompTools
       inst.branch(context).each(&block)
     end
 
+    # Correspond instruction object.
+    # @return [SeccompTools::Instruction::Base]
     def inst
       @inst ||= case command
                 when :alu  then SeccompTools::Instruction::ALU

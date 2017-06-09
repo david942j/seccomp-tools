@@ -26,6 +26,7 @@ module SeccompTools
     end
 
     # Run emulation!
+    # @return [Hash{Symbol, Integer => Integer}]
     def run
       @values = { pc: 0 }
       loop do
@@ -47,6 +48,12 @@ module SeccompTools
       @values
     end
 
+    private
+
+    def pc
+      @values[:pc]
+    end
+
     def audit(arch)
       type = case arch
              when :amd64 then 'ARCH_X86_64'
@@ -54,12 +61,6 @@ module SeccompTools
              end
       Const::Audit::ARCH[type]
     end
-
-    def pc
-      @values[:pc]
-    end
-
-    private
 
     def ret(num)
       set(:ret, num == :a ? get(:a) : num)

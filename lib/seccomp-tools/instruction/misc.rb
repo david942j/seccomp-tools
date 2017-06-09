@@ -12,6 +12,8 @@ module SeccompTools
         end
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:misc, (:tax, :txa)]]
       def symbolize
         [:misc, op]
       end

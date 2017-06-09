@@ -19,6 +19,8 @@ module SeccompTools
         if_str(true) + goto(jf)
       end
 
+      # See {Instruction::Base#symbolize}.
+      # @return [[:cmp, Symbol, (:x, Integer), Integer, Integer], [:jmp, Integer]]
       def symbolize
         return [:jmp, k] if jop == :none
         [:cmp, jop, src, jt, jf]

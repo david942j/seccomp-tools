@@ -48,8 +48,8 @@ module SeccompTools
         a = contexts.map(&:a).uniq
         return k.to_s if a.size != 1
         a = a[0]
-        return k.to_s unless a.instance_of?(Array) && a.first == :data
-        case a.last
+        return k.to_s if a.nil?
+        case a
         when 0 then Util.colorize((Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || k).to_s, t: :syscall)
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || k.to_s(16), t: :arch)
         else '0x' + k.to_s(16)

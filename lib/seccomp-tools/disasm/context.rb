@@ -1,49 +1,74 @@
 module SeccompTools
   module Disasm
     # Context for disassembly to analyze.
-    # This class only care if +reg/mem+ can be one of +data[*]+.
+    #
+    # This context only care if +reg/mem+ can be one of +data[*]+.
     class Context
-      # @return [Object] A register.
-      attr_accessor :a
-      # @return [Object] X register.
-      attr_accessor :x
-      # @return [Hash{Integer => Object}] Memory.
-      attr_accessor :mem
+      # @return [Hash{Integer, Symbol => Integer?}] Records reg and mem values.
+      attr_reader :values
 
       # Instantiate a {Context} object.
-      # @param [Object] a
+      # @param [Integer?] a
       #   Value to be set to +A+ register.
-      # @param [Object] x
+      # @param [Integer?] x
       #   Value to be set to +X+ register.
-      # @param [Hash{Integer => Object}] mem
+      # @param [Hash{Integer => Integer?}] mem
       #   Value to be set to +mem+.
       def initialize(a: nil, x: nil, mem: {})
-        @a = a
-        @x = x
-        @mem = mem
+        @values = mem
+        16.times { |i| @values[i] ||= nil } # make mem always has all keys
+        @values[:a] = a
+        @values[:x] = x
       end
 
       # Implement a deep dup.
       # @return [Context]
       def dup
-        Context.new(a: a, x: x, mem: mem.dup)
+        Context.new(a: a, x: x, mem: values.dup)
+      end
+
+      # @return [Integer?]
+      def a
+        values[:a]
+      end
+
+      # @return [Integer?]
+      def x
+        values[:x]
       end
 
       # For conveniently get instance variable.
-      # @param [String, Symbol] key
-      # @return [Object]
+      # @param [String, Symbol, Integer] key
+      # @return [Integer?]
       def [](key)
-        instance_variable_get(('@' + key.downcase).to_sym)
+        return values[key] if key.is_a?(Integer) # mem
+        values[key.downcase.to_sym]
       end
 
       # For conveniently set instance variable.
       # @param [#downcase] key
-      #   Can be +'A', 'a', :a, 'X', 'x', :x+.
-      # @param [Object] val
+      #   Can be +'A', 'a', :a, 'X', 'x', :x+ or an integer.
+      # @param [Integer?] val
       #   Value to set.
       # @return [void]
       def []=(key, val)
-        instance_variable_set(('@' + key.downcase).to_sym, val)
+        if key.is_a?(Integer)
+          raise RangeError, "Expect 0 <= val < 64, got #{val}." unless val.nil? || val.between?(0, 63)
+          values[key] = val
+        else
+          values[key.downcase.to_sym] = val
+        end
+      end
+
+      # For +Set+ to compare two {Context} object.
+      # @param [Context] other
+      # @return [Boolean]
+      def eql?(other)
+        values.eql?(other.values)
+      end
+
+      def hash
+        values.hash
       end
     end
   end

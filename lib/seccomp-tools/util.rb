@@ -57,7 +57,7 @@ module SeccompTools
       return s unless colorize_enabled?
       cc = COLOR_CODE
       color = cc[t]
-      "#{color}#{s.sub(cc[:esc_m], color)}#{cc[:esc_m]}"
+      "#{color}#{s.sub(cc[:esc_m], cc[:esc_m] + color)}#{cc[:esc_m]}"
     end
   end
 end

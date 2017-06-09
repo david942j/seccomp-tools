@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    seccomp-tools (0.1.0)
+    seccomp-tools (1.0.0)
 
 GEM
   remote: https://rubygems.org/

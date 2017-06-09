@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.summary       = 'seccomp-tools'
   s.description   = <<-EOS
 Provide useful tools to analyze seccomp rules.
+Visit https://github.com/david942j/seccomp-tools for more details.
   EOS
   s.license       = 'MIT'
   s.authors       = ['david942j']

@@ -42,7 +42,8 @@ module SeccompTools
     COLOR_CODE = {
       esc_m: "\e[0m",
       syscall: "\e[38;5;120m", # light green
-      arch: "\e[38;5;230m" # light yellow
+      arch: "\e[38;5;230m", # light yellow
+      gray: "\e[2m"
     }.freeze
     # Wrapper color codes.
     # @param [String] s

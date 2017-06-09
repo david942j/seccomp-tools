@@ -30,6 +30,7 @@ module SeccompTools
       @values = { pc: 0 }
       loop do
         break if @values[:ret] # break when returned
+        yield(@values) if block_given?
         inst = @instructions[pc]
         op, *args = inst.symbolize
         case op

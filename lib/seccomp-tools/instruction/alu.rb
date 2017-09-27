@@ -52,7 +52,11 @@ module SeccompTools
       end
 
       def src_str
-        src == :x ? 'X' : src.to_s
+        return 'X' if src == :x
+        case op
+        when :lsh, :rsh then src.to_s
+        else '0x' + src.to_s(16)
+        end
       end
 
       def src

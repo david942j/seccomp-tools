@@ -148,7 +148,20 @@ $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
 
 Assemble the seccomp rules into raw bytes.
 Very useful when want to write custom seccomp rules.
+
+Supports labels for jumping and use syscall names directly. See example below.
 ```bash
+$ seccomp-tools asm
+# asm - Seccomp bpf assembler.
+#
+# Usage: seccomp-tools asm IN_FILE [options]
+#     -o, --output FILE                Output result into FILE instead of stdout.
+#     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|carray>.
+#                                      Default: inspect
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <amd64|i386>.
+
+# Input file for asm
 $ cat spec/data/libseccomp.asm
 # # check if arch is X86_64
 # A = arch
@@ -167,6 +180,9 @@ $ cat spec/data/libseccomp.asm
 
 $ seccomp-tools asm spec/data/libseccomp.asm
 # " \x00\x00\x00\x04\x00\x00\x00\x15\x00\x00\b>\x00\x00\xC0 \x00\x00\x00\x00\x00\x00\x005\x00\x06\x00\x00\x00\x00@\x15\x00\x04\x00\x01\x00\x00\x00\x15\x00\x03\x00\x03\x00\x00\x00\x15\x00\x02\x00 \x00\x00\x00\x15\x00\x01\x00<\x00\x00\x00\x06\x00\x00\x00\x05\x00\x05\x00\x06\x00\x00\x00\x00\x00\xFF\x7F\x06\x00\x00\x00\x00\x00\x00\x00"
+
+$ seccomp-tools asm spec/data/libseccomp.asm -f carray
+# unsigned char bpf[] = {32,0,0,0,4,0,0,0,21,0,0,8,62,0,0,192,32,0,0,0,0,0,0,0,53,0,6,0,0,0,0,64,21,0,4,0,1,0,0,0,21,0,3,0,3,0,0,0,21,0,2,0,32,0,0,0,21,0,1,0,60,0,0,0,6,0,0,0,5,0,5,0,6,0,0,0,0,0,255,127,6,0,0,0,0,0,0,0};
 
 
 # let's asm then disasm!

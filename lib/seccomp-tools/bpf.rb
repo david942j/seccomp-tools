@@ -57,7 +57,7 @@ module SeccompTools
     # @return [String]
     #   Raw bpf bytes.
     def asm
-      [code].pack("S*") + [jt, jf].pack("C*") + [k].pack("L")
+      [code].pack('S*') + [jt, jf].pack('C*') + [k].pack('L')
     end
 
     # Command according to +code+.

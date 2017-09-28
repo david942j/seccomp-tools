@@ -4,6 +4,7 @@ module SeccompTools
   module Instruction
     # Instruction alu.
     class ALU < Base
+      # Mapping from name to operator.
       OP_SYM = {
         add: :+,
         sub: :-,

@@ -3,7 +3,7 @@ require 'seccomp-tools/disasm/disasm'
 
 module SeccompTools
   module CLI
-    # Handle 'dump' command.
+    # Handle 'disasm' command.
     class Disasm < Base
       # Summary of this command.
       SUMMARY = 'Disassemble seccomp bpf.'.freeze

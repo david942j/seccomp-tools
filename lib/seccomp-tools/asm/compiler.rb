@@ -4,6 +4,7 @@ require 'seccomp-tools/const'
 
 module SeccompTools
   module Asm
+    # Compile seccomp rules.
     class Compiler
       def initialize(arch)
         @arch = arch
@@ -12,19 +13,29 @@ module SeccompTools
         @input = []
       end
 
+      # Before compile assembly codes, process each lines.
+      #
+      # With this we can support label in seccomp ruls.
+      # @param [String] line
+      #   One line of seccomp rule.
+      # @return [void]
       def process(line)
         @input << line.strip
         line = remove_comment(line)
         @token = Tokenizer.new(line)
         return if line.empty?
-        res = case line
-              when /\?/ then cmp
-              when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
-              when /^return/ then ret
-              when /^(A|X)\s*=[^=]/ then assign
-              when /^A\s*.=/ then alu
-              else raise ArgumentError, "Invalid instruction at line #{@input.size}: #{@input.last.inspect}"
-              end
+        begin
+          res = case line
+                when /\?/ then cmp
+                when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
+                when /^return/ then ret
+                when /^(A|X)\s*=[^=]/ then assign
+                when /^A\s*.=/ then alu
+                end
+        rescue ArgumentError => e
+          invalid(@input.size - 1, e.message)
+        end
+        invalid(@input.size - 1) if res.nil?
         if res.first == :label
           @labels[res.last] = @insts.size
         else
@@ -33,7 +44,7 @@ module SeccompTools
         res
       end
 
-      # @return [Array<BPF>]
+      # @return [Array<SeccompTools::BPF>]
       def compile!
         @insts.map.with_index do |inst, idx|
           @line = idx
@@ -44,6 +55,8 @@ module SeccompTools
           when :cmp then compile_cmp(inst[1], inst[2], inst[3], inst[4])
           end
         end
+      rescue ArgumentError => e
+        invalid(@line, e.message)
       end
 
       private
@@ -196,6 +209,12 @@ module SeccompTools
         line = line.to_s.dup
         line.slice!(/#.*\Z/m)
         line.strip
+      end
+
+      def invalid(line, extra_msg = nil)
+        message = "Invalid instruction at line #{line + 1}: #{@input[line].inspect}"
+        message += "\n" + 'Error: ' + extra_msg if extra_msg
+        raise ArgumentError, message
       end
     end
   end

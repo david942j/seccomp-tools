@@ -30,7 +30,10 @@ describe SeccompTools::Asm::Compiler do
 
     it 'data' do
       expect(@get_bpf['A = data[0]']).to eq 'A = sys_number'
-      expect { @get_bpf['A = data[1]'] }.to raise_error(ArgumentError, 'Index of data[] must be multiplication of 4')
+      expect { @get_bpf['A = data[1]'] }.to raise_error(ArgumentError, <<-EOS.strip)
+Invalid instruction at line 1: "A = data[1]"
+Error: Index of data[] must be multiplication of 4
+      EOS
       expect(@get_bpf['A = sys_number']).to eq 'A = sys_number'
       expect(@get_bpf['A = arch']).to eq 'A = arch'
       expect(@get_bpf['A = args[0]']).to eq 'A = args[0]'
@@ -69,6 +72,10 @@ return KILL
     expect(@get_bpf['return ALLOW']).to eq 'return ALLOW'
     expect(@get_bpf['return KILL']).to eq 'return KILL'
     expect(@get_bpf['return A']).to eq 'return A'
+    expect { @get_bpf['return QQ'] }.to raise_error(<<-EOS)
+Invalid instruction at line 1: "return QQ"
+Error: Invalid return type: "QQ".
+    EOS
   end
 
   it 'alu' do

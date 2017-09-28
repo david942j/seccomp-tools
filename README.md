@@ -111,7 +111,7 @@ $ seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd
 
 ### disasm
 
-Disassemble the seccomp bpf.
+Disassemble the seccomp from raw bpf.
 ```bash
 $ xxd spec/data/twctf-2016-diary.bpf | head -n 3
 # 00000000: 2000 0000 0000 0000 1500 0001 0200 0000   ...............

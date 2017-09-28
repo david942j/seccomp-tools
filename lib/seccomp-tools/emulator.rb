@@ -28,7 +28,7 @@ module SeccompTools
     # Run emulation!
     # @return [Hash{Symbol, Integer => Integer}]
     def run
-      @values = { pc: 0 }
+      @values = { pc: 0, a: 0, x: 0 }
       loop do
         break if @values[:ret] # break when returned
         yield(@values) if block_given?

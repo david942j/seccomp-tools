@@ -4,6 +4,19 @@ module SeccompTools
   module Instruction
     # Instruction alu.
     class ALU < Base
+      OP_SYM = {
+        add: :+,
+        sub: :-,
+        mul: :*,
+        div: :/,
+        or: :|,
+        and: :&,
+        lsh: :<<,
+        rsh: :>>,
+        # neg: :-, # should not be invoked
+        # mod: :%, # unsupported
+        xor: :^
+      }.freeze
       # Decompile instruction.
       def decompile
         return 'A = -A' if op == :neg
@@ -36,19 +49,7 @@ module SeccompTools
       end
 
       def op_sym
-        case op
-        when :add then :+
-        when :sub then :-
-        when :mul then :*
-        when :div then :/
-        when :or  then :|
-        when :and then :&
-        when :lsh then :<<
-        when :rsh then :>>
-        # when :neg then :- # should not invoke this method
-        # when :mod then :% # unsupported
-        when :xor then :^
-        end
+        OP_SYM[op]
       end
 
       def src_str

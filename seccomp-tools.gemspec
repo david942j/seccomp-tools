@@ -25,6 +25,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.required_ruby_version = '>= 2.1.0'
 
   s.add_development_dependency 'codeclimate-test-reporter', '~> 0.6'
+  s.add_development_dependency 'pry', '~> 0.10'
   s.add_development_dependency 'rake', '~> 12.0'
   s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'rspec', '~> 3.5'

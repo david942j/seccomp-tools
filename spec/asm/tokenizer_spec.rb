@@ -74,5 +74,10 @@ describe SeccompTools::Asm::Tokenizer do
       expect(token.fetch!(:alu_op)).to eq :rsh
       expect(token.fetch!(:alu_op)).to eq :xor
     end
+
+    it 'invalid' do
+      token = described_class.new('whatever')
+      expect { token.fetch!(:meow) }.to raise_error(ArgumentError, 'Unsupported type: :meow')
+    end
   end
 end

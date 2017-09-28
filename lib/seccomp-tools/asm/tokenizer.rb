@@ -37,7 +37,7 @@ Invalid return type: #{cur.inspect}.
               when :ax then fetch_ax || raise_expected("'A' or 'X'")
               when :ary then fetch_ary || raise_expected('data[<num>], mem[<num>], or args[<num>]')
               when :alu_op then fetch_alu || raise_expected('an ALU operator')
-              else raise ArgumentError, "Unsupported type #{type.inspect}"
+              else raise ArgumentError, "Unsupported type: #{type.inspect}"
               end
         slice!
         res

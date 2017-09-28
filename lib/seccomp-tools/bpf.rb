@@ -1,3 +1,5 @@
+require 'set'
+
 require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/instruction'
 

@@ -40,8 +40,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        str = option[:ifile] == '-' ? STDIN.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
-        res = SeccompTools::Asm.asm(str, arch: option[:arch])
+        res = SeccompTools::Asm.asm(input, arch: option[:arch])
         output do
           case option[:format]
           when :inspect then res.inspect + "\n"

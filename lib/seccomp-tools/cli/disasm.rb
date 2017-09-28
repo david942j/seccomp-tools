@@ -29,8 +29,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        str = option[:ifile] == '-' ? STDIN.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
-        output { SeccompTools::Disasm.disasm(str, arch: option[:arch]) }
+        output { SeccompTools::Disasm.disasm(input, arch: option[:arch]) }
       end
     end
   end

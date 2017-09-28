@@ -1,3 +1,5 @@
+require 'set'
+
 require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/instruction'
 
@@ -27,11 +29,18 @@ module SeccompTools
     # @param [Integer] line
     #   Line number of this filter.
     def initialize(raw, arch, line)
-      io = StringIO.new(raw)
-      @code = io.read(2).unpack('S').first
-      @jt = io.read(1).ord
-      @jf = io.read(1).ord
-      @k = io.read(4).unpack('L').first
+      if raw.is_a?(String)
+        io = StringIO.new(raw)
+        @code = io.read(2).unpack('S').first
+        @jt = io.read(1).ord
+        @jf = io.read(1).ord
+        @k = io.read(4).unpack('L').first
+      else
+        @code = raw[:code]
+        @jt = raw[:jt]
+        @jf = raw[:jf]
+        @k = raw[:k]
+      end
       @arch = arch
       @line = line
       @contexts = Set.new
@@ -42,6 +51,13 @@ module SeccompTools
     def disasm
       format(' %04d: 0x%02x 0x%02x 0x%02x 0x%08x  %s',
              line, code, jt, jf, k, decompile)
+    end
+
+    # Convert to raw bytes.
+    # @return [String]
+    #   Raw bpf bytes.
+    def asm
+      [code].pack('S*') + [jt, jf].pack('C*') + [k].pack('L')
     end
 
     # Command according to +code+.

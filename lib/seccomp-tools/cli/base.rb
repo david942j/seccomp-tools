@@ -30,6 +30,14 @@ module SeccompTools
         true
       end
 
+      # If +option[:ifile]+ is '-', read from stdin,
+      # otherwise, read from file.
+      # @return [String]
+      #   String read from file.
+      def input
+        option[:ifile] == '-' ? STDIN.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
+      end
+
       # Write data to stdout or file(s).
       # @yieldreturn [String]
       #   The data to be written.

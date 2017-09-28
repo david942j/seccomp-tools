@@ -1,4 +1,4 @@
-require "rake/extensiontask"
+require 'rake/extensiontask'
 require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 require 'yard'
@@ -22,5 +22,5 @@ YARD::Rake::YardocTask.new(:doc) do |t|
 end
 
 Rake::ExtensionTask.new 'ptrace' do |ext|
-    ext.lib_dir = "lib/seccomp-tools"
+  ext.lib_dir = 'lib/seccomp-tools'
 end

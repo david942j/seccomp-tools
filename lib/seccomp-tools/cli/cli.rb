@@ -1,3 +1,4 @@
+require 'seccomp-tools/cli/asm'
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/cli/emu'
@@ -10,6 +11,7 @@ module SeccompTools
     COMMANDS = {
       'dump' => SeccompTools::CLI::Dump,
       'disasm' => SeccompTools::CLI::Disasm,
+      'asm' => SeccompTools::CLI::Asm,
       'emu' => SeccompTools::CLI::Emu
     }.freeze
 

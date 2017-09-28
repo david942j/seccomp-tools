@@ -42,7 +42,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        raw = IO.binread(option[:ifile])
+        raw = input
         insts = SeccompTools::Disasm.to_bpf(raw, option[:arch]).map(&:inst)
         disasm = SeccompTools::Disasm.disasm(raw, arch: option[:arch])
         sys, *args = argv

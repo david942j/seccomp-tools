@@ -3,7 +3,7 @@ require 'seccomp-tools/disasm/disasm'
 
 module SeccompTools
   module CLI
-    # Handle 'dump' command.
+    # Handle 'disasm' command.
     class Disasm < Base
       # Summary of this command.
       SUMMARY = 'Disassemble seccomp bpf.'.freeze
@@ -29,7 +29,7 @@ module SeccompTools
         return unless super
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
-        output { SeccompTools::Disasm.disasm(IO.binread(option[:ifile]), arch: option[:arch]) }
+        output { SeccompTools::Disasm.disasm(input, arch: option[:arch]) }
       end
     end
   end

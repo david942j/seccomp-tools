@@ -16,6 +16,7 @@ Some features might be CTF-specific, but still useful for analysis of seccomp in
 * Disasm - Convert bpf to human readable format.
   - Simple decompile.
   - Show syscall names.
+* Asm - Write seccomp rules is so easy!
 * Emu - Emulate seccomp rules.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * Support multi-architectures.
@@ -51,10 +52,27 @@ SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
 
 ### disasm
 
-Disassemble the seccomp bpf.
+Disassemble the seccomp from raw bpf.
 ```bash
 SHELL_OUTPUT_OF(xxd spec/data/twctf-2016-diary.bpf | head -n 3)
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
+```
+
+### asm
+
+Assemble the seccomp rules into raw bytes.
+Very useful when want to write custom seccomp rules.
+
+Supports labels for jumping and use syscall names directly. See example below.
+```bash
+SHELL_OUTPUT_OF(seccomp-tools asm)
+# Input file for asm
+SHELL_OUTPUT_OF(cat spec/data/libseccomp.asm)
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm)
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f carray)
+
+# let's asm then disasm!
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tools disasm -)
 ```
 
 ### Emu

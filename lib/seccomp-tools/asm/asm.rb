@@ -26,7 +26,7 @@ module SeccompTools
       arch = Util.system_arch if arch.nil? # TODO: show warning
       compiler = Compiler.new(arch)
       str.lines.each { |l| compiler.process(l) }
-      compiler.compile!
+      compiler.compile!.map(&:asm).join
     end
   end
 end

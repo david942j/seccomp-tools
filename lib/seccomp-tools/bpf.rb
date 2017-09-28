@@ -53,6 +53,13 @@ module SeccompTools
              line, code, jt, jf, k, decompile)
     end
 
+    # Convert to raw bytes.
+    # @return [String]
+    #   Raw bpf bytes.
+    def asm
+      [code].pack("S*") + [jt, jf].pack("C*") + [k].pack("L")
+    end
+
     # Command according to +code+.
     # @return [Symbol]
     #   See {Const::BPF::COMMAND} for list of commands.

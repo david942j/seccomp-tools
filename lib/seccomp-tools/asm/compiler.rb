@@ -15,7 +15,7 @@ module SeccompTools
 
       # Before compile assembly codes, process each lines.
       #
-      # With this we can support label in seccomp ruls.
+      # With this we can support label in seccomp rules.
       # @param [String] line
       #   One line of seccomp rule.
       # @return [void]

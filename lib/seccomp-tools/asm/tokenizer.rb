@@ -4,10 +4,15 @@ require 'seccomp-tools/instruction/alu'
 module SeccompTools
   module Asm
     # Fetch tokens from string.
+    # This class is for internel usage, used by {Compiler}.
     class Tokenizer
       # a valid label
       LABEL_REGEXP = /[a-z_][a-z0-9_]+/
       attr_accessor :cur
+
+      # @param [String] str
+      # @example
+      #   Tokenizer.new('return ALLOW')
       def initialize(str)
         @str = str
         @cur = @str.dup
@@ -24,6 +29,12 @@ module SeccompTools
       # error with proper message would be raised.
       #
       # @param [String, Symbol] type
+      # @example
+      #   tokenizer = Tokenizer.new('return ALLOW')
+      #   tokenfizer.fetch!('return')
+      #   #=> "return"
+      #   tokenizer.fetch!(:ret)
+      #   #=> 2147418112
       def fetch!(type)
         @last_match_size = 0
         res = case type

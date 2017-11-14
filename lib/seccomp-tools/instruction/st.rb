@@ -10,7 +10,7 @@ module SeccompTools
       end
 
       # See {Instruction::Base#symbolize}.
-      # @return [[:misc, (:a, :x), Integer]]
+      # @return [[:st, (:a, :x), Integer]]
       def symbolize
         [:st, reg.downcase.to_sym, k]
       end

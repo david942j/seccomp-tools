@@ -104,7 +104,11 @@ module SeccompTools
       end
 
       def compile_ret(val)
-        emit(:ret, k: val)
+        if val == :a
+          src = :a
+          val = 0
+        end
+        emit(:ret, src, k: val)
       end
 
       def compile_cmp(op, val, jt, jf)

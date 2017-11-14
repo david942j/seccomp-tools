@@ -31,7 +31,7 @@ module SeccompTools
                 when /^return/ then ret
                 when /^(A|X)\s*=[^=]/ then assign
                 when /^mem\[\d+\]\s*=\s*(A|X)/ then store
-                when /^A\s*.=/ then alu
+                when /^A\s*.{1,2}=/ then alu
                 end
         rescue ArgumentError => e
           invalid(@input.size - 1, e.message)
@@ -209,6 +209,7 @@ module SeccompTools
       end
 
       # A op= sys_num_x
+      # TODO: support A = -A
       def alu
         token.fetch!('A')
         op = token.fetch!(:alu_op)

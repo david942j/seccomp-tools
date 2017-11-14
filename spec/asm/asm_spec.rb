@@ -42,6 +42,8 @@ describe SeccompTools::Asm do
       A =arch
       A = args[4]
       A = data[16]
+      mem[15] = A
+      mem[1] = X
     EOS
     expect(SeccompTools::Disasm.disasm(raw)).to eq <<-EOS
  line  CODE  JT   JF      K
@@ -53,6 +55,8 @@ describe SeccompTools::Asm do
  0004: 0x20 0x00 0x00 0x00000004  A = arch
  0005: 0x20 0x00 0x00 0x00000030  A = args[4]
  0006: 0x20 0x00 0x00 0x00000010  A = args[0]
+ 0007: 0x02 0x00 0x00 0x0000000f  mem[15] = A
+ 0008: 0x03 0x00 0x00 0x00000001  mem[1] = X
     EOS
   end
 

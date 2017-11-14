@@ -30,6 +30,7 @@ module SeccompTools
                 when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
                 when /^return/ then ret
                 when /^(A|X)\s*=[^=]/ then assign
+                when /^mem\[\d+\]\s*=\s*(A|X)/ then store
                 when /^A\s*.=/ then alu
                 end
         rescue ArgumentError => e
@@ -80,12 +81,14 @@ module SeccompTools
       # <A|X> = 123|sys_const
       # A = args[i]|sys_number|arch
       # A = data[4 * i]
+      # mem[i] = <A|X>
       def compile_assign(dst, src)
         # misc txa / tax
         return emit(:misc, :txa) if dst == :a && src == :x
         return emit(:misc, :tax) if dst == :x && src == :a
         src = evaluate(src)
-        # TODO: handle store case.
+        # case of st / stx
+        return emit(src == :x ? :stx : :st, k: dst.last) if dst[0] == :mem
         ld = dst == :x ? :ldx : :ld
         # <A|X> = <immi>
         return emit(ld, :imm, k: src) if src.is_a?(Integer)
@@ -128,7 +131,7 @@ module SeccompTools
       end
 
       def evaluate(val)
-        return val if val.is_a?(Integer) || val == :x
+        return val if val.is_a?(Integer) || val == :x || val == :a
         # keywords
         val = case val
               when 'sys_number' then [:data, 0]
@@ -192,6 +195,11 @@ module SeccompTools
               token.fetch('sys_number') ||
               token.fetch('arch')
         [:assign, dst, src]
+      end
+
+      # returns same format as assign
+      def store
+        [:assign, token.fetch!(:ary), token.fetch!('=') && token.fetch!(:ax)]
       end
 
       def define_label

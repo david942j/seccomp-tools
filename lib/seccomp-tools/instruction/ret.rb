@@ -6,8 +6,7 @@ module SeccompTools
     class RET < Base
       # Decompile instruction.
       def decompile
-        _, type = symbolize
-        "return #{type == :a ? 'A' : ACTION.invert[type & 0x7fff0000]}"
+        "return #{ret_str}"
       end
 
       # See {Instruction::Base#symbolize}.
@@ -21,6 +20,16 @@ module SeccompTools
       #   Always return an empty array.
       def branch(*)
         []
+      end
+
+      private
+
+      def ret_str
+        _, type = symbolize
+        return 'A' if type == :a
+        str = ACTION.invert[type & 0x7fff0000].to_s
+        str += "(#{type & 0xffff})" if str == 'ERRNO'
+        str
       end
     end
   end

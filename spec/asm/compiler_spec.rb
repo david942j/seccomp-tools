@@ -68,7 +68,7 @@ return KILL
   end
 
   it 'ret' do
-    expect(@get_bpf['return ERRNO(3)']).to eq 'return ERRNO' # TODO: support show errno
+    expect(@get_bpf['return ERRNO(3)']).to eq 'return ERRNO(3)'
     expect(@get_bpf['return ALLOW']).to eq 'return ALLOW'
     expect(@get_bpf['return KILL']).to eq 'return KILL'
     expect(@get_bpf['return A']).to eq 'return A'

@@ -9,9 +9,9 @@ module SeccompTools
   module CLI
     # Handled commands
     COMMANDS = {
-      'dump' => SeccompTools::CLI::Dump,
-      'disasm' => SeccompTools::CLI::Disasm,
       'asm' => SeccompTools::CLI::Asm,
+      'disasm' => SeccompTools::CLI::Disasm,
+      'dump' => SeccompTools::CLI::Dump,
       'emu' => SeccompTools::CLI::Emu
     }.freeze
 
@@ -23,7 +23,7 @@ List of commands:
 
 %COMMANDS
 
-See 'seccomp-tools --help <command>' to read about a specific subcommand.
+See 'seccomp-tools <command> --help' to read about a specific subcommand.
 EOS
 
     module_function

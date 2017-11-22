@@ -34,7 +34,7 @@ $ gem install seccomp-tools
 
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools --help)
-SHELL_OUTPUT_OF(seccomp-tools --help dump)
+SHELL_OUTPUT_OF(seccomp-tools dump --help)
 ```
 
 ### dump

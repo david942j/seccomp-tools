@@ -23,7 +23,8 @@ module SeccompTools
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
           opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh).',
-                 'Use this option if want to pass arguments or do pipe things to the execution file.') do |command|
+                 'Use this option if want to pass arguments or do pipe things to the execution file.',
+                 'e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.') do |command|
             option[:command] = command
           end
 

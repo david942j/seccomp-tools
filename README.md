@@ -38,19 +38,20 @@ $ seccomp-tools --help
 #
 # List of commands:
 #
-# 	dump	Automatically dump seccomp bpf from execution file.
-# 	disasm	Disassemble seccomp bpf.
 # 	asm	Seccomp bpf assembler.
+# 	disasm	Disassemble seccomp bpf.
+# 	dump	Automatically dump seccomp bpf from execution file.
 # 	emu	Emulate seccomp rules.
 #
-# See 'seccomp-tools --help <command>' to read about a specific subcommand.
+# See 'seccomp-tools <command> --help' to read about a specific subcommand.
 
-$ seccomp-tools --help dump
+$ seccomp-tools dump --help
 # dump - Automatically dump seccomp bpf from execution file.
 #
 # Usage: seccomp-tools dump [exec] [options]
 #     -c, --sh-exec <command>          Executes the given command (via sh).
 #                                      Use this option if want to pass arguments or do pipe things to the execution file.
+#                                      e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.
 #     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
 #                                      Default: disasm
 #     -l, --limit LIMIT                Limit the number of calling "prctl(PR_SET_SECCOMP)".

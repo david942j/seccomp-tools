@@ -193,7 +193,8 @@ module SeccompTools
               token.fetch(:sys_num_x) ||
               token.fetch(:ary) ||
               token.fetch('sys_number') ||
-              token.fetch('arch')
+              token.fetch('arch') ||
+              raise(ArgumentError, 'Invalid source: ' + token.cur.inspect)
         [:assign, dst, src]
       end
 

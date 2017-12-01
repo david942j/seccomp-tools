@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    seccomp-tools (1.1.0)
+    seccomp-tools (1.1.1)
 
 GEM
   remote: https://rubygems.org/
@@ -72,4 +72,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   1.15.1
+   1.16.0

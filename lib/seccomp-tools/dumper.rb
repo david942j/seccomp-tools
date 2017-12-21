@@ -74,7 +74,7 @@ module SeccompTools
           end
           !limit.zero?
         end
-        syscalls.keys.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
+        syscalls.each_key { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
         collect
       end
 
@@ -119,9 +119,9 @@ module SeccompTools
       def handle_child(*args)
         Ptrace.traceme_and_stop
         exec(*args)
-      rescue # exec fail
+      rescue # rubocop:disable Style/RescueStandardError # exec fail
         # TODO: use logger
-        $stderr.puts("Failed to execute #{args.join(' ')}")
+        warn("Failed to execute #{args.join(' ')}")
         exit(1)
       end
     end

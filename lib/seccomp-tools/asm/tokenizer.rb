@@ -40,7 +40,7 @@ module SeccompTools
         res = case type
               when String then fetch_str(type) || raise_expected("token #{type.inspect}")
               when :comparison then fetch_strs(COMPARISON).to_sym || raise_expected('a comparison operator')
-              when :sys_num_x then fetch_sys_num_x || raise_expected("a syscall number or 'X'")
+              when :sys_num_x then fetch_sys_num_arch_x || raise_expected("a syscall number or 'X'")
               when :goto then fetch_number || fetch_label || raise_expected('a number or label name')
               when :ret then fetch_return || raise(ArgumentError, <<-EOS)
 Invalid return type: #{cur.inspect}.
@@ -74,9 +74,9 @@ Invalid return type: #{cur.inspect}.
         nil
       end
 
-      def fetch_sys_num_x
+      def fetch_sys_num_arch_x
         return :x if fetch_str('X')
-        fetch_number || fetch_syscall
+        fetch_number || fetch_syscall || fetch_arch
       end
 
       # Currently only supports 10-based decimal numbers.
@@ -90,6 +90,10 @@ Invalid return type: #{cur.inspect}.
         sys = Const::Syscall::AMD64
         sys = sys.merge(Const::Syscall::I386)
         fetch_strs(sys.keys.map(&:to_s).sort_by(&:size).reverse)
+      end
+
+      def fetch_arch
+        fetch_strs(Const::Audit::ARCH.keys)
       end
 
       def fetch_regexp(regexp)

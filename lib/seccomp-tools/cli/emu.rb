@@ -44,7 +44,6 @@ module SeccompTools
         return CLI.show(parser.help) if option[:ifile].nil?
         raw = input
         insts = SeccompTools::Disasm.to_bpf(raw, option[:arch]).map(&:inst)
-        disasm = SeccompTools::Disasm.disasm(raw, arch: option[:arch])
         sys, *args = argv
         sys = Integer(sys) if sys
         args.map! { |v| Integer(v) }
@@ -54,25 +53,35 @@ module SeccompTools
         end
 
         if option[:verbose] >= 1
-          disasm = disasm.lines
-          output { disasm.shift }
-          output { disasm.shift }
-          disasm.each_with_index do |line, idx|
-            output do
-              next line if trace.member?(idx)
-              Util.colorize(line, t: :gray)
-            end
-            # Too much remain, omit them.
-            rem = disasm.size - idx - 1
-            break output { Util.colorize("... (omitting #{rem} lines)\n", t: :gray) } if rem > 3 && idx > res[:pc] + 4
-          end
-          output { "\n" }
+          disasm = SeccompTools::Disasm.disasm(raw, arch: option[:arch]).lines
+          output_emulate_path(disasm, trace, res)
         end
         output do
           ret_type = Const::BPF::ACTION.invert[res[:ret] & 0x7fff0000]
           errno = ret_type == :ERRNO ? "(#{res[:ret] & 0xffff})" : ''
           format("return %s%s at line %04d\n", ret_type, errno, res[:pc])
         end
+      end
+
+      private
+
+      # output the path during emulation
+      # @param [Array<String>] disasm
+      # @param [Set] trace
+      # @param [{Symbol => Object}] result
+      def output_emulate_path(disasm, trace, result)
+        output { disasm.shift }
+        output { disasm.shift }
+        disasm.each_with_index do |line, idx|
+          output do
+            next line if trace.member?(idx)
+            Util.colorize(line, t: :gray)
+          end
+          # Too much remain, omit them.
+          rem = disasm.size - idx - 1
+          break output { Util.colorize("... (omitting #{rem} lines)\n", t: :gray) } if rem > 3 && idx > result[:pc] + 4
+        end
+        output { "\n" }
       end
     end
   end

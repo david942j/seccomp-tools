@@ -6,9 +6,11 @@ plugins:
     exclude_paths:
     - spec/
 checks:
-  method-lines:
+  file-lines:
     enabled: false
   method-count:
+    enabled: false
+  method-complexity:
     enabled: false
 exclude_patterns:
 - spec/

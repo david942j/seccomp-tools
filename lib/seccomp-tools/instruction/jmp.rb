@@ -9,14 +9,13 @@ module SeccompTools
       def decompile
         return goto(k) if jop == :none
         # if jt == 0 && jf == 0 => no-op # should not happen
-        # jt == 0 => if(!) goto jf
+        # jt == 0 => if(!) goto jf;
         # jf == 0 => if() goto jt;
         # otherwise => if () goto jt; else goto jf;
         return '/* no-op */' if jt.zero? && jf.zero?
         return goto(jt) if jt == jf
-        return if_str + goto(jt) + ' else ' + goto(jf) unless jt.zero? || jf.zero?
-        return if_str + goto(jt) if jf.zero?
-        if_str(true) + goto(jf)
+        return if_str(true) + goto(jf) if jt.zero?
+        if_str + goto(jt) + (jf.zero? ? '' : ' else ' + goto(jf))
       end
 
       # See {Instruction::Base#symbolize}.

@@ -42,7 +42,6 @@ module SeccompTools
         else
           @insts << res
         end
-        res
       end
 
       # @return [Array<SeccompTools::BPF>]
@@ -84,11 +83,10 @@ module SeccompTools
       # mem[i] = <A|X>
       def compile_assign(dst, src)
         # misc txa / tax
-        return emit(:misc, :txa) if dst == :a && src == :x
-        return emit(:misc, :tax) if dst == :x && src == :a
-        src = evaluate(src)
+        return compile_assign_misc(dst, src) if (dst == :a && src == :x) || (dst == :x && src == :a)
         # case of st / stx
-        return emit(src == :x ? :stx : :st, k: dst.last) if dst[0] == :mem
+        return emit(src == :x ? :stx : :st, k: dst.last) if dst.is_a?(Array) && dst.first == :mem
+        src = evaluate(src)
         ld = dst == :x ? :ldx : :ld
         # <A|X> = <immi>
         return emit(ld, :imm, k: src) if src.is_a?(Integer)
@@ -97,6 +95,10 @@ module SeccompTools
         # check if num is multiple of 4
         raise ArgumentError, 'Index of data[] must be multiplication of 4' if src.last % 4 != 0
         emit(ld, :abs, k: src.last)
+      end
+
+      def compile_assign_misc(dst, _src)
+        emit(:misc, dst == :a ? :txa : :tax)
       end
 
       def compile_alu(op, val)
@@ -138,11 +140,15 @@ module SeccompTools
               when 'arch' then [:data, 4]
               else val
               end
-        return Const::Syscall.const_get(@arch.upcase.to_sym)[val.to_sym] if val.is_a?(String)
+        return eval_constants(val) if val.is_a?(String)
         # remains are [:mem/:data/:args, <num>]
         # first convert args to data
         val = [:data, val.last * 8 + 16] if val.first == :args
         val
+      end
+
+      def eval_constants(str)
+        Const::Syscall.const_get(@arch.upcase.to_sym)[str.to_sym] || Const::Audit::ARCH[str]
       end
 
       attr_reader :token

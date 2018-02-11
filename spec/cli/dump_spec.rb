@@ -34,7 +34,7 @@ EOS
 
   it 'close stdin' do
     out = SeccompTools::Disasm.disasm(@bpf)
-    argv = ['-c', "echo 0|#{@bin}", '--limit', '-1']
+    argv = ['-c', "echo 0|#{@bin} >/dev/null", '--limit', '-1']
     expect { described_class.new(argv).handle }.to output(out).to_stdout
   end
 end

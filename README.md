@@ -6,16 +6,17 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://choosealicense.com/licenses/mit/)
 
 # Seccomp Tools
-Provides powerful tools for seccomp analysis.
+Provide powerful tools for seccomp analysis.
 
 This project is targeted to (but not limited to) analyze seccomp sandbox in CTF pwn challenges.
-Some features might be CTF-specific, but still useful for analysis of seccomp in real-case.
+Some features might be CTF-specific, but still useful for analyzing seccomp in real-case.
 
 ## Features
-* Dump - Automatically dump seccomp-bpf from binary.
+* Dump - Automatically dump seccomp-bpf from execution file(s).
 * Disasm - Convert bpf to human readable format.
   - Simple decompile.
   - Show syscall names.
+  - Colorful!
 * Asm - Write seccomp rules is so easy!
 * Emu - Emulate seccomp rules.
 * (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
@@ -40,13 +41,13 @@ $ seccomp-tools --help
 #
 # 	asm	Seccomp bpf assembler.
 # 	disasm	Disassemble seccomp bpf.
-# 	dump	Automatically dump seccomp bpf from execution file.
+# 	dump	Automatically dump seccomp bpf from execution file(s).
 # 	emu	Emulate seccomp rules.
 #
 # See 'seccomp-tools <command> --help' to read about a specific subcommand.
 
 $ seccomp-tools dump --help
-# dump - Automatically dump seccomp bpf from execution file.
+# dump - Automatically dump seccomp bpf from execution file(s).
 #
 # Usage: seccomp-tools dump [exec] [options]
 #     -c, --sh-exec <command>          Executes the given command (via sh).

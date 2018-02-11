@@ -23,7 +23,7 @@ module SeccompTools
 
       # Handle show help message.
       # @return [Boolean]
-      #   For decestors to check if needs to conitnue.
+      #   For decestors to check if need to continue.
       def handle
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].any? { |h| argv.include?(h) }
         parser.parse!(argv)

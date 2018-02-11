@@ -32,11 +32,11 @@ describe SeccompTools::Dumper do
     end
 
     context 'no seccomp' do
-      it { expect(described_class.dump('ls', '-lh')).to be_empty }
+      it { expect(described_class.dump('ls >/dev/null')).to be_empty }
     end
 
     context 'no such binary' do
-      it { expect(described_class.dump('this_is_not_exist')).to eq [] }
+      it { expect(described_class.dump('this_is_not_exist')).to be_empty }
     end
   end
 

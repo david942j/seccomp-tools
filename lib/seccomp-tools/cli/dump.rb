@@ -7,7 +7,7 @@ module SeccompTools
     # Handle 'dump' command.
     class Dump < Base
       # Summary of this command.
-      SUMMARY = 'Automatically dump seccomp bpf from execution file.'.freeze
+      SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'.freeze
       # Usage of this command.
       USAGE = ('dump - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools dump [exec] [options]').freeze
 

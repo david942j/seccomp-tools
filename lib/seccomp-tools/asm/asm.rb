@@ -19,7 +19,7 @@ module SeccompTools
     #     A == 1 ? ok : next            # SYS_write = 1 in amd64
     #     return ERRNO(1)
     #     dead:
-    #     return KILL
+    #     return KILL_THREAD
     #     ok:
     #     return ALLOW
     #   EOS

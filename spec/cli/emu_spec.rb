@@ -23,7 +23,7 @@ describe SeccompTools::CLI::Emu do
  0007: 0x15 0x01 0x00 0x0000003c  if (A == exit) goto 0009
  0008: 0x06 0x00 0x00 0x00050005  return ERRNO(5)
  0009: 0x06 0x00 0x00 0x7fff0000  return ALLOW
- 0010: 0x06 0x00 0x00 0x00000000  return KILL
+ 0010: 0x06 0x00 0x00 0x00000000  return KILL_THREAD
 
 return ALLOW at line 0009
 EOS
@@ -31,7 +31,7 @@ EOS
 
   it 'quiet' do
     expect { described_class.new([@file, '-a', 'i386', '-q']).handle }.to output(<<EOS).to_stdout
-return KILL at line 0010
+return KILL_THREAD at line 0010
 EOS
   end
 end

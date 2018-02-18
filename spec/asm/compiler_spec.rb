@@ -53,7 +53,7 @@ A >= read ? ok : dead
 ok:
 return ALLOW
 dead:
-return KILL
+return KILL_THREAD
     EOS
     expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
 A = sys_number
@@ -63,14 +63,14 @@ if (A <= 4919) goto 0006
 if (A >= 1337) goto 0007 else goto 0006
 if (A < 0) goto 0007
 return ALLOW
-return KILL
+return KILL_THREAD
     EOS
   end
 
   it 'ret' do
     expect(@get_bpf['return ERRNO(3)']).to eq 'return ERRNO(3)'
     expect(@get_bpf['return ALLOW']).to eq 'return ALLOW'
-    expect(@get_bpf['return KILL']).to eq 'return KILL'
+    expect(@get_bpf['return KILL_THREAD']).to eq 'return KILL_THREAD'
     expect(@get_bpf['return A']).to eq 'return A'
     expect { @get_bpf['return QQ'] }.to raise_error(<<-EOS)
 Invalid instruction at line 1: "return QQ"
@@ -93,7 +93,7 @@ A = sys_number
 ok:
 return ALLOW
 Pusheen # meow
-return KILL
+return KILL_THREAD
     EOS
   end
 end

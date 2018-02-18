@@ -11,4 +11,4 @@ return ERRNO(5)
 ok:
 return ALLOW
 dead:
-return KILL
+return KILL_THREAD

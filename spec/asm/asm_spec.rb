@@ -16,7 +16,7 @@ describe SeccompTools::Asm do
       A == 1 ? ok : next # SYS_write = 1 in amd64
       return ERRNO(1)
     dead:
-      return KILL
+      return KILL_THREAD
     ok:
       return ALLOW
     EOS
@@ -28,7 +28,7 @@ describe SeccompTools::Asm do
  0002: 0x15 0x03 0x00 0x00000000  if (A == read) goto 0006
  0003: 0x15 0x02 0x00 0x00000001  if (A == write) goto 0006
  0004: 0x06 0x00 0x00 0x00050001  return ERRNO(1)
- 0005: 0x06 0x00 0x00 0x00000000  return KILL
+ 0005: 0x06 0x00 0x00 0x00000000  return KILL_THREAD
  0006: 0x06 0x00 0x00 0x7fff0000  return ALLOW
     EOS
   end

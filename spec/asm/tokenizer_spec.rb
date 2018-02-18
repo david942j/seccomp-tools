@@ -36,9 +36,10 @@ describe SeccompTools::Asm::Tokenizer do
     end
 
     it 'ret' do
-      token = described_class.new('A ALLOW KILL ERRNO(123) TRAP TRACE MEOW')
+      token = described_class.new('A ALLOW KILL_PROCESS KILL_THREAD ERRNO(123) TRAP TRACE MEOW')
       expect(token.fetch!(:ret)).to eq :a
       expect(token.fetch!(:ret)).to eq 0x7fff0000
+      expect(token.fetch!(:ret)).to eq 0x80000000
       expect(token.fetch!(:ret)).to eq 0x00000000
       expect(token.fetch!(:ret)).to eq 0x0005007b
       expect(token.fetch!(:ret)).to eq 0x00030000

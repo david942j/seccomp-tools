@@ -42,11 +42,12 @@ module SeccompTools
 
       # seccomp action values
       ACTION = {
-        KILL:  0x00000000,
-        TRAP:  0x00030000,
-        ERRNO: 0x00050000,
-        TRACE: 0x7ff00000,
-        ALLOW: 0x7fff0000
+        KILL_PROCESS: 0x80000000,
+        KILL_THREAD:  0x00000000,
+        TRAP:         0x00030000,
+        ERRNO:        0x00050000,
+        TRACE:        0x7ff00000,
+        ALLOW:        0x7fff0000
       }.freeze
 
       # mode used in ld / ldx

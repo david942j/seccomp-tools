@@ -1,16 +1,20 @@
+# encoding: ascii-8bit
+
 require 'securerandom'
+require 'tempfile'
 
 require 'seccomp-tools/cli/emu'
 require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Emu do
-  before do
-    @file = File.join(__dir__, '..', 'data', 'libseccomp.bpf')
-    SeccompTools::Util.disable_color!
-  end
+  context 'libseccomp.bpf' do
+    before do
+      @file = File.join(__dir__, '..', 'data', 'libseccomp.bpf')
+      SeccompTools::Util.disable_color!
+    end
 
-  it 'normal' do
-    expect { described_class.new([@file, '0x3']).handle }.to output(<<EOS).to_stdout
+    it 'normal' do
+      expect { described_class.new([@file, '0x3']).handle }.to output(<<EOS).to_stdout
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -27,11 +31,22 @@ describe SeccompTools::CLI::Emu do
 
 return ALLOW at line 0009
 EOS
-  end
+    end
 
-  it 'quiet' do
-    expect { described_class.new([@file, '-a', 'i386', '-q']).handle }.to output(<<EOS).to_stdout
+    it 'quiet' do
+      expect { described_class.new([@file, '-a', 'i386', '-q']).handle }.to output(<<EOS).to_stdout
 return KILL at line 0010
 EOS
+    end
+  end
+
+  it 'kill process' do
+    Tempfile.create(['seccomp-tools-', '.bpf']) do |f|
+      f.write("\x06" + "\x00" * 6 + "\x80")
+      f.close
+      expect { described_class.new([f, '-q']).handle }.to output(<<-EOS).to_stdout
+return KILL_PROCESS at line 0000
+      EOS
+    end
   end
 end

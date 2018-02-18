@@ -12,6 +12,13 @@ module SeccompTools
       # filter mode
       SECCOMP_MODE_FILTER = 2
 
+      # Masks for the return value sections.
+
+      # mask of return action
+      SECCOMP_RET_ACTION_FULL = 0xffff0000
+      # mask of return data
+      SECCOMP_RET_DATA = 0x0000ffff
+
       # bpf command classes
       COMMAND = {
         ld:   0x0,
@@ -42,11 +49,13 @@ module SeccompTools
 
       # seccomp action values
       ACTION = {
-        KILL:  0x00000000,
-        TRAP:  0x00030000,
-        ERRNO: 0x00050000,
-        TRACE: 0x7ff00000,
-        ALLOW: 0x7fff0000
+        KILL_PROCESS: 0x80000000,
+        KILL_THREAD:  0x00000000,
+        KILL:         0x00000000, # alias of KILL_THREAD
+        TRAP:         0x00030000,
+        ERRNO:        0x00050000,
+        TRACE:        0x7ff00000,
+        ALLOW:        0x7fff0000
       }.freeze
 
       # mode used in ld / ldx

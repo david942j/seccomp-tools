@@ -1,7 +1,7 @@
 require 'seccomp-tools/const'
 
 module SeccompTools
-  # For emulation seccomp.
+  # For emulating seccomp.
   class Emulator
     # Instantiate a {Emulator} object.
     #
@@ -89,7 +89,7 @@ module SeccompTools
     def cmp(op, src, jt, jf)
       src = get(:x) if src == :x
       a = get(:a)
-      val = a.send(op, src)
+      val = a.__send__(op, src)
       val = (val != 0) if val.is_a?(Integer) # handle & operator
       j = val ? jt : jf
       set(:pc, get(:pc) + j + 1)
@@ -100,7 +100,7 @@ module SeccompTools
         set(:a, 2**32 - get(:a))
       else
         src = get(:x) if src == :x
-        set(:a, get(:a).send(op, src))
+        set(:a, get(:a).__send__(op, src))
       end
     end
 

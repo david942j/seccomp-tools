@@ -81,6 +81,29 @@ describe SeccompTools::Asm do
     EOS
   end
 
+  it 'returns' do
+    raw = described_class.asm(<<-EOS)
+  return KILL_PROCESS
+  return KILL_THREAD
+  return KILL
+  return TRAP
+  return ERRNO(3)
+  return TRACE
+  return ALLOW
+    EOS
+    expect(SeccompTools::Disasm.disasm(raw)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x06 0x00 0x00 0x80000000  return KILL_PROCESS
+ 0001: 0x06 0x00 0x00 0x00000000  return KILL
+ 0002: 0x06 0x00 0x00 0x00000000  return KILL
+ 0003: 0x06 0x00 0x00 0x00030000  return TRAP
+ 0004: 0x06 0x00 0x00 0x00050003  return ERRNO(3)
+ 0005: 0x06 0x00 0x00 0x7ff00000  return TRACE
+ 0006: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+    EOS
+  end
+
   it 'return A' do
     raw = described_class.asm('return A')
     expect(SeccompTools::Disasm.disasm(raw)).to include <<-EOS

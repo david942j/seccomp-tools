@@ -57,8 +57,8 @@ module SeccompTools
           output_emulate_path(disasm, trace, res)
         end
         output do
-          ret_type = Const::BPF::ACTION.invert[res[:ret] & 0x7fff0000]
-          errno = ret_type == :ERRNO ? "(#{res[:ret] & 0xffff})" : ''
+          ret_type = Const::BPF::ACTION.invert[res[:ret] & Const::BPF::SECCOMP_RET_ACTION_FULL]
+          errno = ret_type == :ERRNO ? "(#{res[:ret] & Const::BPF::SECCOMP_RET_DATA})" : ''
           format("return %s%s at line %04d\n", ret_type, errno, res[:pc])
         end
       end

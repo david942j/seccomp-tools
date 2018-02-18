@@ -1,4 +1,5 @@
 require 'set'
+require 'stringio'
 
 require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/instruction'
@@ -30,7 +31,7 @@ module SeccompTools
     #   Line number of this filter.
     def initialize(raw, arch, line)
       if raw.is_a?(String)
-        io = StringIO.new(raw)
+        io = ::StringIO.new(raw)
         @code = io.read(2).unpack('S').first
         @jt = io.read(1).ord
         @jf = io.read(1).ord

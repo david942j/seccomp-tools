@@ -41,7 +41,7 @@ EOS
   end
 
   it 'kill process' do
-    Tempfile.create do |f|
+    Tempfile.create(['seccomp-tools-', '.bpf']) do |f|
       f.write("\x06" + "\x00" * 6 + "\x80")
       f.close
       expect { described_class.new([f, '-q']).handle }.to output(<<-EOS).to_stdout

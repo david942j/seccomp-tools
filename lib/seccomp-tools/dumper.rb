@@ -95,9 +95,9 @@ module SeccompTools
           cont = yield(child)
         end
         Ptrace.syscall(child, 0, 0) unless status.exited?
-        return cont
+        cont
       rescue Errno::ECHILD
-        return false
+        false
       end
 
       # @return [SeccompTools::Syscall]

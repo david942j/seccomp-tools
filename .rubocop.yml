@@ -36,6 +36,9 @@ Naming/FileName:
 Naming/HeredocDelimiterNaming:
   Enabled: false
 
+Naming/UncommunicativeMethodParamName:
+  Enabled: false
+
 Style/FormatStringToken:
   Enabled: false
 

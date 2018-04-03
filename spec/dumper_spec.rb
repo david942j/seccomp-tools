@@ -31,6 +31,14 @@ describe SeccompTools::Dumper do
       end
     end
 
+    context '0ctf-quals-2018-blackhole' do
+      it 'check' do
+        # this binary uses syscall +seccomp+ instead of +prctl+
+        @bin = File.join(@binpath, 'syscall_seccomp')
+        expect(described_class.dump(@bin).size).to be 1
+      end
+    end
+
     context 'no seccomp' do
       it { expect(described_class.dump('ls >/dev/null')).to be_empty }
     end

@@ -6,7 +6,7 @@ module SeccompTools
   class Syscall
     # Syscall arguments offset of +struct user+ in different arch.
     ABI = {
-      amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157 },
+      amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157, SYS_seccomp: 317 },
       i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172 }
     }.freeze
 
@@ -33,11 +33,13 @@ module SeccompTools
       @ret = peek(abi[:ret])
     end
 
-    # Is this a +prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, addr)+ syscall?
+    # Is this a +seccomp(SECCOMP_MODE_FILTER, addr)+/+prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, addr)+ syscall?
+    #
     # @return [Boolean]
     #   +true+ for is a seccomp installation syscall.
     def set_seccomp?
-      # TODO: handle SECCOMP_MODE_STRICT
+      # TODO: handle SECCOMP_MODE_SET_STRICT / SECCOMP_MODE_STRICT
+      return true if number == abi[:SYS_seccomp] && args[0] == Const::BPF::SECCOMP_SET_MODE_FILTER
       number == abi[:SYS_prctl] && args[0] == Const::BPF::PR_SET_SECCOMP && args[1] == Const::BPF::SECCOMP_MODE_FILTER
     end
 

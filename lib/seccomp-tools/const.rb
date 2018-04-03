@@ -12,6 +12,9 @@ module SeccompTools
       # filter mode
       SECCOMP_MODE_FILTER = 2
 
+      # For syscall +seccomp+
+      SECCOMP_SET_MODE_FILTER = 1
+
       # Masks for the return value sections.
 
       # mask of return action

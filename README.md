@@ -247,6 +247,7 @@ $ seccomp-tools emu spec/data/libseccomp.bpf 0x3
 ![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-amigo.png?raw=true)
 
 ## I Need You
+
 Any suggestion or feature request is welcome!
 Feel free to file an issue or send a pull request.
-And, if you like this work, I'll be happy to be [stared](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:
+And, if you like this work, I'll be happy to be [starred](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:

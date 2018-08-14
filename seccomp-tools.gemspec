@@ -28,7 +28,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.add_development_dependency 'rake', '~> 12.0'
   s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'rspec', '~> 3.7'
-  s.add_development_dependency 'rubocop', '~> 0.54'
+  s.add_development_dependency 'rubocop', '~> 0.58'
   s.add_development_dependency 'simplecov', '~> 0.16.0'
   s.add_development_dependency 'yard', '~> 0.9'
 end

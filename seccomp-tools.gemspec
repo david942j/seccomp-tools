@@ -22,7 +22,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.executables   = 'seccomp-tools'
   s.homepage      = 'https://github.com/david942j/seccomp-tools'
 
-  s.required_ruby_version = '>= 2.1.0'
+  s.required_ruby_version = '>= 2.2.0'
 
   s.add_development_dependency 'pry', '~> 0.10'
   s.add_development_dependency 'rake', '~> 12.0'

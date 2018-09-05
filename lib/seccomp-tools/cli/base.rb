@@ -27,6 +27,7 @@ module SeccompTools
       def handle
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].any? { |h| argv.include?(h) }
         parser.parse!(argv)
+        option[:arch] ||= Util.system_arch
         true
       end
 

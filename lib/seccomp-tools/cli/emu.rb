@@ -1,6 +1,7 @@
 require 'set'
 
 require 'seccomp-tools/cli/base'
+require 'seccomp-tools/const'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/emulator'
 require 'seccomp-tools/util'
@@ -45,7 +46,7 @@ module SeccompTools
         raw = input
         insts = SeccompTools::Disasm.to_bpf(raw, option[:arch]).map(&:inst)
         sys, *args = argv
-        sys = Integer(sys) if sys
+        sys = evaluate_sys_nr(sys) if sys
         args.map! { |v| Integer(v) }
         trace = Set.new
         res = SeccompTools::Emulator.new(insts, sys_nr: sys, args: args, arch: option[:arch]).run do |ctx|
@@ -64,6 +65,13 @@ module SeccompTools
       end
 
       private
+
+      # @param [String] str
+      # @return [Integer]
+      def evaluate_sys_nr(str)
+        consts = SeccompTools::Const::Syscall.const_get(option[:arch].to_s.upcase)
+        consts[str.to_sym] || Integer(str)
+      end
 
       # output the path during emulation
       # @param [Array<String>] disasm

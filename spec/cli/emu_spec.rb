@@ -33,6 +33,12 @@ return ALLOW at line 0009
 EOS
     end
 
+    it 'sys_nr in string format' do
+      expect { described_class.new([@file, 'write', '-q']).handle }.to output(<<EOS).to_stdout
+return ALLOW at line 0009
+EOS
+    end
+
     it 'quiet' do
       expect { described_class.new([@file, '-a', 'i386', '-q']).handle }.to output(<<EOS).to_stdout
 return KILL at line 0010

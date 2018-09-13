@@ -24,6 +24,7 @@ module SeccompTools
         line = remove_comment(line)
         @token = Tokenizer.new(line)
         return if line.empty?
+
         begin
           res = case line
                 when /\?/ then cmp
@@ -86,6 +87,7 @@ module SeccompTools
         return compile_assign_misc(dst, src) if (dst == :a && src == :x) || (dst == :x && src == :a)
         # case of st / stx
         return emit(src == :x ? :stx : :st, k: dst.last) if dst.is_a?(Array) && dst.first == :mem
+
         src = evaluate(src)
         ld = dst == :x ? :ldx : :ld
         # <A|X> = <immi>
@@ -94,6 +96,7 @@ module SeccompTools
         return emit(ld, :mem, k: src.last) if src.first == :mem
         # check if num is multiple of 4
         raise ArgumentError, 'Index of data[] must be multiplication of 4' if src.last % 4 != 0
+
         emit(ld, :abs, k: src.last)
       end
 
@@ -129,11 +132,13 @@ module SeccompTools
         return label if label.is_a?(Integer)
         return 0 if label == 'next'
         raise ArgumentError, "Undefined label #{label.inspect}" if @labels[label].nil?
+
         @labels[label] - @line - 1
       end
 
       def evaluate(val)
         return val if val.is_a?(Integer) || val == :x || val == :a
+
         # keywords
         val = case val
               when 'sys_number' then [:data, 0]
@@ -141,6 +146,7 @@ module SeccompTools
               else val
               end
         return eval_constants(val) if val.is_a?(String)
+
         # remains are [:mem/:data/:args, <num>]
         # first convert args to data
         val = [:data, val.last * 8 + 16] if val.first == :args

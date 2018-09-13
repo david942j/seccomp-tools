@@ -41,8 +41,10 @@ module SeccompTools
       # @return [void]
       def handle
         return unless super
+
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
+
         raw = input
         insts = SeccompTools::Disasm.to_bpf(raw, option[:arch]).map(&:inst)
         sys, *args = argv
@@ -83,6 +85,7 @@ module SeccompTools
         disasm.each_with_index do |line, idx|
           output do
             next line if trace.member?(idx)
+
             Util.colorize(line, t: :gray)
           end
           # Too much remain, omit them.

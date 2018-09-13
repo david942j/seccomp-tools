@@ -64,6 +64,7 @@ Invalid return type: #{cur.inspect}.
 
       def fetch_str(str)
         return nil unless cur.start_with?(str)
+
         @last_match_size = str.size
         str
       end
@@ -71,11 +72,13 @@ Invalid return type: #{cur.inspect}.
       def fetch_ax
         return :a if fetch_str('A')
         return :x if fetch_str('X')
+
         nil
       end
 
       def fetch_sys_num_arch_x
         return :x if fetch_str('X')
+
         fetch_number || fetch_syscall || fetch_arch
       end
 
@@ -83,6 +86,7 @@ Invalid return type: #{cur.inspect}.
       def fetch_number
         res = fetch_regexp(/^0x[0-9a-f]+/) || fetch_regexp(/^[0-9]+/)
         return nil if res.nil?
+
         Integer(res)
       end
 
@@ -99,6 +103,7 @@ Invalid return type: #{cur.inspect}.
       def fetch_regexp(regexp)
         idx = cur =~ regexp
         return nil if idx.nil? || idx != 0
+
         match = cur.match(regexp)[0]
         @last_match_size = match.size
         match
@@ -114,6 +119,7 @@ Invalid return type: #{cur.inspect}.
         regexp = /(#{Const::BPF::ACTION.keys.join('|')})(\([0-9]{1,5}\))?/
         action = fetch_regexp(regexp)
         return fetch_str('A') && :a if action.nil?
+
         # check if action contains '('the next bytes are (<num>)
         ret_val = 0
         if action.include?('(')
@@ -128,6 +134,7 @@ Invalid return type: #{cur.inspect}.
         regexp = /(#{support_name.join('|')})\[[0-9]{1,2}\]/
         match = fetch_regexp(regexp)
         return nil if match.nil?
+
         res, val = match.split('[')
         val = val.to_i
         [res.to_sym, val]
@@ -137,6 +144,7 @@ Invalid return type: #{cur.inspect}.
         ops = %w[+ - * / | & ^ << >>]
         op = fetch_strs(ops)
         return nil if op.nil?
+
         Instruction::ALU::OP_SYM.invert[op.to_sym]
       end
 

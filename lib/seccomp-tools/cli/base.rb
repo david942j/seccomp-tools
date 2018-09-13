@@ -26,6 +26,7 @@ module SeccompTools
       #   For decestors to check if need to continue.
       def handle
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].any? { |h| argv.include?(h) }
+
         parser.parse!(argv)
         option[:arch] ||= Util.system_arch
         true
@@ -46,6 +47,7 @@ module SeccompTools
       def output
         # if file name not present, just output to stdout.
         return $stdout.write(yield) if option[:ofile].nil?
+
         # times of calling output
         @serial ||= 0
         # Write to file, we should disable colorize

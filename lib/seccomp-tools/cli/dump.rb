@@ -53,6 +53,7 @@ module SeccompTools
       # @return [void]
       def handle
         return unless super
+
         option[:command] = argv.shift unless argv.empty?
         SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit]) do |bpf, arch|
           case option[:format]

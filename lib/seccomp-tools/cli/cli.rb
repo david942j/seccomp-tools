@@ -51,6 +51,7 @@ EOS
       cmd = argv.shift
       argv = %w[--help] if preoption.include?('--help')
       return show(invalid(cmd)) if COMMANDS[cmd].nil?
+
       COMMANDS[cmd].new(argv).handle
     end
 

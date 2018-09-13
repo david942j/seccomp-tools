@@ -115,6 +115,7 @@ module SeccompTools
         arch = cons.to_s.downcase
         filename = File.join(__dir__, 'consts', "#{arch}.rb")
         return unless File.exist?(filename)
+
         const_set(cons, instance_eval(IO.read(filename)))
       end
     end

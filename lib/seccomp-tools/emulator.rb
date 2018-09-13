@@ -31,6 +31,7 @@ module SeccompTools
       @values = { pc: 0, a: 0, x: 0 }
       loop do
         break if @values[:ret] # break when returned
+
         yield(@values) if block_given?
         inst = @instructions[pc]
         op, *args = inst.symbolize
@@ -79,6 +80,7 @@ module SeccompTools
 
     def st(reg, index)
       raise IndexError, "Expect 0 <= index < 16, got: #{index}" unless index.between?(0, 15)
+
       set(:mem, index, get(reg))
     end
 
@@ -115,10 +117,12 @@ module SeccompTools
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
+
         @values[arg] = val & 0xffffffff
       else
         raise ArgumentError, arg.to_s unless arg.first == :mem
         raise IndexError, "Invalid index: #{arg[1]}" unless arg[1].between?(0, 15)
+
         @values[arg[1]] = val & 0xffffffff
       end
     end
@@ -127,15 +131,18 @@ module SeccompTools
       if arg.size == 1
         arg = arg.first
         raise ArgumentError, "Invalid #{arg}" unless %i[a x pc ret].include?(arg)
+
         undefined(arg.upcase) if @values[arg].nil?
         return @values[arg]
       end
       return @values[arg[1]] if arg.first == :mem
+
       data_of(arg[1])
     end
 
     def data_of(index)
       raise IndexError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
+
       index /= 4
       case index
       when 0 then @sys_nr || undefined('sys_number')

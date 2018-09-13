@@ -44,6 +44,7 @@ module SeccompTools
       # @return [Integer?]
       def [](key)
         return values[key] if key.is_a?(Integer) # mem
+
         values[key.downcase.to_sym]
       end
 
@@ -57,6 +58,7 @@ module SeccompTools
         if key.is_a?(Integer)
           raise RangeError, "Expect 0 <= key < 16, got #{key}." unless key.between?(0, 15)
           raise RangeError, "Expect 0 <= val < 64, got #{val}." unless val.nil? || val.between?(0, 63)
+
           values[key] = val
         else
           values[key.downcase.to_sym] = val

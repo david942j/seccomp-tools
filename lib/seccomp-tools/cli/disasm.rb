@@ -27,8 +27,10 @@ module SeccompTools
       # @return [void]
       def handle
         return unless super
+
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
+
         output { SeccompTools::Disasm.disasm(input, arch: option[:arch]) }
       end
     end

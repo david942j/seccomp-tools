@@ -27,6 +27,7 @@ module SeccompTools
     def initialize(pid)
       @pid = pid
       raise ArgumentError, "Only supports #{ABI.keys.join(', ')}" if ABI[arch].nil?
+
       @abi = ABI[arch]
       @number = peek(abi[:number])
       @args = abi[:args].map { |off| peek(off) }
@@ -40,6 +41,7 @@ module SeccompTools
     def set_seccomp?
       # TODO: handle SECCOMP_MODE_SET_STRICT / SECCOMP_MODE_STRICT
       return true if number == abi[:SYS_seccomp] && args[0] == Const::BPF::SECCOMP_SET_MODE_FILTER
+
       number == abi[:SYS_prctl] && args[0] == Const::BPF::PR_SET_SECCOMP && args[1] == Const::BPF::SECCOMP_MODE_FILTER
     end
 

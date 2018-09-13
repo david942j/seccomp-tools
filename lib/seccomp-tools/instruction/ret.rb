@@ -27,6 +27,7 @@ module SeccompTools
       def ret_str
         _, type = symbolize
         return 'A' if type == :a
+
         str = ACTION.invert[type & SECCOMP_RET_ACTION_FULL].to_s
         str << "(#{type & SECCOMP_RET_DATA})" if str == 'ERRNO'
         str

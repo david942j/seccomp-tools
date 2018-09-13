@@ -38,8 +38,10 @@ module SeccompTools
       # @return [void]
       def handle
         return unless super
+
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
+
         res = SeccompTools::Asm.asm(input, arch: option[:arch])
         output do
           case option[:format]

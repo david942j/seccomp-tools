@@ -21,6 +21,7 @@ module SeccompTools
       # Decompile instruction.
       def decompile
         return 'A = -A' if op == :neg
+
         "A #{op_sym}= #{src_str}"
       end
 
@@ -28,6 +29,7 @@ module SeccompTools
       # @return [[:alu, Symbol, (:x, Integer, nil)]]
       def symbolize
         return [:alu, :neg, nil] if op == :neg
+
         [:alu, op_sym, src]
       end
 
@@ -55,6 +57,7 @@ module SeccompTools
 
       def src_str
         return 'X' if src == :x
+
         case op
         when :lsh, :rsh then src.to_s
         else '0x' + src.to_s(16)

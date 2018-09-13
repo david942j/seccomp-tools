@@ -10,6 +10,7 @@ module SeccompTools
         _, _reg, type = symbolize
         return ret + type[:val].to_s if type[:rel] == :immi
         return ret + "mem[#{type[:val]}]" if type[:rel] == :mem
+
         ret + seccomp_data_str
       end
 
@@ -53,6 +54,7 @@ module SeccompTools
         return { rel: :immi, val: k } if mode == :imm
         return { rel: :immi, val: SIZEOF_SECCOMP_DATA } if mode == :len
         return { rel: :mem, val: k } if mode == :mem
+
         { rel: :data, val: k }
       end
 
@@ -71,6 +73,7 @@ module SeccompTools
         else
           idx = Array.new(12) { |i| i * 4 + 16 }.index(k)
           return 'INVALID' if idx.nil?
+
           idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
         end
       end

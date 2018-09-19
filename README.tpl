@@ -70,7 +70,8 @@ SHELL_OUTPUT_OF(seccomp-tools asm)
 # Input file for asm
 SHELL_OUTPUT_OF(cat spec/data/libseccomp.asm)
 SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm)
-SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f carray)
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f c_source)
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f assembly)
 
 # let's asm then disasm!
 SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tools disasm -)

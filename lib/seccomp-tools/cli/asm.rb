@@ -24,8 +24,8 @@ module SeccompTools
             option[:ofile] = o
           end
 
-          opt.on('-f', '--format FORMAT', %i[inspect raw carray],
-                 'Output format. FORMAT can only be one of <inspect|raw|carray>.',
+          opt.on('-f', '--format FORMAT', %i[inspect raw c_array carray c_source assembly],
+                 'Output format. FORMAT can only be one of <inspect|raw|c_array|c_source|assembly>.',
                  'Default: inspect') do |f|
                    option[:format] = f
                  end
@@ -47,7 +47,13 @@ module SeccompTools
           case option[:format]
           when :inspect then res.inspect + "\n"
           when :raw then res
-          when :carray then "unsigned char bpf[] = {#{res.bytes.join(',')}};\n"
+          when :c_array, :carray then "unsigned char bpf[] = {#{res.bytes.join(',')}};\n"
+          when :c_source then SeccompTools::Util.template('asm.c').sub('<TO_BE_REPLACED>', res.bytes.join(','))
+          when :assembly then SeccompTools::Util.template("asm.#{option[:arch]}.asm")
+                                                .sub(
+                                                  '<TO_BE_REPLACED>',
+                                                  res.bytes.map { |b| format('\\\%03o', b) }.join
+                                                )
           end
         end
       end

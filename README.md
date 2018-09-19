@@ -158,7 +158,7 @@ $ seccomp-tools asm
 #
 # Usage: seccomp-tools asm IN_FILE [options]
 #     -o, --output FILE                Output result into FILE instead of stdout.
-#     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|carray>.
+#     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|c_array|c_source|assembly>.
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
 #                                      Supported architectures are <amd64|i386>.
@@ -183,8 +183,52 @@ $ cat spec/data/libseccomp.asm
 $ seccomp-tools asm spec/data/libseccomp.asm
 # " \x00\x00\x00\x04\x00\x00\x00\x15\x00\x00\b>\x00\x00\xC0 \x00\x00\x00\x00\x00\x00\x005\x00\x06\x00\x00\x00\x00@\x15\x00\x04\x00\x01\x00\x00\x00\x15\x00\x03\x00\x03\x00\x00\x00\x15\x00\x02\x00 \x00\x00\x00\x15\x00\x01\x00<\x00\x00\x00\x06\x00\x00\x00\x05\x00\x05\x00\x06\x00\x00\x00\x00\x00\xFF\x7F\x06\x00\x00\x00\x00\x00\x00\x00"
 
-$ seccomp-tools asm spec/data/libseccomp.asm -f carray
-# unsigned char bpf[] = {32,0,0,0,4,0,0,0,21,0,0,8,62,0,0,192,32,0,0,0,0,0,0,0,53,0,6,0,0,0,0,64,21,0,4,0,1,0,0,0,21,0,3,0,3,0,0,0,21,0,2,0,32,0,0,0,21,0,1,0,60,0,0,0,6,0,0,0,5,0,5,0,6,0,0,0,0,0,255,127,6,0,0,0,0,0,0,0};
+$ seccomp-tools asm spec/data/libseccomp.asm -f c_source
+# #include <linux/seccomp.h>
+# #include <stdio.h>
+# #include <stdlib.h>
+# #include <sys/prctl.h>
+#
+# static void install_seccomp() {
+#   static unsigned char filter[] = {32,0,0,0,4,0,0,0,21,0,0,8,62,0,0,192,32,0,0,0,0,0,0,0,53,0,6,0,0,0,0,64,21,0,4,0,1,0,0,0,21,0,3,0,3,0,0,0,21,0,2,0,32,0,0,0,21,0,1,0,60,0,0,0,6,0,0,0,5,0,5,0,6,0,0,0,0,0,255,127,6,0,0,0,0,0,0,0};
+#   struct prog {
+#     unsigned short len;
+#     unsigned char *filter;
+#   } rule = {
+#     .len = sizeof(filter) >> 3,
+#     .filter = filter
+#   };
+#   if(prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0) { perror("prctl(PR_SET_NO_NEW_PRIVS)"); exit(2); }
+#   if(prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &rule) < 0) { perror("prctl(PR_SET_SECCOMP)"); exit(2); }
+# }
+
+$ seccomp-tools asm spec/data/libseccomp.asm -f assembly
+# install_seccomp:
+#   push   rbp
+#   mov    rbp, rsp
+#   push   38
+#   pop    rdi
+#   push   0x1
+#   pop    rsi
+#   xor    eax, eax
+#   mov    al, 0x9d
+#   syscall
+#   push   22
+#   pop    rdi
+#   lea    rdx, [rip + _filter]
+#   push   rdx /* .filter */
+#   push   _filter_end - _filter >> 3 /* .len */
+#   mov    rdx, rsp
+#   push   0x2
+#   pop    rsi
+#   xor    eax, eax
+#   mov    al, 0x9d
+#   syscall
+#   leave
+#   ret
+# _filter:
+# .ascii "\040\000\000\000\004\000\000\000\025\000\000\010\076\000\000\300\040\000\000\000\000\000\000\000\065\000\006\000\000\000\000\100\025\000\004\000\001\000\000\000\025\000\003\000\003\000\000\000\025\000\002\000\040\000\000\000\025\000\001\000\074\000\000\000\006\000\000\000\005\000\005\000\006\000\000\000\000\000\377\177\006\000\000\000\000\000\000\000"
+# _filter_end:
 
 
 # let's asm then disasm!

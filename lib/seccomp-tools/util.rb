@@ -62,5 +62,16 @@ module SeccompTools
       color = cc[t]
       "#{color}#{s.sub(cc[:esc_m], cc[:esc_m] + color)}#{cc[:esc_m]}"
     end
+
+    # Get content of filename under directory templates/.
+    #
+    # @param [String] filename
+    #   The filename.
+    #
+    # @return [String]
+    #   Content of the file.
+    def template(filename)
+      IO.binread(File.join(__dir__, 'templates', filename))
+    end
   end
 end

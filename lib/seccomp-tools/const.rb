@@ -24,22 +24,22 @@ module SeccompTools
 
       # bpf command classes
       COMMAND = {
-        ld:   0x0,
-        ldx:  0x1,
-        st:   0x2,
-        stx:  0x3,
-        alu:  0x4,
-        jmp:  0x5,
-        ret:  0x6,
+        ld: 0x0,
+        ldx: 0x1,
+        st: 0x2,
+        stx: 0x3,
+        alu: 0x4,
+        jmp: 0x5,
+        ret: 0x6,
         misc: 0x7
       }.freeze
 
       # types in jmp command
       JMP = {
-        ja:   0x00,
-        jeq:  0x10,
-        jgt:  0x20,
-        jge:  0x30,
+        ja: 0x00,
+        jeq: 0x10,
+        jgt: 0x20,
+        jge: 0x30,
         jset: 0x40
       }.freeze
 
@@ -53,12 +53,12 @@ module SeccompTools
       # seccomp action values
       ACTION = {
         KILL_PROCESS: 0x80000000,
-        KILL_THREAD:  0x00000000,
-        KILL:         0x00000000, # alias of KILL_THREAD
-        TRAP:         0x00030000,
-        ERRNO:        0x00050000,
-        TRACE:        0x7ff00000,
-        ALLOW:        0x7fff0000
+        KILL_THREAD: 0x00000000,
+        KILL: 0x00000000, # alias of KILL_THREAD
+        TRAP: 0x00030000,
+        ERRNO: 0x00050000,
+        TRACE: 0x7ff00000,
+        ALLOW: 0x7fff0000
       }.freeze
 
       # mode used in ld / ldx
@@ -77,7 +77,7 @@ module SeccompTools
         sub: 0x10,
         mul: 0x20,
         div: 0x30,
-        or:  0x40,
+        or: 0x40,
         and: 0x50,
         lsh: 0x60,
         rsh: 0x70,

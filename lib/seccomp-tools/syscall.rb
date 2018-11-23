@@ -7,7 +7,7 @@ module SeccompTools
     # Syscall arguments offset of +struct user+ in different arch.
     ABI = {
       amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157, SYS_seccomp: 317 },
-      i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172 }
+      i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172, SYS_seccomp: 354 }
     }.freeze
 
     # @return [Integer] Process id.

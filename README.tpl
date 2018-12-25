@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/david942j/seccomp-tools.svg?branch=master)](https://travis-ci.org/david942j/seccomp-tools)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=david942j/seccomp-tools)](https://dependabot.com)
 [![Code Climate](https://codeclimate.com/github/david942j/seccomp-tools/badges/gpa.svg)](https://codeclimate.com/github/david942j/seccomp-tools)
 [![Issue Count](https://codeclimate.com/github/david942j/seccomp-tools/badges/issue_count.svg)](https://codeclimate.com/github/david942j/seccomp-tools)
 [![Test Coverage](https://codeclimate.com/github/david942j/seccomp-tools/badges/coverage.svg)](https://codeclimate.com/github/david942j/seccomp-tools/coverage)
@@ -28,6 +29,12 @@ Available on RubyGems.org!
 ```
 $ gem install seccomp-tools
 ```
+
+If you failed in compiling, try:
+```
+sudo apt install gcc ruby-dev
+```
+and install seccomp-tools again.
 
 ## Command Line Interface
 

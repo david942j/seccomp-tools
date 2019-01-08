@@ -130,7 +130,7 @@ Invalid return type: #{cur.inspect}.
       end
 
       def fetch_ary
-        support_name = %w[data mem args]
+        support_name = %w[data mem args args_h]
         regexp = /(#{support_name.join('|')})\[[0-9]{1,2}\]/
         match = fetch_regexp(regexp)
         return nil if match.nil?

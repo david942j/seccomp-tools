@@ -100,7 +100,7 @@ module SeccompTools
         # now src must be in form [:mem/:data, num]
         return emit(ld, :mem, k: src.last) if src.first == :mem
         # check if num is multiple of 4
-        raise ArgumentError, 'Index of data[] must be multiplication of 4' if src.last % 4 != 0
+        raise ArgumentError, 'Index of data[] must be a multiple of 4' if src.last % 4 != 0
 
         emit(ld, :abs, k: src.last)
       end

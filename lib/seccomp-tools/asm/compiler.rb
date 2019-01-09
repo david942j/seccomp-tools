@@ -140,16 +140,17 @@ module SeccompTools
 
       def label_offset(label)
         if label.is_a?(Integer)
-          raise ArgumentError, "Loop detected!" if label == 0
-          raise ArgumentError, "Does not support backward jumping." if label < 0
+          raise ArgumentError, 'Loop detected!' if label.zero?
+          raise ArgumentError, 'Does not support backward jumping.' if label.negative?
+
           return label
         end
         return label if label.is_a?(Integer)
         return 0 if label == 'next'
         raise ArgumentError, "Undefined label #{label.inspect}" if @labels[label].nil?
-
-        raise ArgumentError, "Loop detected!" if @labels[label] == @line
+        raise ArgumentError, 'Loop detected!' if @labels[label] == @line
         raise ArgumentError, "Does not support backward jumping to #{label.inspect}" if @labels[label] < @line
+
         @labels[label] - @line - 1
       end
 
@@ -180,12 +181,12 @@ module SeccompTools
 
       # <goto|jmp|jump> <label|Integer>
       def jmp_abs
-         tk = token.fetch('goto') ||
-              token.fetch('jmp') ||
-              token.fetch('jump') ||
-              raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
-         target = token.fetch!(:goto)
-         return [:jmp_abs, target]
+        token.fetch('goto') ||
+          token.fetch('jmp') ||
+          token.fetch('jump') ||
+          raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
+        target = token.fetch!(:goto)
+        [:jmp_abs, target]
       end
 
       # A <comparison> <sys_str|X|Integer> ? <label|Integer> : <label|Integer>

@@ -20,7 +20,6 @@ Some features might be CTF-specific, but still useful for analyzing seccomp in r
   - Colorful!
 * Asm - Write seccomp rules is so easy!
 * Emu - Emulate seccomp rules.
-* (TODO) Solve constraints for executing syscalls (e.g. `execve/open/read/write`).
 * Support multi-architectures.
 
 ## Installation
@@ -101,6 +100,23 @@ SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf 0x3)
 ![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-libseccomp.png?raw=true)
 
 ![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-amigo.png?raw=true)
+
+## Development
+
+I recommend to use [rbenv](https://github.com/rbenv/rbenv) for your Ruby environment.
+
+### Setup
+
+- Install bundler
+  - `$ gem install bundler`
+- Clone the source
+  - `$ git clone https://github.com/david942j/seccomp-tools && cd seccomp-tools`
+- Install dependencies
+  - `$ bundle install`
+
+### Run tests
+
+`$ bundle exec rake`
 
 ## I Need You
 

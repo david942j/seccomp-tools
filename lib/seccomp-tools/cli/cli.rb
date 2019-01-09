@@ -28,14 +28,14 @@ EOS
 
     module_function
 
-    # Main work method for CLI.
+    # Main working method of CLI.
     # @param [Array<String>] argv
     #   Command line arguments.
     # @return [void]
     # @example
-    #   work(argv: %w[--help])
+    #   work(%w[--help])
     #   #=> # usage message
-    #   work(argv: %w[--version])
+    #   work(%w[--version])
     #   #=> # version message
     def work(argv)
       # all -h equivalent to --help

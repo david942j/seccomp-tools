@@ -32,12 +32,15 @@ describe SeccompTools::Asm::Compiler do
       expect(@get_bpf['A = data[0]']).to eq 'A = sys_number'
       expect { @get_bpf['A = data[1]'] }.to raise_error(ArgumentError, <<-EOS.strip)
 Invalid instruction at line 1: "A = data[1]"
-Error: Index of data[] must be multiplication of 4
+Error: Index of data[] must be a multiple of 4
       EOS
       expect(@get_bpf['A = sys_number']).to eq 'A = sys_number'
       expect(@get_bpf['A = arch']).to eq 'A = arch'
+      expect(@get_bpf['A = len']).to eq 'A = 64'
       expect(@get_bpf['A = args[0]']).to eq 'A = args[0]'
       expect(@get_bpf['A = args[1]']).to eq 'A = args[1]'
+      expect(@get_bpf['A = args_h[0]']).to eq 'A = args[0] >> 32'
+      expect(@get_bpf['A = args_h[1]']).to eq 'A = args[1] >> 32'
     end
   end
 

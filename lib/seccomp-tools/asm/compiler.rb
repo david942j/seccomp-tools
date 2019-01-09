@@ -140,7 +140,6 @@ module SeccompTools
 
       def label_offset(label)
         if label.is_a?(Integer)
-          raise ArgumentError, 'Loop detected!' if label.zero?
           raise ArgumentError, 'Does not support backward jumping.' if label.negative?
 
           return label

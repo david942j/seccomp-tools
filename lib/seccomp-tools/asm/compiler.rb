@@ -10,6 +10,7 @@ module SeccompTools
         @arch = arch
         @insts = []
         @labels = {}
+        @insts_linenum = {}
         @input = []
       end
 
@@ -30,10 +31,10 @@ module SeccompTools
                 when /\?/ then cmp
                 when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
                 when /^return/ then ret
-                when /^(goto|jmp|jump)/ then jmp_abs
                 when /^(A|X)\s*=[^=]/ then assign
                 when /^mem\[\d+\]\s*=\s*(A|X)/ then store
                 when /^A\s*.{1,2}=/ then alu
+                when /^(goto|jmp|jump)/ then jmp_abs
                 end
         rescue ArgumentError => e
           invalid(@input.size - 1, e.message)
@@ -43,6 +44,7 @@ module SeccompTools
           @labels[res.last] = @insts.size
         else
           @insts << res
+          @insts_linenum[@insts.size - 1] = @input.size - 1
         end
       end
 
@@ -59,7 +61,7 @@ module SeccompTools
           end
         end
       rescue ArgumentError => e
-        invalid(@line, e.message)
+        invalid(@insts_linenum[@line], e.message)
       end
 
       private
@@ -139,15 +141,9 @@ module SeccompTools
       end
 
       def label_offset(label)
-        if label.is_a?(Integer)
-          raise ArgumentError, 'Does not support backward jumping.' if label.negative?
-
-          return label
-        end
         return label if label.is_a?(Integer)
         return 0 if label == 'next'
         raise ArgumentError, "Undefined label #{label.inspect}" if @labels[label].nil?
-        raise ArgumentError, 'Loop detected!' if @labels[label] == @line
         raise ArgumentError, "Does not support backward jumping to #{label.inspect}" if @labels[label] < @line
 
         @labels[label] - @line - 1
@@ -180,9 +176,15 @@ module SeccompTools
 
       # <goto|jmp|jump> <label|Integer>
       def jmp_abs
-        token.fetch('goto') ||
-          token.fetch('jmp') ||
-          token.fetch('jump') ||
+        # FIXME: when token.fetch fetches a token, it does not check for a
+        # whitespace/end of token afterwards. Possible issue of token.fetch?
+        #
+        # A side effect (without adding a space after these calls) could be that
+        # the code will interpret `jumping` as a `jump ing`, i.e. jump to `ing`
+        # label.
+        token.fetch('goto ') ||
+          token.fetch('jmp ') ||
+          token.fetch('jump ') ||
           raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
         target = token.fetch!(:goto)
         [:jmp_abs, target]

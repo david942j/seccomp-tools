@@ -5,3 +5,6 @@
 /doc/
 /tmp/
 /.inch/
+
+# Vim swap files
+**/.*sw?

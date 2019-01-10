@@ -32,12 +32,15 @@ describe SeccompTools::Asm::Compiler do
       expect(@get_bpf['A = data[0]']).to eq 'A = sys_number'
       expect { @get_bpf['A = data[1]'] }.to raise_error(ArgumentError, <<-EOS.strip)
 Invalid instruction at line 1: "A = data[1]"
-Error: Index of data[] must be multiplication of 4
+Error: Index of data[] must be a multiple of 4
       EOS
       expect(@get_bpf['A = sys_number']).to eq 'A = sys_number'
       expect(@get_bpf['A = arch']).to eq 'A = arch'
+      expect(@get_bpf['A = len']).to eq 'A = 64'
       expect(@get_bpf['A = args[0]']).to eq 'A = args[0]'
       expect(@get_bpf['A = args[1]']).to eq 'A = args[1]'
+      expect(@get_bpf['A = args_h[0]']).to eq 'A = args[0] >> 32'
+      expect(@get_bpf['A = args_h[1]']).to eq 'A = args[1] >> 32'
     end
   end
 
@@ -84,6 +87,74 @@ Error: Invalid return type: "QQ".
     expect(@get_bpf['A ^= X']).to eq 'A ^= X'
   end
 
+  it 'back_jump' do
+    compiler = described_class.new(:amd64)
+
+    <<-EOS.lines.each { |l| compiler.process(l) }
+A = 0
+loop:
+A += 1
+A <= 10 ? loop : next
+    EOS
+    expect { compiler.compile! }.to raise_error(ArgumentError, <<-EOS.strip)
+Invalid instruction at line 4: "A <= 10 ? loop : next"
+Error: Does not support backward jumping to "loop"
+    EOS
+  end
+
+  it 'bad_jump' do
+    compiler = described_class.new(:amd64)
+
+    <<-EOS.lines.each { |l| compiler.process(l) }
+# a comment for good measures
+A = sys_number
+
+A == open  ? alow : next # oops misspelled a label
+A == close ? allow : next
+A == read  ? allow : next
+A == write ? allow : next
+A == exit  ? allow : next
+A == exit_group ? allow : next
+return KILL # default action
+
+allow:
+return ALLOW
+    EOS
+    expect { compiler.compile! }.to raise_error(ArgumentError, <<-EOS.strip)
+Invalid instruction at line 4: "A == open  ? alow : next # oops misspelled a label"
+Error: Undefined label "alow"
+    EOS
+  end
+
+  it 'abs_jump' do
+    compiler = described_class.new(:amd64)
+
+    <<-EOS.lines.each { |l| compiler.process(l) }
+goto next
+jump jump_a
+A = X
+
+jump_a:
+A = sys_number
+jmp jump_b
+X = A
+
+# a comment
+jump_b:
+A = arch
+    EOS
+
+    expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
+goto 0001
+goto 0003
+A = X
+A = sys_number
+goto 0006
+X = A
+A = arch
+    EOS
+  end
+
   it 'invalid' do
     msg = 'Invalid instruction at line 5: "Pusheen # meow"'
     compiler = described_class.new(:amd64)
@@ -95,5 +166,23 @@ return ALLOW
 Pusheen # meow
 return KILL
     EOS
+  end
+
+  it 'invalid2' do
+    msg = <<-EOS.strip
+Invalid instruction at line 4: "jumping around"
+Error: Invalid jump alias: "jumping around"
+    EOS
+
+    compiler = described_class.new(:amd64)
+    expect { <<-EOS.lines.each { |l| compiler.process(l) } }.to raise_error(ArgumentError, msg)
+# comment
+A = sys_number
+X = A
+jumping around
+return ALLOW
+    EOS
+
+    compiler.compile!
   end
 end

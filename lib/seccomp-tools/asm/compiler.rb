@@ -10,6 +10,7 @@ module SeccompTools
         @arch = arch
         @insts = []
         @labels = {}
+        @insts_linenum = {}
         @input = []
       end
 
@@ -33,6 +34,7 @@ module SeccompTools
                 when /^(A|X)\s*=[^=]/ then assign
                 when /^mem\[\d+\]\s*=\s*(A|X)/ then store
                 when /^A\s*.{1,2}=/ then alu
+                when /^(goto|jmp|jump)/ then jmp_abs
                 end
         rescue ArgumentError => e
           invalid(@input.size - 1, e.message)
@@ -42,6 +44,7 @@ module SeccompTools
           @labels[res.last] = @insts.size
         else
           @insts << res
+          @insts_linenum[@insts.size - 1] = @input.size - 1
         end
       end
 
@@ -54,10 +57,11 @@ module SeccompTools
           when :alu then compile_alu(inst[1], inst[2])
           when :ret then compile_ret(inst[1])
           when :cmp then compile_cmp(inst[1], inst[2], inst[3], inst[4])
+          when :jmp_abs then compile_jmp_abs(inst[1])
           end
         end
       rescue ArgumentError => e
-        invalid(@line, e.message)
+        invalid(@insts_linenum[@line], e.message)
       end
 
       private
@@ -79,8 +83,9 @@ module SeccompTools
       # A = X / X = A
       # <A|X> = mem[i]
       # <A|X> = 123|sys_const
-      # A = args[i]|sys_number|arch
+      # A = args_h[i]|args[i]|sys_number|arch
       # A = data[4 * i]
+      # A = len
       # mem[i] = <A|X>
       def compile_assign(dst, src)
         # misc txa / tax
@@ -92,10 +97,12 @@ module SeccompTools
         ld = dst == :x ? :ldx : :ld
         # <A|X> = <immi>
         return emit(ld, :imm, k: src) if src.is_a?(Integer)
+        # <A|X> = len
+        return emit(ld, :len) if src.first == :len
         # now src must be in form [:mem/:data, num]
         return emit(ld, :mem, k: src.last) if src.first == :mem
         # check if num is multiple of 4
-        raise ArgumentError, 'Index of data[] must be multiplication of 4' if src.last % 4 != 0
+        raise ArgumentError, 'Index of data[] must be a multiple of 4' if src.last % 4 != 0
 
         emit(ld, :abs, k: src.last)
       end
@@ -119,6 +126,11 @@ module SeccompTools
         emit(:ret, src, k: val)
       end
 
+      def compile_jmp_abs(target)
+        targ = label_offset(target)
+        emit(:jmp, :ja, k: targ)
+      end
+
       def compile_cmp(op, val, jt, jf)
         jt = label_offset(jt)
         jf = label_offset(jf)
@@ -132,6 +144,7 @@ module SeccompTools
         return label if label.is_a?(Integer)
         return 0 if label == 'next'
         raise ArgumentError, "Undefined label #{label.inspect}" if @labels[label].nil?
+        raise ArgumentError, "Does not support backward jumping to #{label.inspect}" if @labels[label] < @line
 
         @labels[label] - @line - 1
       end
@@ -143,13 +156,15 @@ module SeccompTools
         val = case val
               when 'sys_number' then [:data, 0]
               when 'arch' then [:data, 4]
+              when 'len' then [:len]
               else val
               end
         return eval_constants(val) if val.is_a?(String)
 
-        # remains are [:mem/:data/:args, <num>]
+        # remains are [:mem/:data/:args/:args_h, <num>]
         # first convert args to data
         val = [:data, val.last * 8 + 16] if val.first == :args
+        val = [:data, val.last * 8 + 20] if val.first == :args_h
         val
       end
 
@@ -158,6 +173,22 @@ module SeccompTools
       end
 
       attr_reader :token
+
+      # <goto|jmp|jump> <label|Integer>
+      def jmp_abs
+        # FIXME: when token.fetch fetches a token, it does not check for a
+        # whitespace/end of token afterwards. Possible issue of token.fetch?
+        #
+        # A side effect (without adding a space after these calls) could be that
+        # the code will interpret `jumping` as a `jump ing`, i.e. jump to `ing`
+        # label.
+        token.fetch('goto ') ||
+          token.fetch('jmp ') ||
+          token.fetch('jump ') ||
+          raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
+        target = token.fetch!(:goto)
+        [:jmp_abs, target]
+      end
 
       # A <comparison> <sys_str|X|Integer> ? <label|Integer> : <label|Integer>
       def cmp
@@ -198,6 +229,7 @@ module SeccompTools
       #   A = mem[i]
       #   A = args[i]
       #   A = sys_number|arch
+      #   A = len
       def assign
         dst = token.fetch!(:ax)
         token.fetch!('=')
@@ -206,6 +238,7 @@ module SeccompTools
               token.fetch(:ary) ||
               token.fetch('sys_number') ||
               token.fetch('arch') ||
+              token.fetch('len') ||
               raise(ArgumentError, 'Invalid source: ' + token.cur.inspect)
         [:assign, dst, src]
       end

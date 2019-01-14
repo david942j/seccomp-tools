@@ -7,7 +7,7 @@ module SeccompTools
     # This class is for internel usage, used by {Compiler}.
     class Tokenizer
       # a valid label
-      LABEL_REGEXP = /[a-z_][a-z0-9_]+/.freeze
+      LABEL_REGEXP = /[A-Za-z_][\w_]*/.freeze
       attr_accessor :cur
 
       # @param [String] str

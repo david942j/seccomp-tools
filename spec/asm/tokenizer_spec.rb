@@ -29,9 +29,9 @@ describe SeccompTools::Asm::Tokenizer do
     end
 
     it 'goto' do
-      token = described_class.new('456 oao_1 _kill_2')
+      token = described_class.new('456 OaO_1 _kill_2')
       expect(token.fetch!(:goto)).to eq 456
-      expect(token.fetch!(:goto)).to eq 'oao_1'
+      expect(token.fetch!(:goto)).to eq 'OaO_1'
       expect(token.fetch!(:goto)).to eq '_kill_2'
     end
 

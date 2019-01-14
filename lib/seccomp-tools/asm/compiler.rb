@@ -169,7 +169,9 @@ module SeccompTools
       end
 
       def eval_constants(str)
-        Const::Syscall.const_get(@arch.upcase.to_sym)[str.to_sym] || Const::Audit::ARCH[str]
+        Const::Syscall.const_get(@arch.upcase.to_sym)[str.to_sym] ||
+          Const::Audit::ARCH[str] ||
+          raise(ArgumentError, "Invalid constant: #{str.inspect}")
       end
 
       attr_reader :token

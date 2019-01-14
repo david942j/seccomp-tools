@@ -21,6 +21,8 @@ describe SeccompTools::Asm::Compiler do
       expect(@get_bpf['A = nanosleep']).to eq 'A = 35'
       expect(@get_bpf['X = nanosleep']).to eq 'X = 35'
       expect(@get_bpf['A = nanosleep', arch: :i386]).to eq 'A = 162'
+
+      expect { @get_bpf['A = not_exists_syscall'] }.to raise_error(ArgumentError)
     end
 
     it 'mem' do

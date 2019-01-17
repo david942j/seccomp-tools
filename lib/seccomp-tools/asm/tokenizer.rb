@@ -5,6 +5,7 @@ module SeccompTools
   module Asm
     # Fetch tokens from string.
     # This class is for internel usage, used by {Compiler}.
+    # @private
     class Tokenizer
       # a valid label
       LABEL_REGEXP = /[A-Za-z_][\w_]*/.freeze
@@ -64,6 +65,7 @@ Invalid return type: #{cur.inspect}.
 
       def fetch_str(str)
         return nil unless cur.start_with?(str)
+        return nil if str =~ /\A[A-za-z0-9_]+\Z/ && cur[str.size] =~ /[A-Za-z0-9_]/
 
         @last_match_size = str.size
         str

@@ -5,6 +5,9 @@ describe SeccompTools::Asm::Tokenizer do
     it 'str' do
       token = described_class.new('meow meow')
       expect(token.fetch!('meow')).to eq 'meow'
+      token = described_class.new('meowa')
+      expect { token.fetch!('meow') }
+        .to raise_error(ArgumentError, "Expected token \"meow\", while \"meowa\" occured.\n")
     end
 
     it 'sys_num_x' do

@@ -155,7 +155,7 @@ $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
 ### asm
 
 Assemble the seccomp rules into raw bytes.
-Very useful when want to write custom seccomp rules.
+Very useful when one wants to write custom seccomp rules.
 
 Supports labels for jumping and use syscall names directly. See example below.
 ```bash
@@ -267,7 +267,7 @@ $ seccomp-tools emu --help
 #                                      Supported architectures are <amd64|i386>.
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
 
-$ seccomp-tools emu spec/data/libseccomp.bpf 0x3
+$ seccomp-tools emu spec/data/libseccomp.bpf write 0x3
 #  line  CODE  JT   JF      K
 # =================================
 #  0000: 0x20 0x00 0x00 0x00000004  A = arch

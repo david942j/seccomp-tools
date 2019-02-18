@@ -54,6 +54,8 @@ module SeccompTools
       #   Child will be killed when number of calling +prctl(SET_SECCOMP)+ reaches +limit+.
       # @yieldparam [String] bpf
       #   Seccomp bpf in raw bytes.
+      # @yieldparam [Symbol] arch
+      #   Architecture, either :i386 or :amd64.
       # @return [Array<Object>, Array<String>]
       #   Return the block returned. If block is not given, array of raw bytes will be returned.
       def handle(limit, &block)

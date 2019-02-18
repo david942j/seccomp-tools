@@ -45,8 +45,8 @@ module SeccompTools
 
       def mode
         @mode ||= MODE.invert[code & 0xe0]
-        # Seccomp doesn't support this mode
-        invalid if @mode.nil? || @mode == :ind
+        # Seccomp doesn't support these modes
+        invalid if @mode.nil? || @mode == :ind || @mode == :msh
         @mode
       end
 

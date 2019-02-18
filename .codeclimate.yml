@@ -12,5 +12,3 @@ checks:
     enabled: false
   method-complexity:
     enabled: false
-exclude_patterns:
-- spec/

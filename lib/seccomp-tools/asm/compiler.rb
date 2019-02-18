@@ -68,7 +68,7 @@ module SeccompTools
 
       def emit(*args, k: 0, jt: 0, jf: 0)
         code = 0
-        # bad idea, while keys are not duplicated so this is ok.
+        # bad idea, but keys are not duplicated so this is ok.
         args.each do |a|
           code |= Const::BPF::COMMAND.fetch(a, 0)
           code |= Const::BPF::JMP.fetch(a, 0)
@@ -81,12 +81,12 @@ module SeccompTools
       end
 
       # A = X / X = A
-      # <A|X> = mem[i]
+      # mem[i] = <A|X>
       # <A|X> = 123|sys_const
+      # A = len
+      # <A|X> = mem[i]
       # A = args_h[i]|args[i]|sys_number|arch
       # A = data[4 * i]
-      # A = len
-      # mem[i] = <A|X>
       def compile_assign(dst, src)
         # misc txa / tax
         return compile_assign_misc(dst, src) if (dst == :a && src == :x) || (dst == :x && src == :a)
@@ -97,10 +97,8 @@ module SeccompTools
         ld = dst == :x ? :ldx : :ld
         # <A|X> = <immi>
         return emit(ld, :imm, k: src) if src.is_a?(Integer)
-        # <A|X> = len
-        return emit(ld, :len) if src.first == :len
-        # now src must be in form [:mem/:data, num]
-        return emit(ld, :mem, k: src.last) if src.first == :mem
+        # now src must be in form [:len/:mem/:data, num]
+        return emit(ld, src.first, k: src.last) if src.first == :mem || src.first == :len
         # check if num is multiple of 4
         raise ArgumentError, 'Index of data[] must be a multiple of 4' if src.last % 4 != 0
 
@@ -156,7 +154,7 @@ module SeccompTools
         val = case val
               when 'sys_number' then [:data, 0]
               when 'arch' then [:data, 4]
-              when 'len' then [:len]
+              when 'len' then [:len, 0]
               else val
               end
         return eval_constants(val) if val.is_a?(String)

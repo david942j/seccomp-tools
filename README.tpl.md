@@ -68,7 +68,7 @@ SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 ### asm
 
 Assemble the seccomp rules into raw bytes.
-Very useful when want to write custom seccomp rules.
+Very useful when one wants to write custom seccomp rules.
 
 Supports labels for jumping and use syscall names directly. See example below.
 ```bash
@@ -88,7 +88,7 @@ SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tool
 Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools emu --help)
-SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf 0x3)
+SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)
 ```
 
 ## Screenshots

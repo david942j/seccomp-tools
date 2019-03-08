@@ -8,7 +8,7 @@ module SeccompTools
     # @private
     class Tokenizer
       # a valid label
-      LABEL_REGEXP = /[A-Za-z_][\w_]*/.freeze
+      LABEL_REGEXP = /[A-Za-z_]\w*/.freeze
       attr_accessor :cur
 
       # @param [String] str
@@ -65,7 +65,7 @@ Invalid return type: #{cur.inspect}.
 
       def fetch_str(str)
         return nil unless cur.start_with?(str)
-        return nil if str =~ /\A[A-za-z0-9_]+\Z/ && cur[str.size] =~ /[A-Za-z0-9_]/
+        return nil if str =~ /\A[A-Za-z0-9_]+\Z/ && cur[str.size] =~ /[A-Za-z0-9_]/
 
         @last_match_size = str.size
         str

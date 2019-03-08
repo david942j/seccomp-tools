@@ -1,10 +1,9 @@
-*.gem
 *.so
 /.yardoc/
 /coverage/
 /doc/
+/pkg/
 /tmp/
-/.inch/
 
 # Vim swap files
 **/.*sw?

@@ -12,10 +12,7 @@ RuboCop::RakeTask.new(:rubocop) do |task|
   task.patterns = ['lib/**/*.rb', 'spec/**/*.rb', 'bin/*', 'tasks/*']
 end
 
-RSpec::Core::RakeTask.new(:spec) do |task|
-  task.pattern = './spec/**/*_spec.rb'
-  task.rspec_opts = ['--color', '--require spec_helper', '--order rand']
-end
+RSpec::Core::RakeTask.new(:spec)
 
 YARD::Rake::YardocTask.new(:doc) do |t|
   t.files = ['lib/**/*.rb']

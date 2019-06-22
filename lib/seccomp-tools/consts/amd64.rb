@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 {
   read: 0,
   write: 1,

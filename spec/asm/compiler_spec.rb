@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/asm/compiler'
 
 describe SeccompTools::Asm::Compiler do

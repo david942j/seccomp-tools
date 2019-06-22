@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/disasm/context'
 
 describe SeccompTools::Disasm::Context do

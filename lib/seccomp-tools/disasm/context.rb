@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module SeccompTools
   module Disasm
     # Context for disassembler to analyze.

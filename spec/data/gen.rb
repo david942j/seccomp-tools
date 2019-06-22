@@ -1,4 +1,6 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
+
 # encoding: ascii-8bit
 
 # Generate a bpf that includes ALL valid seccomp instruction

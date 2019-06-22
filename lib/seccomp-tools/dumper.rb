@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/ptrace'
 require 'seccomp-tools/syscall'
 

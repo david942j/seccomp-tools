@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/asm/tokenizer'
 
 describe SeccompTools::Asm::Tokenizer do

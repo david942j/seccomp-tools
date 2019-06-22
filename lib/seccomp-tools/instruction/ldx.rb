@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/instruction/ld'
 
 module SeccompTools

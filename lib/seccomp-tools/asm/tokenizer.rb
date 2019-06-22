@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/alu'
 

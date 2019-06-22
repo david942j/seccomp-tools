@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/asm/asm'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/util'

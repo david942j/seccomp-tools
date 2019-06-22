@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'set'
 
 require 'seccomp-tools/cli/base'
@@ -11,7 +13,7 @@ module SeccompTools
     # Handle 'emu' command.
     class Emu < Base
       # Summary of this command.
-      SUMMARY = 'Emulate seccomp rules.'.freeze
+      SUMMARY = 'Emulate seccomp rules.'
       # Usage of this command.
       USAGE = ('emu - ' +
                SUMMARY +

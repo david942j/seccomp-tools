@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/asm/asm'
 
@@ -6,7 +8,7 @@ module SeccompTools
     # Handle 'asm' command.
     class Asm < Base
       # Summary of this command.
-      SUMMARY = 'Seccomp bpf assembler.'.freeze
+      SUMMARY = 'Seccomp bpf assembler.'
       # Usage of this command.
       USAGE = ('asm - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools asm IN_FILE [options]').freeze
 

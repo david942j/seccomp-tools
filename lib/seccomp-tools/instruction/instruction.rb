@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/instruction/alu'
 require 'seccomp-tools/instruction/jmp'
 require 'seccomp-tools/instruction/ld'

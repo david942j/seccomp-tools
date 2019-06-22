@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm/disasm'
 
@@ -6,7 +8,7 @@ module SeccompTools
     # Handle 'disasm' command.
     class Disasm < Base
       # Summary of this command.
-      SUMMARY = 'Disassemble seccomp bpf.'.freeze
+      SUMMARY = 'Disassemble seccomp bpf.'
       # Usage of this command.
       USAGE = ('disasm - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools disasm BPF_FILE [options]').freeze
 

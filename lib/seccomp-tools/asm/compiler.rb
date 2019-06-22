@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'seccomp-tools/asm/tokenizer'
 require 'seccomp-tools/bpf'
 require 'seccomp-tools/const'

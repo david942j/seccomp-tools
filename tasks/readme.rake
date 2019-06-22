@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 desc 'To auto generate the builds_list file'
 task :readme do
   next if ENV['CI']

@@ -122,8 +122,8 @@ module SeccompTools
       end
     end
 
-    # The arguments' names of all syscalls.
-    PROTOTYPE = instance_eval(IO.read(File.join(__dir__, 'consts', 'prototype.rb'))).freeze
+    # The argument names of all syscalls.
+    SYS_ARG = instance_eval(IO.read(File.join(__dir__, 'consts', 'sys_arg.rb'))).freeze
 
     # Constants from https://github.com/torvalds/linux/blob/master/include/uapi/linux/audit.h.
     module Audit

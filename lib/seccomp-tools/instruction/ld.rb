@@ -83,7 +83,7 @@ module SeccompTools
         return default if sys_nrs.size != 1 || sys_nrs.first.nil?
 
         sys = Const::Syscall.const_get(arch.upcase.to_sym).invert[sys_nrs.first]
-        args = Const::PROTOTYPE[sys]
+        args = Const::SYS_ARG[sys]
         return default if args.nil? || args[idx / 2].nil? # function prototype doesn't have that argument
 
         comment = "# #{sys}(#{args.join(', ')})"

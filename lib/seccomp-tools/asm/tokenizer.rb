@@ -160,7 +160,7 @@ Invalid return type: #{cur.inspect}.
 
       def raise_expected(msg)
         raise ArgumentError, <<-EOS
-Expected #{msg}, while #{cur.split[0].inspect} occured.
+Expected #{msg} but found #{cur.split[0].inspect}.
         EOS
       end
     end

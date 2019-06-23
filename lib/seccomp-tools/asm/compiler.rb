@@ -6,8 +6,14 @@ require 'seccomp-tools/const'
 
 module SeccompTools
   module Asm
+    # @private
+    #
     # Compile seccomp rules.
     class Compiler
+      # Instantiate a {Compiler} object.
+      #
+      # @param [Symbol] arch
+      #   Architecture.
       def initialize(arch)
         @arch = arch
         @insts = []
@@ -50,7 +56,12 @@ module SeccompTools
         end
       end
 
+      # Compiles the processed instructions.
+      #
       # @return [Array<SeccompTools::BPF>]
+      #   Returns the compiled {BPF} array.
+      # @raise [ArgumentError]
+      #   Raises the error found during compilation.
       def compile!
         @insts.map.with_index do |inst, idx|
           @line = idx
@@ -68,6 +79,10 @@ module SeccompTools
 
       private
 
+      # Emits a raw BPF object.
+      #
+      # @return [BPF]
+      #   Returns the emitted {BPF} object.
       def emit(*args, k: 0, jt: 0, jf: 0)
         code = 0
         # bad idea, but keys are not duplicated so this is ok.
@@ -131,6 +146,7 @@ module SeccompTools
         emit(:jmp, :ja, k: targ)
       end
 
+      # Compiles comparsion.
       def compile_cmp(op, val, jt, jf)
         jt = label_offset(jt)
         jf = label_offset(jf)
@@ -178,15 +194,9 @@ module SeccompTools
 
       # <goto|jmp|jump> <label|Integer>
       def jmp_abs
-        # FIXME: when token.fetch fetches a token, it does not check for a
-        # whitespace/end of token afterwards. Possible issue of token.fetch?
-        #
-        # A side effect (without adding a space after these calls) could be that
-        # the code will interpret `jumping` as a `jump ing`, i.e. jump to `ing`
-        # label.
-        token.fetch('goto ') ||
-          token.fetch('jmp ') ||
-          token.fetch('jump ') ||
+        token.fetch('goto') ||
+          token.fetch('jmp') ||
+          token.fetch('jump') ||
           raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
         target = token.fetch!(:goto)
         [:jmp_abs, target]

@@ -90,6 +90,7 @@ module SeccompTools
       set(:pc, get(:pc) + k + 1)
     end
 
+    # Emulates cmp instruction.
     def cmp(op, src, jt, jf)
       src = get(:x) if src == :x
       a = get(:a)

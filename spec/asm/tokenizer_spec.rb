@@ -9,7 +9,7 @@ describe SeccompTools::Asm::Tokenizer do
       expect(token.fetch!('meow')).to eq 'meow'
       token = described_class.new('meowa')
       expect { token.fetch!('meow') }
-        .to raise_error(ArgumentError, "Expected token \"meow\", while \"meowa\" occured.\n")
+        .to raise_error(ArgumentError, "Expected token \"meow\" but found \"meowa\".\n")
     end
 
     it 'sys_num_x' do
@@ -55,7 +55,7 @@ describe SeccompTools::Asm::Tokenizer do
       token = described_class.new('A X meow')
       expect(token.fetch!(:ax)).to eq :a
       expect(token.fetch!(:ax)).to eq :x
-      expect { token.fetch!(:ax) }.to raise_error(ArgumentError, "Expected 'A' or 'X', while \"meow\" occured.\n")
+      expect { token.fetch!(:ax) }.to raise_error(ArgumentError, "Expected 'A' or 'X' but found \"meow\".\n")
       expect(token.fetch(:ax)).to be nil
     end
 

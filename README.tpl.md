@@ -13,14 +13,14 @@ This project is targeted to (but not limited to) analyze seccomp sandbox in CTF 
 Some features might be CTF-specific, but still useful for analyzing seccomp in real-case.
 
 ## Features
-* Dump - Automatically dump seccomp-bpf from execution file(s).
-* Disasm - Convert bpf to human readable format.
+* Dump - Automatically dumps seccomp-bpf from execution file(s).
+* Disasm - Converts bpf to human readable format.
   - Simple decompile.
-  - Show syscall names.
+  - Display syscall names and arguments when possible.
   - Colorful!
 * Asm - Write seccomp rules is so easy!
-* Emu - Emulate seccomp rules.
-* Support multi-architectures.
+* Emu - Emulates seccomp rules.
+* Supports multi-architectures.
 
 ## Installation
 
@@ -29,7 +29,7 @@ Available on RubyGems.org!
 $ gem install seccomp-tools
 ```
 
-If you failed in compiling, try:
+If you failed when compiling, try:
 ```
 sudo apt install gcc ruby-dev
 ```
@@ -46,7 +46,7 @@ SHELL_OUTPUT_OF(seccomp-tools dump --help)
 
 ### dump
 
-Dump the seccomp bpf from an execution file.
+Dumps the seccomp bpf from an execution file.
 This work is done by the `ptrace` syscall.
 
 NOTICE: beware of the execution file will be executed.
@@ -59,7 +59,7 @@ SHELL_OUTPUT_OF(seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd)
 
 ### disasm
 
-Disassemble the seccomp from raw bpf.
+Disassembles the seccomp from raw bpf.
 ```bash
 SHELL_OUTPUT_OF(xxd spec/data/twctf-2016-diary.bpf | head -n 3)
 SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
@@ -67,10 +67,10 @@ SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/twctf-2016-diary.bpf)
 
 ### asm
 
-Assemble the seccomp rules into raw bytes.
-Very useful when one wants to write custom seccomp rules.
+Assembles the seccomp rules into raw bytes.
+It's very useful when one wants to write custom seccomp rules.
 
-Supports labels for jumping and use syscall names directly. See example below.
+Supports labels for jumping and uses syscall names directly. See examples below.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools asm)
 # Input file for asm
@@ -85,7 +85,7 @@ SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tool
 
 ### Emu
 
-Emulate seccomp given `sys_nr`, `arg0`, `arg1`, etc.
+Emulates seccomp given `sys_nr`, `arg0`, `arg1`, etc.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools emu --help)
 SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)

@@ -41,7 +41,7 @@ module SeccompTools
       # @return [Array<(Integer, Context)>]
       def branch(context)
         ctx = context.dup
-        ctx[:a] = nil
+        ctx[:a] = Disasm::Context::Value.new
         [[line + 1, ctx]]
       end
 

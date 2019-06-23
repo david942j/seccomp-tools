@@ -30,10 +30,10 @@ module SeccompTools
         code.contexts = ctxs
         code.disasm
       end.join("\n")
-      <<EOS + dis + "\n"
+      <<-EOS + dis + "\n"
  line  CODE  JT   JF      K
 =================================
-EOS
+      EOS
     end
 
     # Convert raw bpf string to array of {BPF}.

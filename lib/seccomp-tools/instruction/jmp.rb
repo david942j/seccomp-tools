@@ -61,10 +61,10 @@ module SeccompTools
         return k.to_s if a.size != 1
 
         a = a[0]
-        return k.to_s if a.nil?
+        return k.to_s unless a.data?
 
         hex = '0x' + k.to_s(16)
-        case a
+        case a.val
         when 0 then Util.colorize(Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || hex, t: :syscall)
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || hex, t: :arch)
         else hex

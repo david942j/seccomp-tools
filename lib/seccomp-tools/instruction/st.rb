@@ -20,7 +20,7 @@ module SeccompTools
       # @return [Array<(Integer, Context)>]
       def branch(context)
         ctx = context.dup
-        ctx[k] = ctx[reg]
+        ctx.store(k, reg)
         [[line + 1, ctx]]
       end
     end

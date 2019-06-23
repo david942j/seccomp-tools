@@ -33,14 +33,9 @@ module SeccompTools
       #   Current context.
       # @return [Array<(Integer, Context)>]
       def branch(context)
-        nctx = context.dup
-        type = load_val
-        nctx[reg] = case type[:rel]
-                    when :immi then nil
-                    when :mem then context[type[:val]]
-                    when :data then type[:val]
-                    end
-        [[line + 1, nctx]]
+        ctx = context.dup
+        ctx.load(reg, **load_val)
+        [[line + 1, ctx]]
       end
 
       private

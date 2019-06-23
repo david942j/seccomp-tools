@@ -56,7 +56,7 @@ describe SeccompTools::Disasm::Context do
     expect(ctx.x.val).to be_zero
   end
 
-  it 'known_eql' do
+  it 'known_data' do
     ctx = described_class.new
     ctx.load(:a, rel: :data, val: 0)
     ctx.eql!(1337)

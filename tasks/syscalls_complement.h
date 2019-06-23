@@ -1,4 +1,4 @@
-/* Complement of syscalls without parameters' names */
+/* Some syscalls in syscalls.h only have prototypes but no argument names, we add them here. */
 asmlinkage long sys_io_submit(aio_context_t ctx_id, long nr, struct iocb __user * __user *iocbpp);
 asmlinkage long sys_pselect6(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp,
                              struct __kernel_timespec __user *tsp, void __user *sig);
@@ -33,11 +33,12 @@ asmlinkage long sys_old_readdir(unsigned int fd, struct old_linux_dirent __user 
 asmlinkage long sys_uname(struct old_utsname __user *name);
 asmlinkage long sys_olduname(struct oldold_utsname __user *name);
 
-/* Add manually */
+/* Syscalls not appear in syscalls.h. */
 asmlinkage long sys_arch_prctl(int code, unsigned long addr);
 asmlinkage long sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags,
   unsigned long fd, unsigned long pgoff);
 
+/* to have i386 compatiable */
 asmlinkage long sys__llseek(unsigned int fd, unsigned long offset_high, unsigned long offset_low, loff_t __user *result,
   unsigned int whence);
 asmlinkage long sys__sysctl(struct __sysctl_args __user *args);

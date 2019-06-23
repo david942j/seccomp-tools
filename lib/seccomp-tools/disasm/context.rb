@@ -96,7 +96,7 @@ module SeccompTools
         values[idx] = values[reg.downcase.to_sym]
       end
 
-      # Hints context that current value of register A is equals to +val+.
+      # Hints context that current value of register A equals to +val+.
       #
       # @param [Integer, :x] val
       #   An immediate value or the symbol x.

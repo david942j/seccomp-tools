@@ -10,7 +10,7 @@ import 'tasks/readme.rake'
 task default: %i(readme rubocop compile spec)
 
 RuboCop::RakeTask.new(:rubocop) do |task|
-  task.patterns = ['lib/**/*.rb', 'spec/**/*.rb', 'bin/*', 'tasks/*']
+  task.patterns = ['lib/**/*.rb', 'spec/**/*.rb', 'bin/*', 'tasks/*.rake']
 end
 
 RSpec::Core::RakeTask.new(:spec)

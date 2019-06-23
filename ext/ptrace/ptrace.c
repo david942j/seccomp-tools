@@ -53,6 +53,7 @@ ptrace_traceme_and_stop(VALUE mod) {
 
 void Init_ptrace(void) {
   VALUE mSeccompTools = rb_define_module("SeccompTools");
+  /* The module to wrap ptrace syscall */
   VALUE mPtrace = rb_define_module_under(mSeccompTools, "Ptrace");
 
   /* consts */
@@ -64,13 +65,19 @@ void Init_ptrace(void) {
   rb_define_const(mPtrace, "O_TRACESYSGOOD", UINT2NUM(PTRACE_O_TRACESYSGOOD));
   rb_define_const(mPtrace, "O_TRACEVFORK", UINT2NUM(PTRACE_O_TRACEVFORK));
 
-  /* ptrace wrapper */
+  /* geteventmsg */
   rb_define_module_function(mPtrace, "geteventmsg", ptrace_geteventmsg, 1);
+  /* get data */
   rb_define_module_function(mPtrace, "peekdata", ptrace_peekdata, 3);
+  /* get registers */
   rb_define_module_function(mPtrace, "peekuser", ptrace_peekuser, 3);
+  /* set ptrace options */
   rb_define_module_function(mPtrace, "setoptions", ptrace_setoptions, 3);
+  /* wait for syscall */
   rb_define_module_function(mPtrace, "syscall", ptrace_syscall, 3);
+  /* wait for its parent to attach */
   rb_define_module_function(mPtrace, "traceme", ptrace_traceme, 0);
+  /* stop itself before parent attaching */
   rb_define_module_function(mPtrace, "traceme_and_stop", ptrace_traceme_and_stop, 0);
 }
 

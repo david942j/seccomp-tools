@@ -424,5 +424,9 @@
   old_readdir: %w[fd dirent count],
   uname: %w[name],
   olduname: %w[name],
-  arch_prctl: %w[code addr]
+  arch_prctl: %w[code addr],
+  mmap: %w[addr len prot flags fd pgoff],
+  _llseek: %w[fd offset_high offset_low result whence],
+  _sysctl: %w[args],
+  _newselect: %w[n inp outp exp tvp]
 }

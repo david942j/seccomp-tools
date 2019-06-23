@@ -35,3 +35,11 @@ asmlinkage long sys_olduname(struct oldold_utsname __user *name);
 
 /* Add manually */
 asmlinkage long sys_arch_prctl(int code, unsigned long addr);
+asmlinkage long sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, unsigned long flags,
+  unsigned long fd, unsigned long pgoff);
+
+asmlinkage long sys__llseek(unsigned int fd, unsigned long offset_high, unsigned long offset_low, loff_t __user *result,
+  unsigned int whence);
+asmlinkage long sys__sysctl(struct __sysctl_args __user *args);
+asmlinkage long sys__newselect(int n, fd_set __user *inp, fd_set __user *outp, fd_set __user *exp,
+  struct timeval __user *tvp);

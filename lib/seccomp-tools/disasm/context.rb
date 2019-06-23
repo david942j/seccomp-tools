@@ -28,6 +28,11 @@ module SeccompTools
           @rel == :data
         end
 
+        # @return [Boolean]
+        def imm?
+          @rel == :imm && @val.is_a?(Integer)
+        end
+
         # Defines hash function.
         # @return [Integer]
         def hash
@@ -43,22 +48,24 @@ module SeccompTools
         end
       end
 
-      # @return [Hash{Integer, Symbol => Context::Value}] Records reg and mem values.
+      # @return [{Integer, Symbol => Context::Value}] Records reg and mem values.
       attr_reader :values
+      # @return [Array<Integer?>] Records the known value of data.
+      attr_reader :known_data
 
       # Instantiate a {Context} object.
-      # @param [Hash{Integer, Symbol => Context::Value?}] values
+      # @param [{Integer, Symbol => Context::Value?}] values
       #   Value to be set to +reg/mem+.
-      # @param [Hash{Integer => Integer?}] fact
-      #   Known data equivalency.
+      # @param [Array<Integer?>] known_data
+      #   Records which index of data is known.
       #   It's used for tracking if the syscall number is known, which can be used to display argument names of the
       #   syscall.
-      def initialize(values: {}, fact: {})
+      def initialize(values: {}, known_data: [])
         @values = values
         16.times { |i| @values[i] ||= Value.new(rel: :mem, val: i) } # make @values always has all keys
         @values[:a] ||= Value.new
         @values[:x] ||= Value.new
-        @fact = fact
+        @known_data = known_data
       end
 
       # Is used for the ld/ldx instructions.
@@ -89,10 +96,31 @@ module SeccompTools
         values[idx] = values[reg.downcase.to_sym]
       end
 
+      # Hints context that current value of register A is equals to +val+.
+      #
+      # @param [Integer, :x] val
+      #   An immediate value or the symbol x.
+      # @return [self]
+      #   Returns the object itself.
+      def eql!(val)
+        tap do
+          # only cares if A is fetched from data
+          next unless a.data?
+          next known_data[a.val] = val if val.is_a?(Integer)
+          # A == X, we can handle these cases:
+          # * X is an immi
+          # * X is a known data
+          next unless x.data? || x.imm?
+          next known_data[a.val] = x.val if x.imm?
+
+          known_data[a.val] = known_data[x.val]
+        end
+      end
+
       # Implements a deep dup.
       # @return [Context]
       def dup
-        Context.new(values: values.dup, fact: @fact.dup)
+        Context.new(values: values.dup, known_data: known_data.dup)
       end
 
       # Register A.
@@ -130,13 +158,13 @@ module SeccompTools
       # @param [Context] other
       # @return [Boolean]
       def eql?(other)
-        values.eql?(other.values) && @fact.eql?(other.instance_variable_get(:@fact))
+        values.eql?(other.values) && known_data.eql?(other.known_data)
       end
 
       # For +Set+ to get the hash value.
       # @return [Integer]
       def hash
-        values.hash
+        values.hash ^ known_data.hash
       end
     end
   end

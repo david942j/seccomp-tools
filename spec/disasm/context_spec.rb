@@ -55,4 +55,21 @@ describe SeccompTools::Disasm::Context do
     expect(ctx.x.data?).to be true
     expect(ctx.x.val).to be_zero
   end
+
+  it 'known_eql' do
+    ctx = described_class.new
+    ctx.load(:a, rel: :data, val: 0)
+    ctx.eql!(1337)
+    expect(ctx.known_data[0]).to be 1337
+
+    ctx.load(:a, rel: :data, val: 4)
+    ctx.load(:x, rel: :imm, val: 0x123)
+    ctx.eql!(:x)
+    expect(ctx.known_data[4]).to be 0x123
+
+    ctx.load(:a, rel: :data, val: 8)
+    ctx.load(:x, rel: :data, val: 0)
+    ctx.eql!(:x)
+    expect(ctx.known_data[8]).to be 1337
+  end
 end

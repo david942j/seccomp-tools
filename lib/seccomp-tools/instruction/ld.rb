@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/base'
+require 'seccomp-tools/util'
 
 module SeccompTools
   module Instruction
@@ -71,8 +73,22 @@ module SeccompTools
           idx = Array.new(12) { |i| i * 4 + 16 }.index(k)
           return 'INVALID' if idx.nil?
 
-          idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
+          args_name(idx)
         end
+      end
+
+      def args_name(idx)
+        sys_nrs = contexts.map { |ctx| ctx.known_data[0] }.uniq
+        default = idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
+        return default if sys_nrs.size != 1 || sys_nrs.first.nil?
+
+        sys = Const::Syscall.const_get(arch.upcase.to_sym).invert[sys_nrs.first]
+        args = Const::PROTOTYPE[sys]
+        return default if args.nil? || args[idx / 2].nil? # function prototype doesn't have that argument
+
+        comment = "# #{sys}(#{args.join(', ')})"
+        arg_name = Util.colorize(args[idx / 2], t: :args)
+        (idx.even? ? arg_name : "#{arg_name} >> 32") + ' ' + Util.colorize(comment, t: :gray)
       end
     end
   end

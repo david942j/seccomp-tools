@@ -36,6 +36,7 @@ module SeccompTools
       def branch(context)
         return [[at(k), context]] if jop == :none
         return [[at(jt), context]] if jt == jf
+        return [[at(jt), context.dup.eql!(src)], [at(jf), context]] if jop == :==
 
         [[at(jt), context], [at(jf), context]]
       end

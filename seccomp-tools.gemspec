@@ -20,9 +20,15 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.files         = Dir['lib/**/*.rb'] + Dir['lib/seccomp-tools/templates/*'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md)
   s.extensions    = %w[ext/ptrace/extconf.rb]
   s.executables   = 'seccomp-tools'
-  s.homepage      = 'https://github.com/david942j/seccomp-tools'
 
-  s.required_ruby_version = '>= 2.2.0'
+  s.metadata = {
+    'bug_tracker_uri' => 'https://github.com/david942j/seccomp-tools/issues',
+    'documentation_uri' => 'https://www.rubydoc.info/github/david942j/seccomp-tools/master',
+    'homepage_uri' => 'https://github.com/david942j/seccomp-tools',
+    'source_code_uri' => 'https://github.com/david942j/seccomp-tools'
+  }
+
+  s.required_ruby_version = '>= 2.3'
 
   s.add_development_dependency 'pry', '~> 0.10'
   s.add_development_dependency 'rake', '~> 12.0'

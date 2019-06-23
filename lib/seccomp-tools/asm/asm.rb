@@ -10,10 +10,11 @@ module SeccompTools
 
     # Assembler of seccomp bpf.
     # @param [String] str
+    # @param [:amd64, :i386] arch
     # @return [String]
     #   Raw bpf bytes.
     # @example
-    #   asm(<<EOS)
+    #   SeccompTools::Asm.asm(<<-EOS)
     #     # lines start with '#' are comments
     #     A = sys_number                # here's a comment, too
     #     A >= 0x40000000 ? dead : next # 'next' is a keyword, denote the next instruction

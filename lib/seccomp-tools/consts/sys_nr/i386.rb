@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 {
+  setup: 0,
   exit: 1,
   fork: 2,
   read: 3,
@@ -180,8 +181,8 @@
   rt_sigtimedwait: 177,
   rt_sigqueueinfo: 178,
   rt_sigsuspend: 179,
-  pread: 180,
-  pwrite: 181,
+  pread64: 180,
+  pwrite64: 181,
   chown: 182,
   getcwd: 183,
   capget: 184,

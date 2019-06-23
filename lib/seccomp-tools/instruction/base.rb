@@ -5,7 +5,7 @@ require 'seccomp-tools/const'
 module SeccompTools
   # For instructions' class.
   module Instruction
-    # Base class for different instruction.
+    # Base class of instructions.
     class Base
       include SeccompTools::Const::BPF
 
@@ -24,7 +24,7 @@ module SeccompTools
         raise ArgumentError, "Line #{line} is invalid: #{msg}"
       end
 
-      # Return the possible branches after executing this instruction.
+      # Returns the possible branches after executing this instruction.
       # @param [Context] _context
       #   Current context.
       # @return [Array<(Integer, Context)>]

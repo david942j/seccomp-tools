@@ -9,7 +9,7 @@ module SeccompTools
     # @return [Array<Symbol>]
     #   Architectures.
     def supported_archs
-      @supported_archs ||= Dir.glob(File.join(__dir__, 'consts', '*.rb'))
+      @supported_archs ||= Dir.glob(File.join(__dir__, 'consts', 'sys_nr', '*.rb'))
                               .map { |f| File.basename(f, '.rb').to_sym }
                               .sort
     end

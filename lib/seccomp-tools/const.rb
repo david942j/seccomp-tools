@@ -115,12 +115,14 @@ module SeccompTools
       # @return [Object]
       def load_const(cons)
         arch = cons.to_s.downcase
-        filename = File.join(__dir__, 'consts', "#{arch}.rb")
+        filename = File.join(__dir__, 'consts', 'sys_nr', "#{arch}.rb")
         return unless File.exist?(filename)
 
         const_set(cons, instance_eval(IO.read(filename)))
       end
     end
+
+    PROTOTYPE = instance_eval(IO.read(File.join(__dir__, 'consts', 'prototype.rb'))).freeze
 
     # Constants from https://github.com/torvalds/linux/blob/master/include/uapi/linux/audit.h.
     module Audit

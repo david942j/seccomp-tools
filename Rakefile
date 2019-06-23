@@ -4,6 +4,7 @@ require 'rspec/core/rake_task'
 require 'rubocop/rake_task'
 require 'yard'
 
+import 'tasks/prototype.rake'
 import 'tasks/readme.rake'
 
 task default: %i(readme rubocop compile spec)

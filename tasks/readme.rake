@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-desc 'To auto generate the builds_list file'
+desc 'Generate README.md from README.tpl.md'
 task :readme do
   next if ENV['CI']
 

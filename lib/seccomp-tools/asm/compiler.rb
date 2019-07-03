@@ -146,7 +146,7 @@ module SeccompTools
         emit(:jmp, :ja, k: targ)
       end
 
-      # Compiles comparsion.
+      # Compiles comparison.
       def compile_cmp(op, val, jt, jf)
         jt = label_offset(jt)
         jf = label_offset(jf)

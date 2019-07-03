@@ -5,8 +5,9 @@ require 'seccomp-tools/instruction/alu'
 
 module SeccompTools
   module Asm
-    # Fetch tokens from string.
-    # This class is for internel usage, used by {Compiler}.
+    # Fetch tokens from a string.
+    #
+    # Internal used by {Compiler}.
     # @private
     class Tokenizer
       # a valid label

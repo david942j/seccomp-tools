@@ -80,7 +80,7 @@ module SeccompTools
     # @param [Context] context
     #   Current context.
     # @yieldparam [Integer] pc
-    #   Program conter after this instruction.
+    #   Program counter after this instruction.
     # @yieldparam [Context] ctx
     #   Context after this instruction.
     # @return [void]

@@ -82,7 +82,7 @@ module SeccompTools
         File.join(File.dirname(file), base + suffix) + ext
       end
 
-      # For decestors easy to define usage message.
+      # For descendants to define usage message easily.
       # @return [String]
       #   Usage information.
       def usage

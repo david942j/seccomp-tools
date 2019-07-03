@@ -42,7 +42,7 @@ module SeccompTools
         when :ld then ld(args[0], args[1]) # ld/ldx
         when :st then st(args[0], args[1]) # st/stx
         when :jmp then jmp(args[0]) # directly jmp
-        when :cmp then cmp(*args[0, 4]) # jmp with comparsion
+        when :cmp then cmp(*args[0, 4]) # jmp with comparison
         when :alu then alu(args[0], args[1]) # alu
         when :misc then misc(args[0]) # misc: txa/tax
         end

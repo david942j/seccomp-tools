@@ -51,11 +51,11 @@ module SeccompTools
           when :raw then res
           when :c_array, :carray then "unsigned char bpf[] = {#{res.bytes.join(',')}};\n"
           when :c_source then SeccompTools::Util.template('asm.c').sub('<TO_BE_REPLACED>', res.bytes.join(','))
-          when :assembly then SeccompTools::Util.template("asm.#{option[:arch]}.asm")
-                                                .sub(
-                                                  '<TO_BE_REPLACED>',
-                                                  res.bytes.map { |b| format('\\\%03o', b) }.join
-                                                )
+          when :assembly
+            SeccompTools::Util.template("asm.#{option[:arch]}.asm").sub(
+              '<TO_BE_REPLACED>',
+              res.bytes.map { |b| format('\\\%03o', b) }.join
+            )
           end
         end
       end

@@ -21,7 +21,7 @@ GEM
       method_source (~> 0.9.0)
     rainbow (3.0.0)
     rake (12.3.3)
-    rake-compiler (1.0.7)
+    rake-compiler (1.0.8)
       rake
     rspec (3.8.0)
       rspec-core (~> 3.8.0)

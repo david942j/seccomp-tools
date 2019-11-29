@@ -5,7 +5,7 @@ AllCops:
 Layout/EndOfLine:
   EnforcedStyle: lf
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
   Enabled: false
 
 Metrics/AbcSize:
@@ -36,7 +36,7 @@ Naming/FileName:
 Naming/HeredocDelimiterNaming:
   Enabled: false
 
-Naming/UncommunicativeMethodParamName:
+Naming/MethodParameterName:
   Enabled: false
 
 Style/FormatStringToken:

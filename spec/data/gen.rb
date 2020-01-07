@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
-# frozen_string_literal: true
 
 # encoding: ascii-8bit
+# frozen_string_literal: true
 
-# Generate a bpf that includes ALL valid seccomp instruction
+# Generate a bpf list that includes ALL valid seccomp instructions
 # Ref: https://github.com/torvalds/linux/blob/master/kernel/seccomp.c#L104
 #
 # @author: david942j

@@ -68,6 +68,8 @@ $ seccomp-tools dump --help
 #                                      If multiple seccomp syscalls have been invoked (see --limit),
 #                                      results will be written to FILE, FILE_1, FILE_2.. etc.
 #                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+#     -p, --pid PID                    Dump seccomp filters of the existing process.
+#                                      You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.
 
 ```
 
@@ -79,7 +81,7 @@ This work is done by the `ptrace` syscall.
 NOTICE: beware of the execution file will be executed.
 ```bash
 $ file spec/binary/twctf-2016-diary
-# spec/binary/twctf-2016-diary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/l, for GNU/Linux 2.6.24, BuildID[sha1]=3648e29153ac0259a0b7c3e25537a5334f50107f, not stripped
+# spec/binary/twctf-2016-diary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, BuildID[sha1]=3648e29153ac0259a0b7c3e25537a5334f50107f, not stripped
 
 $ seccomp-tools dump spec/binary/twctf-2016-diary
 #  line  CODE  JT   JF      K

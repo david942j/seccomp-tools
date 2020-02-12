@@ -13,14 +13,49 @@ describe SeccompTools::CLI::Dump do
     @bin = File.join(@binpath, 'twctf-2016-diary')
     @mul = File.join(@binpath, 'clone_two_seccomp')
     @bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
+    @bpf_inspect = <<'EOS'
+"\x20\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x02\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3B\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x38\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x39\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3A\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x55\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x42\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F"
+EOS
     SeccompTools::Util.disable_color!
+    @bpf_disasm = SeccompTools::Disasm.disasm(@bpf)
   end
 
   it 'normal' do
-    expect { described_class.new([@bin, '-f', 'inspect']).handle }.to output(<<'EOS').to_stdout
-"\x20\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x02\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3B\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x38\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x39\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3A\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x55\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x42\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F"
-EOS
-    expect { described_class.new([@bin]).handle }.to output(SeccompTools::Disasm.disasm(@bpf)).to_stdout
+    expect { described_class.new([@bin, '-f', 'inspect']).handle }.to output(@bpf_inspect).to_stdout
+    expect { described_class.new([@bin]).handle }.to output(@bpf_disasm).to_stdout
+  end
+
+  it 'by pid' do
+    skip 'Must be root' if Process.uid != 0
+    stdin_r, stdin_w = IO.pipe
+    stdout_r, stdout_w = IO.pipe
+    pid = Process.spawn(@bin, in: stdin_r, out: stdout_w)
+    stdout_r.each do |line|
+      break if line.start_with?('Welcome')
+    end
+    expect { described_class.new(['-f', 'inspect', '-p', pid.to_s]).handle }.to output(@bpf_inspect).to_stdout
+    expect { described_class.new(['-l', '2', '-p', pid.to_s]).handle }.to output(@bpf_disasm).to_stdout
+    stdin_w.write("0\n")
+    Process.wait(pid)
+  end
+
+  it 'by pid - access denied' do
+    skip 'Must be root' if Process.uid != 0
+    pid = Process.spawn('sleep inf')
+    begin
+      Process::Sys.seteuid('nobody')
+      error = /PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN/
+      expect do
+        described_class.new(['-f', 'inspect', '-p', pid.to_s]).handle
+      end.to terminate.with_code(1).and output(error).to_stderr
+      expect do
+        described_class.new(['-p', pid.to_s]).handle
+      end.to terminate.with_code(1).and output(error).to_stderr
+    ensure
+      Process::Sys.seteuid(0)
+      Process.kill('TERM', pid)
+      Process.wait(pid)
+    end
   end
 
   it 'output to files' do

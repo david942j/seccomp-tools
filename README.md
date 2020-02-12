@@ -68,6 +68,7 @@ $ seccomp-tools dump --help
 #                                      If multiple seccomp syscalls have been invoked (see --limit),
 #                                      results will be written to FILE, FILE_1, FILE_2.. etc.
 #                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+#     -p, --pid PID                    Dump seccomp filters of the existing process.
 
 ```
 

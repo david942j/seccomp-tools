@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <linux/filter.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
 
@@ -50,6 +52,37 @@ ptrace_traceme_and_stop(VALUE mod) {
   return Qnil;
 }
 
+static VALUE
+ptrace_attach(VALUE _mod, VALUE pid) {
+  long val = ptrace(PTRACE_ATTACH, NUM2LONG(pid), 0, 0);
+  if(val < 0)
+    rb_sys_fail(0);
+  return Qnil;
+}
+
+static VALUE
+ptrace_seccomp_get_filter(VALUE _mod, VALUE pid, VALUE index) {
+  long count = ptrace(PTRACE_SECCOMP_GET_FILTER, NUM2LONG(pid), NUM2LONG(index), NULL);
+  if(count < 0)
+    rb_sys_fail(0);
+  struct sock_filter *filter = ALLOC_N(struct sock_filter, count);
+  if(ptrace(PTRACE_SECCOMP_GET_FILTER, NUM2LONG(pid), NUM2LONG(index), filter) != count) {
+    xfree(filter);
+    rb_sys_fail(0);
+  }
+  VALUE result = rb_str_new((const char *)filter, sizeof(struct sock_filter) * count);
+  xfree(filter);
+  return result;
+}
+
+static VALUE
+ptrace_detach(VALUE _mod, VALUE pid) {
+  long val = ptrace(PTRACE_DETACH, NUM2LONG(pid), 0, 0);
+  if(val < 0)
+    rb_sys_fail(0);
+  return Qnil;
+}
+
 
 void Init_ptrace(void) {
   VALUE mSeccompTools = rb_define_module("SeccompTools");
@@ -79,5 +112,11 @@ void Init_ptrace(void) {
   rb_define_module_function(mPtrace, "traceme", ptrace_traceme, 0);
   /* stop itself before parent attaching */
   rb_define_module_function(mPtrace, "traceme_and_stop", ptrace_traceme_and_stop, 0);
+  /* attach to an existing process */
+  rb_define_module_function(mPtrace, "attach", ptrace_attach, 1);
+  /* retrieve seccomp filter */
+  rb_define_module_function(mPtrace, "seccomp_get_filter", ptrace_seccomp_get_filter, 2);
+  /* detach from an existing process */
+  rb_define_module_function(mPtrace, "detach", ptrace_detach, 1);
 }
 

@@ -58,7 +58,7 @@ describe SeccompTools::Dumper do
         # there's pid inside seccomp rules.. ignore it
         expect(got.size).to be bpf.size
         expect(got[0, 0x1ec]).to eq bpf[0, 0x1ec]
-        expect(got[0x1ee..-1]).to eq bpf[0x1ee..-1]
+        expect(got[0x1f0..-1]).to eq bpf[0x1f0..-1]
       end
     end
   end

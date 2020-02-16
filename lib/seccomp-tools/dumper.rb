@@ -130,7 +130,10 @@ module SeccompTools
       end
     end
 
-    # Dump seccomp-bpf using ptrace of an existing process.
+    # Dump installed seccomp-bpf of an existing process using PTRACE_SECCOMP_GET_FILTER.
+    #
+    # Dump the installed seccomp-bpf from a running process. This is achieved by the ptrace command
+    # PTRACE_SECCOMP_GET_FILTER, which needs CAP_SYS_ADMIN capability.
     #
     # @param [Integer] pid
     #   Target process identifier.
@@ -142,6 +145,8 @@ module SeccompTools
     #   Architecture of the target process (always nil right now).
     # @return [Array<Object>, Array<String>]
     #   Return the block returned. If block is not given, array of raw bytes will be returned.
+    # @raise [Errno::ESRCH]
+    #   Raises when the target process does not exist.
     # @raise [Errno::EPERM]
     #   Raises the error if not allowed to attach.
     # @raise [Errno::EACCES]
@@ -149,8 +154,9 @@ module SeccompTools
     # @example
     #   pid1 = Process.spawn('sleep inf')
     #   dump_by_pid(pid1, 1)
-    #   # there are no seccomp filters
+    #   # empty because there is no seccomp installed
     #   #=> []
+    # @example
     #   pid2 = Process.spawn('spec/binary/twctf-2016-diary')
     #   # give it some time to install the filter
     #   sleep(1)

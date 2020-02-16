@@ -39,7 +39,7 @@ Usage: seccomp-tools dump [exec] [options]
                                      If multiple seccomp syscalls have been invoked (see --limit),
                                      results will be written to FILE, FILE_1, FILE_2.. etc.
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
-    -p, --pid PID                    Dump seccomp filters of the existing process.
+    -p, --pid PID                    Dump installed seccomp filters of the existing process.
                                      You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.
 EOS
   end

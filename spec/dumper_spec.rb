@@ -66,6 +66,6 @@ describe SeccompTools::Dumper do
   it 'should output warning and exit(1)' do
     allow(SeccompTools::Ptrace).to receive(:traceme_and_stop)
     expect { described_class.__send__(:handle_child, 'no_such_binary') }
-      .to terminate.with_code(1).and output("Failed to execute no_such_binary\n").to_stderr
+      .to terminate.with_code(1).and output("[ERROR] Failed to execute no_such_binary\n").to_stdout
   end
 end

@@ -52,6 +52,7 @@ Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <amd64|i386>.
+                                     Default: amd64
 EOS
   end
 
@@ -62,6 +63,7 @@ emu - Emulate seccomp rules.
 Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <amd64|i386>.
+                                     Default: amd64
     -q, --[no-]quiet                 Run quietly, only show emulation result.
 EOS
   end

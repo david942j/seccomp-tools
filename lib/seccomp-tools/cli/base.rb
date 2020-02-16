@@ -92,7 +92,8 @@ module SeccompTools
       def option_arch(opt)
         supported = Util.supported_archs
         opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
-               "Supported architectures are <#{supported.join('|')}>.") do |a|
+               "Supported architectures are <#{supported.join('|')}>.",
+               "Default: #{Util.system_arch}") do |a|
           option[:arch] = a
         end
       end

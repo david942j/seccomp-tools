@@ -42,13 +42,16 @@ module SeccompTools
       !@disable_color && $stdout.tty?
     end
 
+    # color code of light yellow
+    LIGHT_YELLOW = "\e[38;5;230m"
     # Color codes for pretty print.
     COLOR_CODE = {
       esc_m: "\e[0m",
       syscall: "\e[38;5;120m", # light green
-      arch: "\e[38;5;230m", # light yellow
-      args: "\e[38;5;230m", # light yellow, same as arch
-      gray: "\e[2m"
+      arch: LIGHT_YELLOW,
+      args: LIGHT_YELLOW,
+      gray: "\e[2m",
+      error: "\e[38;5;196m" # heavy red
     }.freeze
     # Wrapper color codes.
     # @param [String] s

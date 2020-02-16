@@ -11,6 +11,9 @@ module SeccompTools
   module Logger
     module_function
 
+    # Returns a +::Logger+ object for internal logging.
+    #
+    # @return [::Logger]
     def logger
       ::Logger.new($stdout).tap do |log|
         log.formatter = proc do |severity, _datetime, _progname, msg|
@@ -20,9 +23,7 @@ module SeccompTools
 
             str.strip.empty? ? str : prep + str
           end
-          color = case severity
-                  when 'ERROR' then :error
-                  end
+          color = severity.downcase.to_sym
           msg = +"[#{SeccompTools::Util.colorize(severity, t: color)}] #{message.join}"
           msg << "\n" unless msg.end_with?("\n")
           msg

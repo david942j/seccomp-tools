@@ -52,7 +52,7 @@ module SeccompTools
                    option[:ofile] = o
                  end
 
-          opt.on('-p', '--pid PID', 'Dump seccomp filters of the existing process.',
+          opt.on('-p', '--pid PID', 'Dump installed seccomp filters of the existing process.',
                  'You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.',
                  Integer) do |p|
             option[:pid] = p
@@ -81,7 +81,7 @@ module SeccompTools
           rescue Errno::EPERM, Errno::EACCES => e
             warn(e)
             warn('PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN')
-            warn("Try this: sudo #{([$PROGRAM_NAME] + ARGV).shelljoin}")
+            warn(%[Try:\n    sudo env "PATH=$PATH" #{(%w[seccomp-tools] + ARGV).shelljoin}])
             exit(1)
           end
         end

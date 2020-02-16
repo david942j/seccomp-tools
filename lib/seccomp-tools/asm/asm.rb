@@ -28,7 +28,7 @@ module SeccompTools
     #   EOS
     #   #=> <raw binary bytes>
     def asm(str, arch: nil)
-      arch = Util.system_arch if arch.nil? # TODO: show warning
+      arch = Util.system_arch if arch.nil?
       compiler = Compiler.new(arch)
       str.lines.each { |l| compiler.process(l) }
       compiler.compile!.map(&:asm).join

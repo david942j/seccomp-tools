@@ -5,6 +5,7 @@ require 'shellwords'
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
+require 'seccomp-tools/logger'
 
 module SeccompTools
   module CLI
@@ -79,9 +80,12 @@ module SeccompTools
           begin
             SeccompTools::Dumper.dump_by_pid(option[:pid], option[:limit], &block)
           rescue Errno::EPERM, Errno::EACCES => e
-            warn(e)
-            warn('PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN')
-            warn(%[Try:\n    sudo env "PATH=$PATH" #{(%w[seccomp-tools] + ARGV).shelljoin}])
+            Logger.error(<<~EOS)
+            #{e}
+            PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN
+            Try:
+                sudo env "PATH=$PATH" #{(%w[seccomp-tools] + ARGV).shelljoin}
+            EOS
             exit(1)
           end
         end

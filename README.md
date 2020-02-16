@@ -170,6 +170,7 @@ $ seccomp-tools asm
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
 #                                      Supported architectures are <amd64|i386>.
+#                                      Default: amd64
 
 # Input file for asm
 $ cat spec/data/libseccomp.asm
@@ -267,6 +268,7 @@ $ seccomp-tools emu --help
 # Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
 #     -a, --arch ARCH                  Specify architecture.
 #                                      Supported architectures are <amd64|i386>.
+#                                      Default: amd64
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
 
 $ seccomp-tools emu spec/data/libseccomp.bpf write 0x3

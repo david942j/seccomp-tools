@@ -52,7 +52,7 @@ EOS
         ensure
           Process::Sys.seteuid(0)
         end
-      end.to terminate.with_code(1).and output(error).to_stderr
+      end.to terminate.with_code(1).and output(error).to_stdout
       dumper_disasm = described_class.new(['-p', pid.to_s])
       expect do
         begin
@@ -61,7 +61,7 @@ EOS
         ensure
           Process::Sys.seteuid(0)
         end
-      end.to terminate.with_code(1).and output(error).to_stderr
+      end.to terminate.with_code(1).and output(error).to_stdout
     ensure
       Process.kill('TERM', pid)
       Process.wait(pid)

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/logger'
 require 'seccomp-tools/ptrace'
 require 'seccomp-tools/syscall'
 
@@ -124,8 +125,7 @@ module SeccompTools
         Ptrace.traceme_and_stop
         exec(*args)
       rescue # rubocop:disable Style/RescueStandardError # exec fail
-        # TODO: use logger
-        warn("Failed to execute #{args.join(' ')}")
+        Logger.error("Failed to execute #{args.join(' ')}")
         exit(1)
       end
     end

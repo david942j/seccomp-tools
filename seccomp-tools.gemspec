@@ -32,11 +32,10 @@ Visit https://github.com/david942j/seccomp-tools for more details.
 
   s.required_ruby_version = '>= 2.3'
 
-  s.add_development_dependency 'pry', '~> 0.10'
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rake-compiler', '~> 1.0'
-  s.add_development_dependency 'rspec', '~> 3.7'
-  s.add_development_dependency 'rubocop', '~> 0.59'
+  s.add_development_dependency 'rspec', '~> 3.9'
+  s.add_development_dependency 'rubocop', '~> 0.79'
   s.add_development_dependency 'simplecov', '~> 0.17.0'
   s.add_development_dependency 'yard', '~> 0.9'
 end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'shellwords'
+
 require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
@@ -17,6 +19,7 @@ module SeccompTools
         super
         option[:format] = :disasm
         option[:limit] = 1
+        option[:pid] = nil
       end
 
       # Define option parser.
@@ -48,6 +51,12 @@ module SeccompTools
                  'For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...') do |o|
                    option[:ofile] = o
                  end
+
+          opt.on('-p', '--pid PID', 'Dump seccomp filters of the existing process.',
+                 'You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.',
+                 Integer) do |p|
+            option[:pid] = p
+          end
         end
       end
 
@@ -56,12 +65,24 @@ module SeccompTools
       def handle
         return unless super
 
-        option[:command] = argv.shift unless argv.empty?
-        SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit]) do |bpf, arch|
+        block = lambda do |bpf, arch|
           case option[:format]
           when :inspect then output { '"' + bpf.bytes.map { |b| format('\\x%02X', b) }.join + "\"\n" }
           when :raw then output { bpf }
           when :disasm then output { SeccompTools::Disasm.disasm(bpf, arch: arch) }
+          end
+        end
+        if option[:pid].nil?
+          option[:command] = argv.shift unless argv.empty?
+          SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit], &block)
+        else
+          begin
+            SeccompTools::Dumper.dump_by_pid(option[:pid], option[:limit], &block)
+          rescue Errno::EPERM, Errno::EACCES => e
+            warn(e)
+            warn('PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN')
+            warn("Try this: sudo #{([$PROGRAM_NAME] + ARGV).shelljoin}")
+            exit(1)
           end
         end
       end

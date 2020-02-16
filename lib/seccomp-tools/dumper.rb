@@ -129,5 +129,52 @@ module SeccompTools
         exit(1)
       end
     end
+
+    # Dump seccomp-bpf using ptrace of an existing process.
+    #
+    # @param [Integer] pid
+    #   Target process identifier.
+    # @param [Integer] limit
+    #   Number of filters to dump. Negative number for unlimited.
+    # @yieldparam [String] bpf
+    #   Seccomp bpf in raw bytes.
+    # @yieldparam [Symbol] arch
+    #   Architecture of the target process (always nil right now).
+    # @return [Array<Object>, Array<String>]
+    #   Return the block returned. If block is not given, array of raw bytes will be returned.
+    # @raise [Errno::EPERM]
+    #   Raises the error if not allowed to attach.
+    # @raise [Errno::EACCES]
+    #   Raises the error if not allowed to dump (e.g. no CAP_SYS_ADMIN).
+    # @example
+    #   pid1 = Process.spawn('sleep inf')
+    #   dump_by_pid(pid1, 1)
+    #   # there are no seccomp filters
+    #   #=> []
+    #   pid2 = Process.spawn('spec/binary/twctf-2016-diary')
+    #   # give it some time to install the filter
+    #   sleep(1)
+    #   dump_by_pid(pid2, 1) { |c| c[0, 10] }
+    #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
+    def dump_by_pid(pid, limit, &block)
+      collect = []
+      Ptrace.attach(pid)
+      begin
+        Process.waitpid(pid)
+        i = 0
+        while limit.negative? || i < limit
+          begin
+            bpf = Ptrace.seccomp_get_filter(pid, i)
+          rescue Errno::ENOENT, Errno::EINVAL
+            break
+          end
+          collect << (block.nil? ? bpf : yield(bpf, nil))
+          i += 1
+        end
+      ensure
+        Ptrace.detach(pid)
+      end
+      collect
+    end
   end
 end

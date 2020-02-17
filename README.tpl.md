@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/david942j/seccomp-tools.svg?branch=master)](https://travis-ci.org/david942j/seccomp-tools)
+[![Build Status](https://travis-ci.com/david942j/seccomp-tools.svg?branch=master)](https://travis-ci.com/david942j/seccomp-tools)
 [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=david942j/seccomp-tools)](https://dependabot.com)
 [![Code Climate](https://codeclimate.com/github/david942j/seccomp-tools/badges/gpa.svg)](https://codeclimate.com/github/david942j/seccomp-tools)
 [![Issue Count](https://codeclimate.com/github/david942j/seccomp-tools/badges/issue_count.svg)](https://codeclimate.com/github/david942j/seccomp-tools)

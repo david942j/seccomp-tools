@@ -1,16 +1,15 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
+require 'open3'
+
 require 'seccomp-tools/dumper'
 
 describe SeccompTools::Dumper do
-  before do
-    @binpath = File.join(__dir__, 'binary')
-  end
   describe 'amd64' do
     context 'diary' do
       before do
-        @diary = File.join(@binpath, 'twctf-2016-diary')
+        @diary = bin_of('twctf-2016-diary')
         @bpf = " \x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x02\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01;\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x018\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x019\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01:\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01U\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01B\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F" # rubocop:disable Layout/LineLength
       end
 
@@ -27,16 +26,16 @@ describe SeccompTools::Dumper do
 
     context 'clone_two_seccomp' do
       it 'check' do
-        @bin = File.join(@binpath, 'clone_two_seccomp')
-        expect(described_class.dump(@bin, limit: -1).size).to be 2
+        bin = bin_of('clone_two_seccomp')
+        expect(described_class.dump(bin, limit: -1).size).to be 2
       end
     end
 
     context '0ctf-quals-2018-blackhole' do
       it 'check' do
         # this binary uses syscall +seccomp+ instead of +prctl+
-        @bin = File.join(@binpath, 'syscall_seccomp')
-        expect(described_class.dump(@bin).size).to be 1
+        bin = bin_of('syscall_seccomp')
+        expect(described_class.dump(bin).size).to be 1
       end
     end
 
@@ -52,13 +51,43 @@ describe SeccompTools::Dumper do
   describe 'i386' do
     context 'amigo' do
       it 'normal' do
-        bin = File.join(@binpath, 'CONFidence-2017-amigo')
+        bin = bin_of('CONFidence-2017-amigo')
         bpf = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
         got = described_class.dump(bin).first
         # there's pid inside seccomp rules.. ignore it
         expect(got.size).to be bpf.size
         expect(got[0, 0x1ec]).to eq bpf[0, 0x1ec]
         expect(got[0x1f0..-1]).to eq bpf[0x1f0..-1]
+      end
+    end
+  end
+
+  describe 'by pid' do
+    context 'two filters' do
+      let(:bin) { bin_of('two_filters') }
+
+      let(:popen) do
+        lambda do |&block|
+          Open3.popen2(bin) do |i, o, t|
+            begin
+              o.gets # seccomp installed
+              block.call(t.pid)
+            ensure
+              i.puts
+            end
+          end
+        end
+      end
+
+      it 'test limits' do
+        skip_unless_root
+
+        output = described_class.dump(bin, limit: 2)
+        popen.call do |pid|
+          expect(described_class.dump_by_pid(pid, 1)).to eq [output.first]
+          expect(described_class.dump_by_pid(pid, 2)).to eq output
+          expect(described_class.dump_by_pid(pid, -1)).to eq output
+        end
       end
     end
   end

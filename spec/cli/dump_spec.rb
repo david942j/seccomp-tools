@@ -9,9 +9,8 @@ require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Dump do
   before do
-    @binpath = File.join(__dir__, '..', 'binary')
-    @bin = File.join(@binpath, 'twctf-2016-diary')
-    @mul = File.join(@binpath, 'clone_two_seccomp')
+    @bin = bin_of('twctf-2016-diary')
+    @mul = bin_of('clone_two_seccomp')
     @bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
     @bpf_inspect = <<'EOS'
 "\x20\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x02\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x01\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3B\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x38\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x39\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x3A\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x55\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x15\x00\x00\x01\x42\x01\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F"
@@ -26,7 +25,8 @@ EOS
   end
 
   it 'by pid' do
-    skip 'Must be root' if Process.uid != 0
+    skip_unless_root
+
     stdin_r, stdin_w = IO.pipe
     stdout_r, stdout_w = IO.pipe
     pid = Process.spawn(@bin, in: stdin_r, out: stdout_w)
@@ -40,28 +40,11 @@ EOS
   end
 
   it 'by pid without root' do
-    skip 'Must be root' if Process.uid != 0
-    pid = Process.spawn('sleep inf')
+    pid = Process.spawn('sleep 60')
     begin
       error = /PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN/
-      dumper_inspect = described_class.new(['-f', 'inspect', '-p', pid.to_s])
-      expect do
-        begin
-          Process::Sys.seteuid('nobody')
-          dumper_inspect.handle
-        ensure
-          Process::Sys.seteuid(0)
-        end
-      end.to terminate.with_code(1).and output(error).to_stdout
-      dumper_disasm = described_class.new(['-p', pid.to_s])
-      expect do
-        begin
-          Process::Sys.seteuid('nobody')
-          dumper_disasm.handle
-        ensure
-          Process::Sys.seteuid(0)
-        end
-      end.to terminate.with_code(1).and output(error).to_stdout
+      dumper = described_class.new(['-p', pid.to_s])
+      expect { as_nobody { dumper.handle } }.to terminate.with_code(1).and output(error).to_stdout
     ensure
       Process.kill('TERM', pid)
       Process.wait(pid)

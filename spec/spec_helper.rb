@@ -46,3 +46,35 @@ RSpec::Matchers.define :terminate do
     @status_code ||= 0
   end
 end
+
+module Helpers
+  def skip_unless_root
+    skip 'Must be root' unless Process.uid.zero?
+  end
+
+  # Sets EUID as 'nobody' and yields the block.
+  # If the current user is not root then the block will be yield without switching users.
+  #
+  # @return [Object] Returns what the block returned.
+  def as_nobody
+    return yield unless Process.uid.zero?
+
+    begin
+      Process::Sys.seteuid('nobody')
+      yield
+    ensure
+      Process::Sys.seteuid(0)
+    end
+  end
+
+  # Returns the absolute path to +bin+.
+  #
+  # @return [String]
+  def bin_of(bin)
+    File.join(__dir__, 'binary', bin)
+  end
+end
+
+RSpec.configure do |config|
+  config.include Helpers
+end

@@ -39,6 +39,7 @@ module SeccompTools
                 when /\?/ then cmp
                 when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
                 when /^return/ then ret
+                when /^A\s*=\s*-A/ then alu_neg
                 when /^(A|X)\s*=[^=]/ then assign
                 when /^mem\[\d+\]\s*=\s*(A|X)/ then store
                 when /^A\s*.{1,2}=/ then alu
@@ -127,6 +128,8 @@ module SeccompTools
       end
 
       def compile_alu(op, val)
+        return emit(:alu, :neg) if op == :neg
+
         val = evaluate(val)
         src = val == :x ? :x : :k
         val = 0 if val == :x
@@ -267,13 +270,17 @@ module SeccompTools
       end
 
       # A op= sys_num_x
-      # TODO: support A = -A
       def alu
         token.fetch!('A')
         op = token.fetch!(:alu_op)
         token.fetch!('=')
         src = token.fetch!(:sys_num_x)
         [:alu, op, src]
+      end
+
+      # A = -A
+      def alu_neg
+        %i[alu neg]
       end
 
       def remove_comment(line)

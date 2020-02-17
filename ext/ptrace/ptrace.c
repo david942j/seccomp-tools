@@ -2,6 +2,7 @@
 #include <linux/filter.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
+#include <sys/wait.h>
 
 #include "ruby.h"
 
@@ -53,10 +54,11 @@ ptrace_traceme_and_stop(VALUE mod) {
 }
 
 static VALUE
-ptrace_attach(VALUE _mod, VALUE pid) {
+ptrace_attach_and_wait(VALUE _mod, VALUE pid) {
   long val = ptrace(PTRACE_ATTACH, NUM2LONG(pid), 0, 0);
   if(val < 0)
     rb_sys_fail("ptrace attach failed");
+  waitpid(NUM2LONG(pid), NULL, 0);
   return Qnil;
 }
 
@@ -115,7 +117,7 @@ void Init_ptrace(void) {
   /* stop itself before parent attaching */
   rb_define_module_function(mPtrace, "traceme_and_stop", ptrace_traceme_and_stop, 0);
   /* attach to an existing process */
-  rb_define_module_function(mPtrace, "attach", ptrace_attach, 1);
+  rb_define_module_function(mPtrace, "attach_and_wait", ptrace_attach_and_wait, 1);
   /* retrieve seccomp filter */
   rb_define_module_function(mPtrace, "seccomp_get_filter", ptrace_seccomp_get_filter, 2);
   /* detach from an existing process */

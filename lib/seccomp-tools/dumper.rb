@@ -80,6 +80,7 @@ module SeccompTools
           !limit.zero?
         end
         syscalls.each_key { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
+        Process.waitall
         collect
       end
 
@@ -164,9 +165,8 @@ module SeccompTools
     #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
     def dump_by_pid(pid, limit, &block)
       collect = []
-      Ptrace.attach(pid)
+      Ptrace.attach_and_wait(pid)
       begin
-        Process.waitpid(pid)
         i = 0
         while limit.negative? || i < limit
           begin

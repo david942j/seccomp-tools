@@ -4,10 +4,7 @@
 
 #include <linux/seccomp.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/prctl.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 struct A {
   size_t len;

@@ -89,6 +89,7 @@ Error: Invalid return type: "QQ".
     expect(@get_bpf['A += 0x31337']).to eq 'A += 0x31337'
     expect(@get_bpf['A &= read']).to eq 'A &= 0x0'
     expect(@get_bpf['A ^= X']).to eq 'A ^= X'
+    expect(@get_bpf['A = -A']).to eq 'A = -A'
   end
 
   it 'back_jump' do

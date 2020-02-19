@@ -58,7 +58,7 @@ ptrace_attach_and_wait(VALUE _mod, VALUE pid) {
   long val = ptrace(PTRACE_ATTACH, NUM2LONG(pid), 0, 0);
   if(val < 0)
     rb_sys_fail("ptrace attach failed");
-  waitpid(NUM2LONG(pid), NULL, 0);
+  waitpid(-1, NULL, 0);
   return Qnil;
 }
 

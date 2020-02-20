@@ -71,11 +71,10 @@ describe SeccompTools::Dumper do
 
       let(:popen) do
         lambda do |&block|
-          Open3.popen2(bin) do |i, o, t|
+          popen2(bin) do |i, o, pid|
             begin
               o.gets # seccomp installed
-              loop until t.status == 'sleep'
-              block.call(t.pid)
+              block.call(pid)
             ensure
               i.puts
             end

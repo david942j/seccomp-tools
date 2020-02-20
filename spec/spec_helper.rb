@@ -73,6 +73,24 @@ module Helpers
   def bin_of(bin)
     File.join(__dir__, 'binary', bin)
   end
+
+  # Almost same as Open3.popen2 but doesn't set a separate thread to wait the child.
+  #
+  # The third yield parameter is the process ID but not a thread object.
+  #
+  # @yieldparam [IO] stdin
+  # @yieldparam [IO] stdout
+  # @yieldparam [Integer] pid
+  def popen2(bin)
+    in_r, in_w = IO.pipe
+    out_r, out_w = IO.pipe
+    pid = Process.spawn(bin, in: in_r, out: out_w)
+    begin
+      yield(in_w, out_r, pid)
+    ensure
+      Process.wait(pid)
+    end
+  end
 end
 
 require 'seccomp-tools/util'

@@ -44,7 +44,10 @@ describe SeccompTools::Dumper do
     end
 
     context 'no such binary' do
-      it { expect(described_class.dump('this_is_not_exist')).to be_empty }
+      it do
+        allow(SeccompTools::Logger).to receive(:error)
+        expect(described_class.dump('this_is_not_exist')).to be_empty
+      end
     end
   end
 
@@ -71,6 +74,7 @@ describe SeccompTools::Dumper do
           Open3.popen2(bin) do |i, o, t|
             begin
               o.gets # seccomp installed
+              loop until t.status == 'sleep'
               block.call(t.pid)
             ensure
               i.puts

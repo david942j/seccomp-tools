@@ -75,6 +75,8 @@ module Helpers
   end
 end
 
+require 'seccomp-tools/util'
 RSpec.configure do |config|
+  config.before(:suite) { SeccompTools::Util.disable_color! }
   config.include Helpers
 end

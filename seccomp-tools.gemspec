@@ -36,6 +36,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'rspec', '~> 3.9'
   s.add_development_dependency 'rubocop', '~> 0.79'
-  s.add_development_dependency 'simplecov', '~> 0.18.2'
+  # https://github.com/codeclimate/test-reporter/issues/418
+  s.add_development_dependency 'simplecov', '~> 0.17', '< 0.18'
   s.add_development_dependency 'yard', '~> 0.9'
 end

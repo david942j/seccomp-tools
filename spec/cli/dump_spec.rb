@@ -27,16 +27,14 @@ EOS
   it 'by pid' do
     skip_unless_root
 
-    stdin_r, stdin_w = IO.pipe
-    stdout_r, stdout_w = IO.pipe
-    pid = Process.spawn(@bin, in: stdin_r, out: stdout_w)
-    stdout_r.each do |line|
-      break if line.start_with?('Welcome')
+    popen2(@bin) do |i, o, pid|
+      o.each do |line|
+        break if line.start_with?('Welcome')
+      end
+      expect { described_class.new(['-f', 'inspect', '-p', pid.to_s]).handle }.to output(@bpf_inspect).to_stdout
+      expect { described_class.new(['-l', '2', '-p', pid.to_s]).handle }.to output(@bpf_disasm).to_stdout
+      i.write("0\n")
     end
-    expect { described_class.new(['-f', 'inspect', '-p', pid.to_s]).handle }.to output(@bpf_inspect).to_stdout
-    expect { described_class.new(['-l', '2', '-p', pid.to_s]).handle }.to output(@bpf_disasm).to_stdout
-    stdin_w.write("0\n")
-    Process.wait(pid)
   end
 
   it 'by pid without root' do

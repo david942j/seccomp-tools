@@ -1,8 +1,6 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
-require 'open3'
-
 require 'seccomp-tools/dumper'
 
 describe SeccompTools::Dumper do

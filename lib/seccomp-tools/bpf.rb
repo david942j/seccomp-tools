@@ -34,10 +34,10 @@ module SeccompTools
     def initialize(raw, arch, line)
       if raw.is_a?(String)
         io = ::StringIO.new(raw)
-        @code = io.read(2).unpack('S').first
+        @code = io.read(2).unpack1('S')
         @jt = io.read(1).ord
         @jf = io.read(1).ord
-        @k = io.read(4).unpack('L').first
+        @k = io.read(4).unpack1('L')
       else
         @code = raw[:code]
         @jt = raw[:jt]

@@ -15,7 +15,7 @@ GEM
       ast (~> 2.4.1)
     rainbow (3.0.0)
     rake (13.0.1)
-    rake-compiler (1.1.0)
+    rake-compiler (1.1.1)
       rake
     regexp_parser (1.7.1)
     rexml (3.2.4)

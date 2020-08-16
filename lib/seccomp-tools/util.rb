@@ -20,6 +20,7 @@ module SeccompTools
       case RbConfig::CONFIG['host_cpu']
       when /x86_64/ then :amd64
       when /i386/ then :i386
+      when /aarch64/ then :aarch64
       else :unknown
       end
     end

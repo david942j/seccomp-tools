@@ -160,6 +160,33 @@ describe SeccompTools::Disasm do
     EOS
   end
 
+  it 'aarch64' do
+    bpf = IO.binread(File.join(__dir__, '..', 'data', 'DEF-CON-2020-bdooos.bpf'))
+    expect(described_class.disasm(bpf, arch: :aarch64)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x10 0xc00000b7  if (A != ARCH_AARCH64) goto 0018
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x15 0x0d 0x00 0x0000001d  if (A == ioctl) goto 0017
+ 0004: 0x15 0x0c 0x00 0x0000003f  if (A == read) goto 0017
+ 0005: 0x15 0x0b 0x00 0x00000040  if (A == write) goto 0017
+ 0006: 0x15 0x0a 0x00 0x00000049  if (A == ppoll) goto 0017
+ 0007: 0x15 0x09 0x00 0x0000005e  if (A == exit_group) goto 0017
+ 0008: 0x15 0x08 0x00 0x00000062  if (A == futex) goto 0017
+ 0009: 0x15 0x07 0x00 0x00000084  if (A == sigaltstack) goto 0017
+ 0010: 0x15 0x06 0x00 0x00000086  if (A == rt_sigaction) goto 0017
+ 0011: 0x15 0x05 0x00 0x0000008b  if (A == rt_sigreturn) goto 0017
+ 0012: 0x15 0x04 0x00 0x000000ce  if (A == sendto) goto 0017
+ 0013: 0x15 0x03 0x00 0x000000cf  if (A == recvfrom) goto 0017
+ 0014: 0x15 0x02 0x00 0x000000d0  if (A == setsockopt) goto 0017
+ 0015: 0x15 0x01 0x00 0x000000d7  if (A == munmap) goto 0017
+ 0016: 0x06 0x00 0x00 0x80000000  return KILL_PROCESS
+ 0017: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0018: 0x06 0x00 0x00 0x00000000  return KILL
+    EOS
+  end
+
   it 'syscall args' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'gctf-2019-quals-caas.bpf'))
     expect(described_class.disasm(bpf)).to eq <<-EOS

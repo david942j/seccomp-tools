@@ -169,7 +169,7 @@ $ seccomp-tools asm
 #     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|c_array|c_source|assembly>.
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
-#                                      Supported architectures are <amd64|i386>.
+#                                      Supported architectures are <aarch64|amd64|i386>.
 #                                      Default: amd64
 
 # Input file for asm
@@ -267,7 +267,7 @@ $ seccomp-tools emu --help
 #
 # Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
 #     -a, --arch ARCH                  Specify architecture.
-#                                      Supported architectures are <amd64|i386>.
+#                                      Supported architectures are <aarch64|amd64|i386>.
 #                                      Default: amd64
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
 

@@ -86,4 +86,19 @@ describe SeccompTools::Emulator do
       expect(described_class.new(@insts, sys_nr: 137, instruction_pointer: 0x12300000edd).run[:ret]).to be 0x7fff0000
     end
   end
+
+  context 'bdooos' do
+    before do
+      raw = IO.binread(File.join(__dir__, 'data', 'DEF-CON-2020-bdooos.bpf'))
+      @insts = SeccompTools::Disasm.to_bpf(raw, :aarch64).map(&:inst)
+    end
+
+    it 'allow' do
+      expect(described_class.new(@insts, sys_nr: 64, arch: :aarch64).run[:ret]).to be 0x7fff0000
+    end
+
+    it 'kill' do
+      expect(described_class.new(@insts, sys_nr: 221, arch: :aarch64).run[:ret]).to be 0x80000000
+    end
+  end
 end

@@ -61,6 +61,7 @@ module SeccompTools
       type = case arch
              when :amd64 then 'ARCH_X86_64'
              when :i386 then 'ARCH_I386'
+             when :aarch64 then 'ARCH_AARCH64'
              end
       Const::Audit::ARCH[type]
     end

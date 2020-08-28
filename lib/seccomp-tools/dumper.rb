@@ -6,7 +6,7 @@ require 'seccomp-tools/syscall'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
-  # Currently only support x86_64.
+  # Currently only support x86_64 and aarch64.
   module Dumper
     module_function
 

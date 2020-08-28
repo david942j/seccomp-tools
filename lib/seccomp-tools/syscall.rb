@@ -9,7 +9,8 @@ module SeccompTools
     # Syscall arguments offset of +struct user+ in different arch.
     ABI = {
       amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157, SYS_seccomp: 317 },
-      i386: { number: 120, args: [40, 88, 96, 104, 112, 32], ret: 80, SYS_prctl: 172, SYS_seccomp: 354 }
+      i386: { number: 44, args: [0, 4, 8, 12, 16, 20], ret: 24, SYS_prctl: 172, SYS_seccomp: 354 },
+      aarch64: { number: 64, args: [0, 8, 16, 24, 32, 40, 48], ret: 0, SYS_prctl: 167, SYS_seccomp: 277 }
     }.freeze
 
     # @return [Integer] Process id.
@@ -60,10 +61,11 @@ module SeccompTools
     #   Architecture of this syscall.
     def arch
       @arch ||= File.open("/proc/#{pid}/exe", 'rb') do |f|
-        f.pos = 4
+        f.pos = 18
         case f.read(1).ord
-        when 1 then :i386
-        when 2 then :amd64
+        when 3 then :i386
+        when 62 then :amd64
+        when 183 then :aarch64
         end
       end
     end
@@ -74,11 +76,12 @@ module SeccompTools
       case arch
       when :i386 then 32
       when :amd64 then 64
+      when :aarch64 then 64
       end
     end
 
     def peek(offset)
-      Ptrace.peekuser(pid, offset, 0)
+      Ptrace.peekuser(pid, offset, 0, bits)
     end
   end
 end

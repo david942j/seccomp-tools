@@ -130,7 +130,8 @@ module SeccompTools
       # AUDIT_ARCH_*
       ARCH = {
         'ARCH_X86_64' => 0xc000003e,
-        'ARCH_I386' => 0x40000003
+        'ARCH_I386' => 0x40000003,
+        'ARCH_AARCH64' => 0xc00000b7
       }.freeze
     end
   end

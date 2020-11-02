@@ -10,7 +10,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Disassemble seccomp bpf.'
       # Usage of this command.
-      USAGE = ('disasm - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools disasm BPF_FILE [options]').freeze
+      USAGE = "disasm - #{SUMMARY}\n\nUsage: seccomp-tools disasm BPF_FILE [options]"
 
       # Define option parser.
       # @return [OptionParser]

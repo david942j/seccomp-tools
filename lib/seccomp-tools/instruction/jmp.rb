@@ -16,9 +16,9 @@ module SeccompTools
         # otherwise => if () goto jt; else goto jf;
         return '/* no-op */' if jt.zero? && jf.zero?
         return goto(jt) if jt == jf
-        return if_str(true) + goto(jf) if jt.zero?
+        return if_str(neg: true) + goto(jf) if jt.zero?
 
-        if_str + goto(jt) + (jf.zero? ? '' : ' else ' + goto(jf))
+        if_str + goto(jt) + (jf.zero? ? '' : " else #{goto(jf)}")
       end
 
       # See {Instruction::Base#symbolize}.
@@ -64,7 +64,7 @@ module SeccompTools
         a = a[0]
         return k.to_s unless a.data?
 
-        hex = '0x' + k.to_s(16)
+        hex = "0x#{k.to_s(16)}"
         case a.val
         when 0 then Util.colorize(Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || hex, t: :syscall)
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || hex, t: :arch)
@@ -84,15 +84,15 @@ module SeccompTools
         line + off + 1
       end
 
-      def if_str(neg = false)
+      def if_str(neg: false)
         return "if (A #{jop} #{src_str}) " unless neg
         return "if (!(A & #{src_str})) " if jop == :&
 
-        op = case jop
-             when :>= then :<
-             when :> then :<=
-             when :== then :!=
-             end
+        op = {
+          :>= => :<,
+          :> => :<=,
+          :== => :!=
+        }[jop]
         "if (A #{op} #{src_str}) "
       end
     end

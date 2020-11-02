@@ -53,9 +53,9 @@ EOS
     tmp = File.join('/tmp', SecureRandom.hex)
     described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '2']).handle
     c0 = IO.binread(tmp)
-    c1 = IO.binread(tmp + '_1')
+    c1 = IO.binread("#{tmp}_1")
     FileUtils.rm(tmp)
-    FileUtils.rm(tmp + '_1')
+    FileUtils.rm("#{tmp}_1")
     expect(c0.size).to be 16
     expect(c1.size).to be 8
   end

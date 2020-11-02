@@ -10,7 +10,7 @@ module SeccompTools
     class LD < Base
       # Decompile instruction.
       def decompile
-        ret = reg + ' = '
+        ret = "#{reg} = "
         _, _reg, type = symbolize
         return ret + type[:val].to_s if type[:rel] == :immi
         return ret + "mem[#{type[:val]}]" if type[:rel] == :mem
@@ -88,7 +88,7 @@ module SeccompTools
 
         comment = "# #{sys}(#{args.join(', ')})"
         arg_name = Util.colorize(args[idx / 2], t: :args)
-        (idx.even? ? arg_name : "#{arg_name} >> 32") + ' ' + Util.colorize(comment, t: :gray)
+        "#{idx.even? ? arg_name : "#{arg_name} >> 32"} #{Util.colorize(comment, t: :gray)}"
       end
     end
   end

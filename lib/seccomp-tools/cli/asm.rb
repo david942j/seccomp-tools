@@ -10,7 +10,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Seccomp bpf assembler.'
       # Usage of this command.
-      USAGE = ('asm - ' + SUMMARY + "\n\n" + 'Usage: seccomp-tools asm IN_FILE [options]').freeze
+      USAGE = "asm - #{SUMMARY}\n\nUsage: seccomp-tools asm IN_FILE [options]"
 
       def initialize(*)
         super
@@ -47,7 +47,7 @@ module SeccompTools
         res = SeccompTools::Asm.asm(input, arch: option[:arch])
         output do
           case option[:format]
-          when :inspect then res.inspect + "\n"
+          when :inspect then "#{res.inspect}\n"
           when :raw then res
           when :c_array, :carray then "unsigned char bpf[] = {#{res.bytes.join(',')}};\n"
           when :c_source then SeccompTools::Util.template('asm.c').sub('<TO_BE_REPLACED>', res.bytes.join(','))

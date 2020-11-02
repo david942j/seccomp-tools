@@ -200,7 +200,7 @@ module SeccompTools
         token.fetch('goto') ||
           token.fetch('jmp') ||
           token.fetch('jump') ||
-          raise(ArgumentError, 'Invalid jump alias: ' + token.cur.inspect)
+          raise(ArgumentError, "Invalid jump alias: #{token.cur.inspect}")
         target = token.fetch!(:goto)
         [:jmp_abs, target]
       end
@@ -254,7 +254,7 @@ module SeccompTools
               token.fetch('sys_number') ||
               token.fetch('arch') ||
               token.fetch('len') ||
-              raise(ArgumentError, 'Invalid source: ' + token.cur.inspect)
+              raise(ArgumentError, "Invalid source: #{token.cur.inspect}")
         [:assign, dst, src]
       end
 
@@ -291,7 +291,7 @@ module SeccompTools
 
       def invalid(line, extra_msg = nil)
         message = "Invalid instruction at line #{line + 1}: #{@input[line].inspect}"
-        message += "\n" + 'Error: ' + extra_msg if extra_msg
+        message += "\nError: #{extra_msg}" if extra_msg
         raise ArgumentError, message
       end
     end

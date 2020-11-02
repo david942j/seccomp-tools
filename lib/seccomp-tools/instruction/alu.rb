@@ -62,7 +62,7 @@ module SeccompTools
 
         case op
         when :lsh, :rsh then src.to_s
-        else '0x' + src.to_s(16)
+        else "0x#{src.to_s(16)}"
         end
       end
 

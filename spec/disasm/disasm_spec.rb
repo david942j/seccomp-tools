@@ -344,7 +344,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'else jmp' do
-    bpf = [0x15, 0x25, 0x35, 0x45].map { |c| c.chr + "\x00\x00\x01\x00\x00\x00\x00" }.join
+    bpf = [0x15, 0x25, 0x35, 0x45].map { |c| "#{c.chr}\x00\x00\x01\x00\x00\x00\x00" }.join
     expect(described_class.disasm(bpf)).to eq(<<-EOS)
  line  CODE  JT   JF      K
 =================================

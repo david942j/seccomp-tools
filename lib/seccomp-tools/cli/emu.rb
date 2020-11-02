@@ -15,10 +15,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Emulate seccomp rules.'
       # Usage of this command.
-      USAGE = ('emu - ' +
-               SUMMARY +
-               "\n\n" \
-               'Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]').freeze
+      USAGE = "emu - #{SUMMARY}\n\nUsage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]"
 
       def initialize(*)
         super

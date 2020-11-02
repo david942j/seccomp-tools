@@ -73,11 +73,11 @@ module SeccompTools
     private
 
     def bits
-      case arch
-      when :i386 then 32
-      when :amd64 then 64
-      when :aarch64 then 64
-      end
+      {
+        i386: 32,
+        amd64: 64,
+        aarch64: 64
+      }[arch]
     end
 
     def peek(offset)

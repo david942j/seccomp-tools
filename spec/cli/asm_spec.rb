@@ -14,7 +14,7 @@ describe SeccompTools::CLI::Asm do
 
   context 'format' do
     it 'default: inspect' do
-      expect { described_class.new([@asm]).handle }.to output(@bpf.inspect + "\n").to_stdout
+      expect { described_class.new([@asm]).handle }.to output("#{@bpf.inspect}\n").to_stdout
     end
 
     it 'c_array' do

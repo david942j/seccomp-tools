@@ -39,7 +39,7 @@ module SeccompTools
       # @return [String]
       #   String read from file.
       def input
-        option[:ifile] == '-' ? STDIN.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
+        option[:ifile] == '-' ? $stdin.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
       end
 
       # Write data to stdout or file(s).

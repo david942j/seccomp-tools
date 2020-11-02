@@ -60,14 +60,14 @@ whitelist = [
 # BPF_LD | BPF_W | BPF_ABS
 code = COMMAND[:ld] | MODE[:abs]
 [0, 4, 8, *Array.new(6) { |i| i * 8 + 16 }].each do |off|
-  output.write(code.chr + "\x00\x00\x00" + [off].pack('L'))
+  output.write("#{code.chr}\x00\x00\x00#{[off].pack('L')}")
 end
 
 rng = Random.new(31_337)
 whitelist.each do |c|
   # random jt, jf, k  is enough
   jt, jf, k = Array.new(3) { rng.rand(0..255) }
-  output.write(c.chr + "\x00")
+  output.write("#{c.chr}\x00")
   output.write(jt.chr)
   output.write(jf.chr)
   output.write([k].pack('L'))

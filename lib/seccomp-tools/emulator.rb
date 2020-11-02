@@ -58,11 +58,11 @@ module SeccompTools
     end
 
     def audit(arch)
-      type = case arch
-             when :amd64 then 'ARCH_X86_64'
-             when :i386 then 'ARCH_I386'
-             when :aarch64 then 'ARCH_AARCH64'
-             end
+      type = {
+        amd64: 'ARCH_X86_64',
+        i386: 'ARCH_I386',
+        aarch64: 'ARCH_AARCH64'
+      }[arch]
       Const::Audit::ARCH[type]
     end
 

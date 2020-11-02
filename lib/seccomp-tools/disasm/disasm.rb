@@ -30,9 +30,10 @@ module SeccompTools
         code.contexts = ctxs
         code.disasm
       end.join("\n")
-      <<-EOS + dis + "\n"
+      <<-EOS
  line  CODE  JT   JF      K
 =================================
+#{dis}
       EOS
     end
 

@@ -39,6 +39,10 @@ Naming/HeredocDelimiterNaming:
 Naming/MethodParameterName:
   Enabled: false
 
+Naming/VariableNumber:
+  Exclude:
+    - lib/seccomp-tools/consts/**/*.rb
+
 Style/FormatStringToken:
   Enabled: false
 

@@ -59,6 +59,8 @@ module SeccompTools
         KILL: 0x00000000, # alias of KILL_THREAD
         TRAP: 0x00030000,
         ERRNO: 0x00050000,
+        USER_NOTIF: 0x7fc00000,
+        LOG: 0x7ffc0000,
         TRACE: 0x7ff00000,
         ALLOW: 0x7fff0000
       }.freeze

@@ -39,4 +39,6 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   # https://github.com/codeclimate/test-reporter/issues/418
   s.add_development_dependency 'simplecov', '~> 0.17', '< 0.18'
   s.add_development_dependency 'yard', '~> 0.9'
+
+  s.add_dependency 'os', '~> 1.1', '>= 1.1.1'
 end

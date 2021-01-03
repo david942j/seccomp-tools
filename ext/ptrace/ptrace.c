@@ -1,3 +1,4 @@
+#if __linux__
 #include <assert.h>
 #include <errno.h>
 #include <linux/elf.h>
@@ -170,4 +171,4 @@ void Init_ptrace(void) {
   /* detach from an existing process */
   rb_define_module_function(mPtrace, "detach", ptrace_detach, 1);
 }
-
+#endif

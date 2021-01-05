@@ -1,4 +1,5 @@
 *.so
+*.bundle
 /.yardoc/
 /coverage/
 /doc/

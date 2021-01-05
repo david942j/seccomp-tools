@@ -65,4 +65,11 @@ EOS
     argv = ['-c', "echo 0|#{@bin} >/dev/null", '--limit', '-1']
     expect { described_class.new(argv).handle }.to output(out).to_stdout
   end
+
+  it 'dumper unsupported' do
+    stub_const('SeccompTools::Dumper::SUPPORTED', false)
+    expect { described_class.new([]).handle }.to output(<<-EOS).to_stdout
+[ERROR] Dump is only available on Linux.
+    EOS
+  end
 end

@@ -1,13 +1,17 @@
 # frozen_string_literal: true
 
+require 'os'
+
 require 'seccomp-tools/logger'
-require 'seccomp-tools/ptrace'
+require 'seccomp-tools/ptrace' if OS.linux?
 require 'seccomp-tools/syscall'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
   # Currently only support x86_64 and aarch64.
   module Dumper
+    ENABLED = OS.linux?
+
     module_function
 
     # Main bpf dump function.
@@ -35,6 +39,8 @@ module SeccompTools
     # @todo
     #   +timeout+ option.
     def dump(*args, limit: 1, &block)
+      return [] unless ENABLED
+
       pid = fork { handle_child(*args) }
       Handler.new(pid).handle(limit, &block)
     end
@@ -164,6 +170,8 @@ module SeccompTools
     #   dump_by_pid(pid2, 1) { |c| c[0, 10] }
     #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
     def dump_by_pid(pid, limit, &block)
+      return [] unless ENABLED
+
       collect = []
       Ptrace.attach_and_wait(pid)
       begin

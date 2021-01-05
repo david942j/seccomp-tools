@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
+require 'os'
+
 require 'seccomp-tools/const'
-require 'seccomp-tools/ptrace'
+require 'seccomp-tools/ptrace' if OS.linux?
 
 module SeccompTools
   # Record syscall number, arguments, return value.

@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-require 'os'
 require 'seccomp-tools/cli/asm'
 require 'seccomp-tools/cli/disasm'
-require 'seccomp-tools/cli/dump' if OS.linux?
+require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/cli/emu'
 require 'seccomp-tools/version'
 
@@ -11,20 +10,12 @@ module SeccompTools
   # Handle CLI arguments parse.
   module CLI
     # Handled commands
-    COMMANDS = if OS.linux?
-                 {
-                   'asm' => SeccompTools::CLI::Asm,
-                   'disasm' => SeccompTools::CLI::Disasm,
-                   'dump' => SeccompTools::CLI::Dump,
-                   'emu' => SeccompTools::CLI::Emu
-                 }.freeze
-               else
-                 {
-                   'asm' => SeccompTools::CLI::Asm,
-                   'disasm' => SeccompTools::CLI::Disasm,
-                   'emu' => SeccompTools::CLI::Emu
-                 }.freeze
-               end
+    COMMANDS = {
+      'asm' => SeccompTools::CLI::Asm,
+      'disasm' => SeccompTools::CLI::Disasm,
+      'dump' => SeccompTools::CLI::Dump,
+      'emu' => SeccompTools::CLI::Emu
+    }.freeze
 
     # Main usage message.
     USAGE = <<EOS.sub('%COMMANDS', COMMANDS.map { |k, v| "\t#{k}\t#{v::SUMMARY}" }.join("\n")).freeze

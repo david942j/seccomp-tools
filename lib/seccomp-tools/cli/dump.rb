@@ -6,6 +6,7 @@ require 'seccomp-tools/cli/base'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 require 'seccomp-tools/logger'
+require 'seccomp-tools/util'
 
 module SeccompTools
   module CLI
@@ -14,7 +15,8 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
       # Usage of this command.
-      USAGE = "dump - #{SUMMARY}\n\nUsage: seccomp-tools dump [exec] [options]"
+      USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux."\
+              "\n\nUsage: seccomp-tools dump [exec] [options]"
 
       def initialize(*)
         super
@@ -65,6 +67,7 @@ module SeccompTools
       # @return [void]
       def handle
         return unless super
+        return warn(Util.colorize('Dump is only available on Linux.', t: :error)) unless Dumper::ENABLED
 
         block = lambda do |bpf, arch|
           case option[:format]

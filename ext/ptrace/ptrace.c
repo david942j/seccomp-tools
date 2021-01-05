@@ -1,4 +1,7 @@
 #if __linux__
+// ptrace is only available on Linux, therefore let this file be an empty
+// object when installing on other platforms.
+
 #include <assert.h>
 #include <errno.h>
 #include <linux/elf.h>
@@ -171,4 +174,5 @@ void Init_ptrace(void) {
   /* detach from an existing process */
   rb_define_module_function(mPtrace, "detach", ptrace_detach, 1);
 }
-#endif
+#endif  /* __linux__ */
+

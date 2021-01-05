@@ -25,6 +25,7 @@ See 'seccomp-tools <command> --help' to read about a specific subcommand.
   it '--help dump' do
     expect { described_class.work(%w[--help dump]) }.to output(<<EOS).to_stdout
 dump - Automatically dump seccomp bpf from execution file(s).
+NOTE : This function is only available on Linux.
 
 Usage: seccomp-tools dump [exec] [options]
     -c, --sh-exec <command>          Executes the given command (via sh).

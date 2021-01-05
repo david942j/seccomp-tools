@@ -6,9 +6,8 @@
 module SeccompTools
 end
 
-require 'os'
 require 'seccomp-tools/asm/asm'
 require 'seccomp-tools/disasm/disasm'
-require 'seccomp-tools/dumper' if OS.linux?
+require 'seccomp-tools/dumper'
 require 'seccomp-tools/emulator'
 require 'seccomp-tools/version'

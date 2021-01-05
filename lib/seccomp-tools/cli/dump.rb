@@ -14,7 +14,8 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
       # Usage of this command.
-      USAGE = "dump - #{SUMMARY}\n\nUsage: seccomp-tools dump [exec] [options]"
+      USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux." \
+              "\n\nUsage: seccomp-tools dump [exec] [options]"
 
       def initialize(*)
         super
@@ -64,6 +65,7 @@ module SeccompTools
       # Handle options.
       # @return [void]
       def handle
+        return Logger.error('Dump is only available on Linux.') unless Dumper::SUPPORTED
         return unless super
 
         block = lambda do |bpf, arch|

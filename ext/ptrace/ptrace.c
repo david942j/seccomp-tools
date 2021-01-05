@@ -1,3 +1,7 @@
+// ptrace is only available on Linux, therefore let this file be an empty
+// object when installing on other platforms.
+#if __linux__
+
 #include <assert.h>
 #include <errno.h>
 #include <linux/elf.h>
@@ -171,3 +175,4 @@ void Init_ptrace(void) {
   rb_define_module_function(mPtrace, "detach", ptrace_detach, 1);
 }
 
+#endif  /* __linux__ */

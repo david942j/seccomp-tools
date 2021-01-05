@@ -10,7 +10,9 @@ module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
   # Currently only support x86_64 and aarch64.
   module Dumper
-    ENABLED = OS.linux?
+    # Whether the dumper is supported.
+    # Dumper works based on ptrace, so we need the platform be Linux.
+    SUPPORTED = OS.linux?
 
     module_function
 
@@ -39,7 +41,7 @@ module SeccompTools
     # @todo
     #   +timeout+ option.
     def dump(*args, limit: 1, &block)
-      return [] unless ENABLED
+      return [] unless SUPPORTED
 
       pid = fork { handle_child(*args) }
       Handler.new(pid).handle(limit, &block)
@@ -170,7 +172,7 @@ module SeccompTools
     #   dump_by_pid(pid2, 1) { |c| c[0, 10] }
     #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
     def dump_by_pid(pid, limit, &block)
-      return [] unless ENABLED
+      return [] unless SUPPORTED
 
       collect = []
       Ptrace.attach_and_wait(pid)

@@ -54,6 +54,7 @@ $ seccomp-tools --help
 
 $ seccomp-tools dump --help
 # dump - Automatically dump seccomp bpf from execution file(s).
+# NOTE : This function is only available on Linux.
 #
 # Usage: seccomp-tools dump [exec] [options]
 #     -c, --sh-exec <command>          Executes the given command (via sh).

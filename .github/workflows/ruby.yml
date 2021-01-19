@@ -1,0 +1,34 @@
+name: build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu]
+        ruby-version: ['2.6', '2.7', head]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+    - name: Install packages
+      run: sudo apt update && sudo apt install -yy gcc
+    - name: Bundle install
+      run: sudo env "PATH=$PATH" bundle install --jobs=3 --retry=3 --path=${BUNDLE_PATH:-vendor/bundle}
+    - name: Run tests
+      run: sudo env "PATH=$PATH" bundle exec rake
+    - name: Publish code coverage
+      if: ${{ success() && runner.os == 'Linux' }}
+      uses: paambaati/codeclimate-action@v2.7.5
+      env:
+        CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}

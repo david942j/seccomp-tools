@@ -26,7 +26,7 @@ jobs:
     - name: Bundle install
       run: sudo env "PATH=$PATH" bundle install --jobs=3 --retry=3 --path=${BUNDLE_PATH:-vendor/bundle}
     - name: Run tests
-      run: sudo env "PATH=$PATH" bundle exec rake
+      run: sudo env "PATH=$PATH:CI=1" bundle exec rake
     - name: Publish code coverage
       if: ${{ success() && runner.os == 'Linux' }}
       uses: paambaati/codeclimate-action@v2.7.5

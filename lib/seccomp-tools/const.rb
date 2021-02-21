@@ -128,6 +128,7 @@ module SeccompTools
         Hash.new do |_h, k|
           next hash[k] if hash[k]
           next hash[k.to_s[4..-1].to_sym] if k.to_s.start_with?('x32_')
+
           nil
         end
       end

@@ -103,10 +103,10 @@ SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)
 
 ## Architecture Supported
 
-[x] x86_64
-[x] x32
-[x] x86
-[x] arm64 (Thanks to @saagarjha!)
+- [x] x86_64
+- [x] x32
+- [x] x86
+- [x] arm64 (Thanks to @saagarjha!)
 
 ## Development
 

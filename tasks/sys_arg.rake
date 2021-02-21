@@ -21,7 +21,7 @@ task :sys_arg do
 
   parse_failed = {}
   proto = content.scan(/^asmlinkage long sys_(\w+)\(([^)]+)\);/m).each_with_object({}) do |(name, args), hash|
-    next if name == 'sigsuspend' # there're two implementations, don't know which one should be used
+    next if name == 'sigsuspend' # XXX: there are two implementations, don't know which one should be used
     next error(name, args, 'dup') if hash.key?(name)
 
     parse_args(args).tap do |res|

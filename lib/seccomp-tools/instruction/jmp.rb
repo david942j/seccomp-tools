@@ -66,10 +66,15 @@ module SeccompTools
 
         hex = "0x#{k.to_s(16)}"
         case a.val
-        when 0 then Util.colorize(Const::Syscall.const_get(arch.upcase.to_sym).invert[k] || hex, t: :syscall)
+          # interpret as syscalls only if it's an equality test
+        when 0 then Util.colorize(jop == :== ? sysname_by_k || hex : hex, t: :syscall)
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || hex, t: :arch)
         else hex
         end
+      end
+
+      def sysname_by_k
+        Const::Syscall.const_get(arch.upcase.to_sym).invert[k]
       end
 
       def src

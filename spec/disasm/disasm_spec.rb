@@ -278,6 +278,21 @@ describe SeccompTools::Disasm do
     EOS
   end
 
+  it 'args of unknown syscall' do
+    bpf = "\x20\x00\x00\x00\x00\x00\x00\x00" \
+          "\x15\x00\x00\x01\xE7\x03\x00\x00" \
+          "\x20\x00\x00\x00\x10\x00\x00\x00" \
+          "\x06\x00\x00\x00\x00\x00\x00\x00"
+    expect(described_class.disasm(bpf)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0001: 0x15 0x00 0x01 0x000003e7  if (A != 0x3e7) goto 0003
+ 0002: 0x20 0x00 0x00 0x00000010  A = args[0]
+ 0003: 0x06 0x00 0x00 0x00000000  return KILL
+    EOS
+  end
+
   it 'all instructions' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
     expect(described_class.disasm(bpf)).to eq <<-EOS

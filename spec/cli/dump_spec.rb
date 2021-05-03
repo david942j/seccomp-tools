@@ -20,11 +20,13 @@ EOS
   end
 
   it 'normal' do
+    skip_unless_amd64
     expect { described_class.new([@bin, '-f', 'inspect']).handle }.to output(@bpf_inspect).to_stdout
     expect { described_class.new([@bin]).handle }.to output(@bpf_disasm).to_stdout
   end
 
   it 'by pid' do
+    skip_unless_amd64
     skip_unless_root
 
     popen2(@bin) do |i, o, pid|
@@ -50,6 +52,7 @@ EOS
   end
 
   it 'output to files' do
+    skip_unless_amd64
     tmp = File.join('/tmp', SecureRandom.hex)
     described_class.new([@mul, '-f', 'raw', '-o', tmp, '--limit', '2']).handle
     c0 = IO.binread(tmp)
@@ -61,6 +64,7 @@ EOS
   end
 
   it 'close stdin' do
+    skip_unless_amd64
     out = SeccompTools::Disasm.disasm(@bpf)
     argv = ['-c', "echo 0|#{@bin} >/dev/null", '--limit', '-1']
     expect { described_class.new(argv).handle }.to output(out).to_stdout

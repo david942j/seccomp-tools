@@ -170,7 +170,7 @@ $ seccomp-tools asm
 #     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|c_array|c_source|assembly>.
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
-#                                      Supported architectures are <aarch64|amd64|i386>.
+#                                      Supported architectures are <aarch64|amd64|i386|s390x>.
 #                                      Default: amd64
 
 # Input file for asm
@@ -268,7 +268,7 @@ $ seccomp-tools emu --help
 #
 # Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
 #     -a, --arch ARCH                  Specify architecture.
-#                                      Supported architectures are <aarch64|amd64|i386>.
+#                                      Supported architectures are <aarch64|amd64|i386|s390x>.
 #                                      Default: amd64
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
 
@@ -307,6 +307,7 @@ $ seccomp-tools emu spec/data/libseccomp.bpf write 0x3
 - [x] x32
 - [x] x86
 - [x] arm64 (Thanks to @saagarjha!)
+- [x] s390x
 
 ## Development
 

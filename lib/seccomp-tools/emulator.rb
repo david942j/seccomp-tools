@@ -61,7 +61,8 @@ module SeccompTools
       type = {
         amd64: 'ARCH_X86_64',
         i386: 'ARCH_I386',
-        aarch64: 'ARCH_AARCH64'
+        aarch64: 'ARCH_AARCH64',
+        s390x: 'ARCH_S390X'
       }[arch]
       Const::Audit::ARCH[type]
     end

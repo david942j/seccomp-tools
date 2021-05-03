@@ -15,7 +15,7 @@ describe SeccompTools::CLI::Emu do
     end
 
     it 'normal' do
-      expect { described_class.new([@file, '0x3']).handle }.to output(<<EOS).to_stdout
+      expect { described_class.new([@file, '-a', 'amd64', '0x3']).handle }.to output(<<EOS).to_stdout
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -35,7 +35,7 @@ EOS
     end
 
     it 'sys_nr in string format' do
-      expect { described_class.new([@file, 'write', '-q']).handle }.to output(<<EOS).to_stdout
+      expect { described_class.new([@file, '-a', 'amd64', 'write', '-q']).handle }.to output(<<EOS).to_stdout
 return ALLOW at line 0009
 EOS
     end
@@ -51,7 +51,7 @@ EOS
     Tempfile.create(['seccomp-tools-', '.bpf']) do |f|
       f.write("\x06#{"\x00" * 6}\x80")
       f.close
-      expect { described_class.new([f, '-q']).handle }.to output(<<-EOS).to_stdout
+      expect { described_class.new([f, '-a', 'amd64', '-q']).handle }.to output(<<-EOS).to_stdout
 return KILL_PROCESS at line 0000
       EOS
     end

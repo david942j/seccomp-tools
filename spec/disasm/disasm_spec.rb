@@ -11,7 +11,7 @@ describe SeccompTools::Disasm do
 
   it 'normal' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
@@ -37,7 +37,7 @@ describe SeccompTools::Disasm do
 
   it 'libseccomp' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -189,7 +189,7 @@ describe SeccompTools::Disasm do
 
   it 'x32 syscall and args' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'x32.bpf'))
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -209,7 +209,7 @@ describe SeccompTools::Disasm do
 
   it 'syscall args' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'gctf-2019-quals-caas.bpf'))
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000004  A = arch
@@ -283,7 +283,7 @@ describe SeccompTools::Disasm do
           "\x15\x00\x00\x01\xE7\x03\x00\x00" \
           "\x20\x00\x00\x00\x10\x00\x00\x00" \
           "\x06\x00\x00\x00\x00\x00\x00\x00"
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
@@ -295,7 +295,7 @@ describe SeccompTools::Disasm do
 
   it 'all instructions' do
     bpf = IO.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
-    expect(described_class.disasm(bpf)).to eq <<-EOS
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
@@ -352,7 +352,7 @@ describe SeccompTools::Disasm do
 
   it 'test branch function' do
     raw = IO.binread(File.join(__dir__, '..', 'data', 'misc_alu.bpf'))
-    expect(described_class.disasm(raw)).to eq(<<-EOS)
+    expect(described_class.disasm(raw, arch: :amd64)).to eq(<<-EOS)
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000008  A = instruction_pointer
@@ -380,7 +380,7 @@ describe SeccompTools::Disasm do
 
   it 'else jmp' do
     bpf = [0x15, 0x25, 0x35, 0x45].map { |c| "#{c.chr}\x00\x00\x01\x00\x00\x00\x00" }.join
-    expect(described_class.disasm(bpf)).to eq(<<-EOS)
+    expect(described_class.disasm(bpf, arch: :amd64)).to eq(<<-EOS)
  line  CODE  JT   JF      K
 =================================
  0000: 0x15 0x00 0x01 0x00000000  if (A != 0) goto 0002
@@ -391,7 +391,8 @@ describe SeccompTools::Disasm do
   end
 
   it 'invalid jmp' do
-    expect { described_class.disasm(0x55.chr + "\x00" * 7) }.to raise_error(ArgumentError,
-                                                                            'Line 0 is invalid: unknown jmp type')
+    expect { described_class.disasm(0x55.chr + "\x00" * 7, arch: :amd64) }.to raise_error(
+      ArgumentError, 'Line 0 is invalid: unknown jmp type'
+    )
   end
 end

@@ -2,9 +2,14 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/dumper'
+require 'seccomp-tools/util'
 
 describe SeccompTools::Dumper do
   describe 'amd64' do
+    before do
+      skip_unless_amd64
+    end
+
     context 'diary' do
       before do
         @diary = bin_of('twctf-2016-diary')
@@ -50,6 +55,10 @@ describe SeccompTools::Dumper do
   end
 
   describe 'i386' do
+    before do
+      skip_unless_x86
+    end
+
     context 'amigo' do
       it 'normal' do
         bin = bin_of('CONFidence-2017-amigo')
@@ -81,6 +90,7 @@ describe SeccompTools::Dumper do
       end
 
       it 'test limits' do
+        skip_unless_amd64
         skip_unless_root
 
         output = described_class.dump(bin, limit: 2)

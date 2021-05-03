@@ -4,7 +4,7 @@ require 'seccomp-tools/util'
 
 describe SeccompTools::Util do
   it 'supported_archs' do
-    expect(described_class.supported_archs).to eq %i(aarch64 amd64 i386)
+    expect(described_class.supported_archs).to eq %i(aarch64 amd64 i386 s390x)
   end
 
   it 'system arch' do
@@ -15,6 +15,8 @@ describe SeccompTools::Util do
     expect(described_class.system_arch).to be :i386
     RbConfig::CONFIG['host_cpu'] = 'aarch64'
     expect(described_class.system_arch).to be :aarch64
+    RbConfig::CONFIG['host_cpu'] = 's390x'
+    expect(described_class.system_arch).to be :s390x
     RbConfig::CONFIG['host_cpu'] = 'fake'
     expect(described_class.system_arch).to be :unknown
     RbConfig::CONFIG['host_cpu'] = org

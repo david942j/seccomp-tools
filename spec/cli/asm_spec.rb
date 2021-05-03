@@ -14,17 +14,17 @@ describe SeccompTools::CLI::Asm do
 
   context 'format' do
     it 'default: inspect' do
-      expect { described_class.new([@asm]).handle }.to output("#{@bpf.inspect}\n").to_stdout
+      expect { described_class.new([@asm, '-a', 'amd64']).handle }.to output("#{@bpf.inspect}\n").to_stdout
     end
 
     it 'c_array' do
-      expect { described_class.new([@asm, '-f', 'c_array']).handle }.to output(<<-EOS).to_stdout
+      expect { described_class.new([@asm, '-f', 'c_array', '-a', 'amd64']).handle }.to output(<<-EOS).to_stdout
 unsigned char bpf[] = {#{@bpf.bytes.join(',')}};
       EOS
     end
 
     it 'c_source' do
-      expect { described_class.new([@asm, '-f', 'c_source']).handle }.to output(<<-EOS).to_stdout
+      expect { described_class.new([@asm, '-f', 'c_source', '-a', 'amd64']).handle }.to output(<<-EOS).to_stdout
 #include <linux/seccomp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +116,7 @@ _filter_end:
 
   it 'ofile' do
     tmp = File.join('/tmp', SecureRandom.hex)
-    described_class.new([@asm, '-o', tmp, '-f', 'raw']).handle
+    described_class.new([@asm, '-o', tmp, '-f', 'raw', '-a', 'amd64']).handle
     content = IO.binread(tmp)
     FileUtils.rm(tmp)
     expect(content).to eq @bpf

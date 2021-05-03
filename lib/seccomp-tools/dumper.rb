@@ -8,7 +8,7 @@ require 'seccomp-tools/syscall'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
-  # Currently only support x86_64 and aarch64.
+  # Currently support x86_64, aarch64 and s390x.
   module Dumper
     # Whether the dumper is supported.
     # Dumper works based on ptrace, so we need the platform be Linux.

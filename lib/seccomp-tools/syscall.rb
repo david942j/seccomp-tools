@@ -12,7 +12,10 @@ module SeccompTools
     ABI = {
       amd64: { number: 120, args: [112, 104, 96, 56, 72, 44], ret: 80, SYS_prctl: 157, SYS_seccomp: 317 },
       i386: { number: 44, args: [0, 4, 8, 12, 16, 20], ret: 24, SYS_prctl: 172, SYS_seccomp: 354 },
-      aarch64: { number: 64, args: [0, 8, 16, 24, 32, 40, 48], ret: 0, SYS_prctl: 167, SYS_seccomp: 277 }
+      aarch64: { number: 64, args: [0, 8, 16, 24, 32, 40, 48], ret: 0, SYS_prctl: 167, SYS_seccomp: 277 },
+      # Most software invokes syscalls through "svc 0", in which case the syscall number is in r1.
+      # However, it's also possible to use "svc NR": this case is not handled here.
+      s390x: { number: 24, args: [32, 40, 48, 56, 64, 72], ret: 32, SYS_prctl: 172, SYS_seccomp: 348 }
     }.freeze
 
     # @return [Integer] Process id.
@@ -64,11 +67,12 @@ module SeccompTools
     def arch
       @arch ||= File.open("/proc/#{pid}/exe", 'rb') do |f|
         f.pos = 18
-        case f.read(1).ord
-        when 3 then :i386
-        when 62 then :amd64
-        when 183 then :aarch64
-        end
+        {
+          "\x03\x00" => :i386,
+          "\x3e\x00" => :amd64,
+          "\xb7\x00" => :aarch64,
+          "\x00\x16" => :s390x
+        }[f.read(2)]
       end
     end
 
@@ -78,7 +82,8 @@ module SeccompTools
       {
         i386: 32,
         amd64: 64,
-        aarch64: 64
+        aarch64: 64,
+        s390x: 64
       }[arch]
     end
 

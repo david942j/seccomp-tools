@@ -10,7 +10,7 @@ describe SeccompTools::Asm do
   end
 
   it 'normal-asm' do
-    raw = described_class.asm(<<-EOS)
+    raw = described_class.asm(<<-EOS, arch: :amd64)
     # lines start with '#' are comments
       A = sys_number # here's a comment, too
       A >= 0x40000000 ? dead : next # 'next' is a keyword, denote the next instruction
@@ -22,7 +22,7 @@ describe SeccompTools::Asm do
     ok:
       return ALLOW
     EOS
-    expect(SeccompTools::Disasm.disasm(raw)).to eq <<-EOS
+    expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x20 0x00 0x00 0x00000000  A = sys_number
@@ -69,7 +69,7 @@ describe SeccompTools::Asm do
       A == read ? 1 : next
     EOS
     raw = described_class.asm(rule, arch: :amd64)
-    expect(SeccompTools::Disasm.disasm(raw)).to include <<-EOS
+    expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to include <<-EOS
  0000: 0x00 0x00 0x00 0x0000003b  A = 59
  0001: 0x20 0x00 0x00 0x00000000  A = sys_number
  0002: 0x15 0x01 0x00 0x00000000  if (A == read) goto 0004
@@ -114,7 +114,7 @@ describe SeccompTools::Asm do
   end
 
   it 'alu' do
-    raw = described_class.asm(<<-EOS)
+    raw = described_class.asm(<<-EOS, arch: :amd64)
       A &= read
       A += write
       A *= 0x1
@@ -125,7 +125,7 @@ describe SeccompTools::Asm do
       A <<= 1
       A ^= 0x1337
     EOS
-    expect(SeccompTools::Disasm.disasm(raw)).to eq <<-EOS
+    expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
  0000: 0x54 0x00 0x00 0x00000000  A &= 0x0

@@ -143,7 +143,17 @@ module SeccompTools
       ARCH = {
         'ARCH_X86_64' => 0xc000003e,
         'ARCH_I386' => 0x40000003,
-        'ARCH_AARCH64' => 0xc00000b7
+        'ARCH_AARCH64' => 0xc00000b7,
+        'ARCH_S390X' => 0x80000016
+      }.freeze
+    end
+
+    module Endian
+      ENDIAN = {
+        i386: '<',
+        amd64: '<',
+        aarch64: '<',
+        s390x: '>'
       }.freeze
     end
   end

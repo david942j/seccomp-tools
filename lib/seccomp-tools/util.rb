@@ -21,6 +21,7 @@ module SeccompTools
       when /x86_64/ then :amd64
       when /i386/ then :i386
       when /aarch64/ then :aarch64
+      when /s390x/ then :s390x
       else :unknown
       end
     end

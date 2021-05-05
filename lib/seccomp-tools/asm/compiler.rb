@@ -31,7 +31,7 @@ module SeccompTools
       def process(line)
         @input << line.strip
         line = remove_comment(line)
-        @token = Tokenizer.new(line)
+        @token = Tokenizer.new(line, @arch)
         return if line.empty?
 
         begin

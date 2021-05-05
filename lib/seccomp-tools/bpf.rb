@@ -34,10 +34,11 @@ module SeccompTools
     def initialize(raw, arch, line)
       if raw.is_a?(String)
         io = ::StringIO.new(raw)
-        @code = io.read(2).unpack1('S')
+        endian = Const::Endian::ENDIAN[arch]
+        @code = io.read(2).unpack1("S#{endian}")
         @jt = io.read(1).ord
         @jf = io.read(1).ord
-        @k = io.read(4).unpack1('L')
+        @k = io.read(4).unpack1("L#{endian}")
       else
         @code = raw[:code]
         @jt = raw[:jt]
@@ -60,7 +61,8 @@ module SeccompTools
     # @return [String]
     #   Raw bpf bytes.
     def asm
-      [code].pack('S*') + [jt, jf].pack('C*') + [k].pack('L')
+      endian = Const::Endian::ENDIAN[arch]
+      [code, jt, jf, k].pack("S#{endian}CCL#{endian}")
     end
 
     # Command according to +code+.

@@ -15,10 +15,12 @@ module SeccompTools
       attr_accessor :cur
 
       # @param [String] str
+      # @param [Symbol] arch
       # @example
       #   Tokenizer.new('return ALLOW')
-      def initialize(str)
+      def initialize(str, arch)
         @str = str
+        @arch = arch
         @cur = @str.dup
       end
 
@@ -96,8 +98,11 @@ Invalid return type: #{cur.inspect}.
       end
 
       def fetch_syscall
-        sys = Const::Syscall::AMD64
-        sys = sys.merge(Const::Syscall::I386)
+        sys = case @arch
+              when :amd64, :i386 then Const::Syscall::AMD64.merge(Const::Syscall::I386)
+              when :aarch64 then Const::Syscall::AARCH64
+              when :s390x then Const::Syscall::S390X
+              end
         fetch_strs(sys.keys.map(&:to_s).sort_by(&:size).reverse)
       end
 

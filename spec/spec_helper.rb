@@ -52,6 +52,14 @@ module Helpers
     skip 'Must be root' unless Process.uid.zero?
   end
 
+  def skip_unless_amd64
+    skip 'Must run on amd64' unless SeccompTools::Util.system_arch == :amd64
+  end
+
+  def skip_unless_x86
+    skip 'Must run on i386 or amd64' unless %i[i386 amd64].include? SeccompTools::Util.system_arch
+  end
+
   # Sets EUID as 'nobody' and yields the block.
   # If the current user is not root then the block will be yield without switching users.
   #

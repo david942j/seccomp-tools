@@ -120,14 +120,14 @@ module SeccompTools
         filename = File.join(__dir__, 'consts', 'sys_nr', "#{arch}.rb")
         return unless File.exist?(filename)
 
-        const_set(cons, instance_eval(IO.read(filename)))
+        const_set(cons, instance_eval(File.read(filename)))
       end
 
       def load_args
-        hash = instance_eval(IO.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
+        hash = instance_eval(File.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
         Hash.new do |_h, k|
           next hash[k] if hash[k]
-          next hash[k.to_s[4..-1].to_sym] if k.to_s.start_with?('x32_')
+          next hash[k.to_s[4..].to_sym] if k.to_s.start_with?('x32_')
 
           nil
         end

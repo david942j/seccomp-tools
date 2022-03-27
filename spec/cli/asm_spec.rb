@@ -8,7 +8,7 @@ require 'seccomp-tools/util'
 describe SeccompTools::CLI::Asm do
   before do
     @asm = File.join(__dir__, '..', 'data', 'libseccomp.asm')
-    @bpf = IO.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
+    @bpf = File.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
     SeccompTools::Util.disable_color!
   end
 
@@ -117,7 +117,7 @@ _filter_end:
   it 'ofile' do
     tmp = File.join('/tmp', SecureRandom.hex)
     described_class.new([@asm, '-o', tmp, '-f', 'raw', '-a', 'amd64']).handle
-    content = IO.binread(tmp)
+    content = File.binread(tmp)
     FileUtils.rm(tmp)
     expect(content).to eq @bpf
   end

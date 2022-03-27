@@ -62,12 +62,12 @@ describe SeccompTools::Dumper do
     context 'amigo' do
       it 'normal' do
         bin = bin_of('CONFidence-2017-amigo')
-        bpf = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+        bpf = File.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
         got = described_class.dump(bin).first
         # there's pid inside seccomp rules.. ignore it
         expect(got.size).to be bpf.size
         expect(got[0, 0x1ec]).to eq bpf[0, 0x1ec]
-        expect(got[0x1f0..-1]).to eq bpf[0x1f0..-1]
+        expect(got[0x1f0..]).to eq bpf[0x1f0..]
       end
     end
   end
@@ -79,12 +79,10 @@ describe SeccompTools::Dumper do
       let(:popen) do
         lambda do |&block|
           popen2(bin) do |i, o, pid|
-            begin
-              o.gets # seccomp installed
-              block.call(pid)
-            ensure
-              i.puts
-            end
+            o.gets # seccomp installed
+            block.call(pid)
+          ensure
+            i.puts
           end
         end
       end

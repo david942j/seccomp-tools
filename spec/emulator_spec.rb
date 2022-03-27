@@ -38,7 +38,7 @@ describe SeccompTools::Emulator do
 
   context 'diary' do
     before do
-      raw = IO.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
+      raw = File.binread(File.join(__dir__, 'data', 'twctf-2016-diary.bpf'))
       @insts = SeccompTools::Disasm.to_bpf(raw, :amd64).map(&:inst)
     end
 
@@ -58,7 +58,7 @@ describe SeccompTools::Emulator do
 
   context 'CONFidence-2017-amigo' do
     before do
-      raw = IO.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
+      raw = File.binread(File.join(__dir__, 'data', 'CONFidence-2017-amigo.bpf'))
       @insts = SeccompTools::Disasm.to_bpf(raw, :i386).map(&:inst)
     end
 
@@ -76,7 +76,7 @@ describe SeccompTools::Emulator do
 
   context 'misc_alu' do
     before do
-      raw = IO.binread(File.join(__dir__, 'data', 'misc_alu.bpf'))
+      raw = File.binread(File.join(__dir__, 'data', 'misc_alu.bpf'))
       @insts = SeccompTools::Disasm.to_bpf(raw, :i386).map(&:inst)
     end
 
@@ -89,7 +89,7 @@ describe SeccompTools::Emulator do
 
   context 'bdooos' do
     before do
-      raw = IO.binread(File.join(__dir__, 'data', 'DEF-CON-2020-bdooos.bpf'))
+      raw = File.binread(File.join(__dir__, 'data', 'DEF-CON-2020-bdooos.bpf'))
       @insts = SeccompTools::Disasm.to_bpf(raw, :aarch64).map(&:inst)
     end
 

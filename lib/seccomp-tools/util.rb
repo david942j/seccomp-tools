@@ -79,7 +79,7 @@ module SeccompTools
     # @return [String]
     #   Content of the file.
     def template(filename)
-      IO.binread(File.join(__dir__, 'templates', filename))
+      File.binread(File.join(__dir__, 'templates', filename))
     end
   end
 end

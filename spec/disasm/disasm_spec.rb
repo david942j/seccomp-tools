@@ -10,7 +10,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'normal' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'twctf-2016-diary.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -36,7 +36,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'libseccomp' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -55,7 +55,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'i386' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'CONFidence-2017-amigo.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'CONFidence-2017-amigo.bpf'))
     expect(described_class.disasm(bpf, arch: :i386)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -161,7 +161,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'aarch64' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'DEF-CON-2020-bdooos.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'DEF-CON-2020-bdooos.bpf'))
     expect(described_class.disasm(bpf, arch: :aarch64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -188,7 +188,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'x32 syscall and args' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'x32.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'x32.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -208,7 +208,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'syscall args' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'gctf-2019-quals-caas.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'gctf-2019-quals-caas.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -294,7 +294,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'all instructions' do
-    bpf = IO.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
+    bpf = File.binread(File.join(__dir__, '..', 'data', 'all_inst.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS
  line  CODE  JT   JF      K
 =================================
@@ -351,7 +351,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'test branch function' do
-    raw = IO.binread(File.join(__dir__, '..', 'data', 'misc_alu.bpf'))
+    raw = File.binread(File.join(__dir__, '..', 'data', 'misc_alu.bpf'))
     expect(described_class.disasm(raw, arch: :amd64)).to eq(<<-EOS)
  line  CODE  JT   JF      K
 =================================

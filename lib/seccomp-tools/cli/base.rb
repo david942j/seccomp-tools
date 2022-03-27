@@ -39,7 +39,7 @@ module SeccompTools
       # @return [String]
       #   String read from file.
       def input
-        option[:ifile] == '-' ? $stdin.read.force_encoding('ascii-8bit') : IO.binread(option[:ifile])
+        option[:ifile] == '-' ? $stdin.read.force_encoding('ascii-8bit') : File.binread(option[:ifile])
       end
 
       # Write data to stdout or file(s).
@@ -55,7 +55,7 @@ module SeccompTools
         # Write to file, we should disable colorize
         enabled = Util.colorize_enabled?
         Util.disable_color! if enabled
-        IO.binwrite(file_of(option[:ofile], @serial), yield)
+        File.binwrite(file_of(option[:ofile], @serial), yield)
         Util.enable_color! if enabled
         @serial += 1
       end

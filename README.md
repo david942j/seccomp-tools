@@ -1,24 +1,24 @@
 [![Build Status](https://github.com/david942j/seccomp-tools/workflows/build/badge.svg)](https://github.com/david942j/seccomp-tools/actions)
-[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=david942j/seccomp-tools)](https://dependabot.com)
 [![Code Climate](https://codeclimate.com/github/david942j/seccomp-tools/badges/gpa.svg)](https://codeclimate.com/github/david942j/seccomp-tools)
 [![Issue Count](https://codeclimate.com/github/david942j/seccomp-tools/badges/issue_count.svg)](https://codeclimate.com/github/david942j/seccomp-tools)
 [![Test Coverage](https://codeclimate.com/github/david942j/seccomp-tools/badges/coverage.svg)](https://codeclimate.com/github/david942j/seccomp-tools/coverage)
 [![Inline docs](https://inch-ci.org/github/david942j/seccomp-tools.svg?branch=master)](https://inch-ci.org/github/david942j/seccomp-tools)
+[![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](https://www.rubydoc.info/github/david942j/seccomp-tools/)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://choosealicense.com/licenses/mit/)
 
 # Seccomp Tools
 Provide powerful tools for seccomp analysis.
 
 This project is targeted to (but not limited to) analyze seccomp sandbox in CTF pwn challenges.
-Some features might be CTF-specific, but still useful for analyzing seccomp in real-case.
+Some features might be CTF-specific, but still useful for analyzing seccomp of real cases.
 
 ## Features
-* Dump - Automatically dumps seccomp-bpf from execution file(s).
-* Disasm - Converts bpf to human readable format.
-  - Simple decompile.
-  - Display syscall names and arguments when possible.
+* Dump - Automatically dumps seccomp BPF from execution file(s).
+* Disasm - Converts seccomp BPF to a human readable format.
+  - With simple decompilation.
+  - With syscall names and arguments whenever possible.
   - Colorful!
-* Asm - Write seccomp rules is so easy!
+* Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
 * Supports multi-architectures.
 
@@ -76,8 +76,8 @@ $ seccomp-tools dump --help
 
 ### dump
 
-Dumps the seccomp bpf from an execution file.
-This work is done by the `ptrace` syscall.
+Dumps the seccomp BPF from an execution file.
+This work is done by utilizing the `ptrace` syscall.
 
 NOTICE: beware of the execution file will be executed.
 ```bash
@@ -124,7 +124,7 @@ $ seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd
 
 ### disasm
 
-Disassembles the seccomp from raw bpf.
+Disassembles the seccomp from raw BPF.
 ```bash
 $ xxd spec/data/twctf-2016-diary.bpf | head -n 3
 # 00000000: 2000 0000 0000 0000 1500 0001 0200 0000   ...............
@@ -306,8 +306,8 @@ $ seccomp-tools emu spec/data/libseccomp.bpf write 0x3
 - [x] x86_64
 - [x] x32
 - [x] x86
-- [x] arm64 (Thanks to @saagarjha!)
-- [x] s390x
+- [x] arm64 (@saagarjha)
+- [x] s390x (@iii-i)
 
 ## Development
 

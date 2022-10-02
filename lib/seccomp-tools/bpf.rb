@@ -26,7 +26,7 @@ module SeccompTools
 
     # Instantiate a {BPF} object.
     # @param [String] raw
-    #   One +struct sock_filter+ in bytes, should exactly 8 bytes.
+    #   One +struct sock_filter+ in bytes, should be 8 bytes long.
     # @param [Symbol] arch
     #   Architecture, for showing constant names in decompile.
     # @param [Integer] line

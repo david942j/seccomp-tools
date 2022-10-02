@@ -13,7 +13,16 @@ require 'seccomp-tools/const'
 include SeccompTools::Const::BPF # rubocop:disable Style/MixinUsage
 output = File.open(File.join(__dir__, 'all_inst.bpf'), 'w')
 
-whitelist = [
+INST_LIST = [
+  COMMAND[:jmp] | JMP[:ja],
+  COMMAND[:jmp] | JMP[:jeq] | SRC[:k],
+  COMMAND[:jmp] | JMP[:jeq] | SRC[:x],
+  COMMAND[:jmp] | JMP[:jge] | SRC[:k],
+  COMMAND[:jmp] | JMP[:jge] | SRC[:x],
+  COMMAND[:jmp] | JMP[:jgt] | SRC[:k],
+  COMMAND[:jmp] | JMP[:jgt] | SRC[:x],
+  COMMAND[:jmp] | JMP[:jset] | SRC[:k],
+  COMMAND[:jmp] | JMP[:jset] | SRC[:x],
   COMMAND[:ld] | MODE[:len],
   COMMAND[:ldx] | MODE[:len],
   COMMAND[:ret] | SRC[:k],
@@ -44,19 +53,26 @@ whitelist = [
   COMMAND[:ld] | MODE[:mem],
   COMMAND[:ldx] | MODE[:mem],
   COMMAND[:st],
-  COMMAND[:stx],
-  COMMAND[:jmp] | JMP[:ja],
-  COMMAND[:jmp] | JMP[:jeq] | SRC[:k],
-  COMMAND[:jmp] | JMP[:jeq] | SRC[:x],
-  COMMAND[:jmp] | JMP[:jge] | SRC[:k],
-  COMMAND[:jmp] | JMP[:jge] | SRC[:x],
-  COMMAND[:jmp] | JMP[:jgt] | SRC[:k],
-  COMMAND[:jmp] | JMP[:jgt] | SRC[:x],
-  COMMAND[:jmp] | JMP[:jset] | SRC[:k],
-  COMMAND[:jmp] | JMP[:jset] | SRC[:x]
-]
+  COMMAND[:stx]
+].freeze
 
-# special case handled by linux kernel
+def is_cmd?(code, syms)
+  syms.any? { |s| COMMAND[s] == code & 7 }
+end
+
+def is_ld?(code)
+  is_cmd?(code, %i[ld ldx])
+end
+
+def is_st?(code)
+  is_cmd?(code, %i[st stx])
+end
+
+def is_jmp?(code)
+  is_cmd?(code, %i[jmp])
+end
+
+# special case handled by Linux kernel
 # BPF_LD | BPF_W | BPF_ABS
 code = COMMAND[:ld] | MODE[:abs]
 [0, 4, 8, *Array.new(6) { |i| i * 8 + 16 }].each do |off|
@@ -64,9 +80,17 @@ code = COMMAND[:ld] | MODE[:abs]
 end
 
 rng = Random.new(31_337)
-whitelist.each do |c|
-  # random jt, jf, k  is enough
+INST_LIST.each_with_index do |c, idx|
+  # random jt, jf, k is good enough
   jt, jf, k = Array.new(3) { rng.rand(0..255) }
+  if is_jmp?(c)
+    # make jt and jf smaller for jmp commands to prevent OOB jump
+    jt = rng.rand(0...(INST_LIST.size - idx))
+    jf = rng.rand(0...(INST_LIST.size - idx))
+  elsif (is_ld?(c) && c & 0xe0 == MODE[:mem]) || is_st?(c)
+    # ensure mem[]'s index doesn't exceed 15
+    k &= 0xf
+  end
   output.write("#{c.chr}\x00")
   output.write(jt.chr)
   output.write(jf.chr)

@@ -1,6 +1,9 @@
 AllCops:
   DisplayCopNames: true
   DisplayStyleGuide: true
+  Exclude:
+    - 'lib/**/*.tab.rb'
+    - 'tmp/**/*'
 
 Layout/EndOfLine:
   EnforcedStyle: lf

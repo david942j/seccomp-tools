@@ -16,7 +16,8 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.license       = 'MIT'
   s.authors       = ['david942j']
   s.email         = ['david942j@gmail.com']
-  s.files         = Dir['lib/**/*.rb'] + Dir['lib/seccomp-tools/templates/*'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md)
+  s.files         = Dir['lib/**/*.rb'] + Dir['lib/**/*.y'] +
+                    Dir['lib/seccomp-tools/templates/*'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md)
   s.extensions    = %w[ext/ptrace/extconf.rb]
   s.executables   = 'seccomp-tools'
 

@@ -12,9 +12,16 @@ module SeccompTools
     #
     # Internally used by {SeccompAsmParser}.
     class Scanner
-      # Keywords with special meanings in our assembly.
+      attr_reader :syscalls
+
+      # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
       KEYWORDS = %w[a x if else return mem args sys_number arch instruction_pointer].freeze
+      # Action strings can be used in a return statement. Actions must be in upper case.
+      # See {SeccompTools::Const::BPF::ACTION}.
       ACTIONS = Const::BPF::ACTION.keys.map(&:to_s)
+      # Special constants for checking the current architecture. See {SeccompTools::Const::Audit::ARCH}. These constants
+      # are case-insensitive.
+      ARCHES = Const::Audit::ARCH.keys
       # Comparisons.
       COMPARE = %w[== != >= <= > < &].freeze
       # All valid arithmetic operators.
@@ -42,7 +49,7 @@ module SeccompTools
         errors = validate
         return self if errors.empty?
 
-        raise UnrecognizedTokenError, errors.map { |e| format_error(e) }.join("\n")
+        raise UnrecognizedTokenError, errors.map { |e| format_error(e, "unknown token #{e.str.inspect}") }.join("\n")
       end
 
       # Same as {#validate!} but returns the array of errors instead of raising an exception.
@@ -84,28 +91,30 @@ module SeccompTools
           when /\Agoto\s+\w+\b/i
             str = ::Regexp.last_match.post_match
             match = ::Regexp.last_match(0).split(/\s/)
-            add_token.call(:GOTO, 'goto')
-            col += 4 + match.size - 1
+            add_token.call(:GOTO, match.first)
+            col += 'goto'.size + match.size - 1
             add_token.call(:GOTO_SYMBOL, match.last)
             col += match.last.size
           when /\A\b(#{KEYWORDS.join('|')})\b/i
             add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
-          when /\A\b(#{ACTIONS.join('|')})\b/i
+          when /\A\b(#{ACTIONS.join('|')})\b/
             add_token_def.call(:ACTION)
+          when /\A\b(#{ARCHES.join('|')})\b/i
+            add_token_def.call(:ARCH_VAL)
           when /\A\b(#{syscalls.join('|')})\b/
             add_token_def.call(:SYSCALL)
           when /\A\w+:/
             add_token.call(:SYMBOL, ::Regexp.last_match(0)[0..-2])
             col += ::Regexp.last_match(0).size
             str = ::Regexp.last_match.post_match
-          when /\A0x[0-9a-f]+\b/
+          when /\A-?0x[0-9a-f]+\b/
             add_token_def.call(:HEX_INT)
-          when /\A[1-9][0-9]*\b/
+          when /\A-?[0-9]+\b/
             add_token_def.call(:INT)
+          when /\A(#{ALU_OP.map { |o| ::Regexp.escape("#{o}=") }.join('|')})/
+            add_token_def.call(:ALU_OP)
           when /\A(#{COMPARE.join('|')})/
             add_token_def.call(:COMPARE)
-          when /\A(#{ALU_OP.map { |o| "#{::Regexp.escape(o)}=" }.join('|')})/
-            add_token_def.call(:ALU_OP)
           when /\A(\(|\)|=|\[|\])/
             add_token_def.call(::Regexp.last_match(0))
           when /\A[^\s]+\s/
@@ -114,31 +123,30 @@ module SeccompTools
             add_token.call(:unknown, last[0..-2])
             col += last.size - 1
             str = last[-1] + ::Regexp.last_match.post_match
-          else
-            raise SeccompTools::ArgumentError, str.lines[0]
           end
         end
         @tokens
       end
 
-      private
-
       # Let tab on terminal be 4 spaces wide.
       TAB_WIDTH = 4
 
       # @param [Token] tok
+      # @param [String] msg
       # @return [String]
-      def format_error(tok)
+      def format_error(tok, msg)
         @lines = @str.lines unless defined?(@lines)
         line = @lines[tok.line]
         line = line[0..-2] if line.end_with?("\n")
         line = line.gsub("\t", ' ' * TAB_WIDTH)
         <<-EOS
-#{@filename}:#{tok.line + 1}:#{tok.col + 1} unknown token #{tok.str.inspect}
+#{@filename}:#{tok.line + 1}:#{tok.col + 1} #{msg}
 #{line}
 #{' ' * calculate_spaces(@lines[tok.line][0...tok.col]) + '^' * tok.str.size}
         EOS
       end
+
+      private
 
       def calculate_spaces(str)
         str.size + str.count("\t") * (TAB_WIDTH - 1)

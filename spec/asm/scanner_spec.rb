@@ -2,6 +2,7 @@
 
 require 'seccomp-tools/asm/scanner'
 require 'seccomp-tools/asm/token'
+require 'seccomp-tools/const'
 
 describe SeccompTools::Asm::Scanner do
   describe 'validate' do
@@ -57,6 +58,91 @@ meow
   end
 
   describe 'scan' do
+    it 'goto' do
+      s = described_class.new(<<-EOS, :amd64)
+      goto whatever_1
+      if (A == 123) gOto 1 else GoTo 2
+      EOS
+      expect(s.scan.count { |t| t.sym == :GOTO }).to be 3
+      expect(s.scan.count { |t| t.sym == :GOTO_SYMBOL }).to be 3
+    end
+
+    it 'keywords' do
+      s = described_class.new(<<-EOS, :amd64)
+      if else A X RETurn
+      mem ARGS sYS_NUMBEr aRch instRUCtion_pointer
+      EOS
+      expect(s.scan.count { |t| t.sym != :NEWLINE }).to be 10
+      expect(s.validate).to be_empty
+    end
+
+    it 'actions' do
+      s = described_class.new(<<-EOS, :amd64)
+        KILL_PROCESS
+        KILL_THREAD
+        KILL
+        TRAP
+        ERRNO
+        USER_NOTIF
+        LOG
+        TRACE
+        ALLOW
+      EOS
+      expect(s.scan.count { |t| t.sym == :ACTION }).to be SeccompTools::Const::BPF::ACTION.size
+    end
+
+    it 'arches' do
+      s = described_class.new(<<-EOS, :amd64)
+        ARCH_X86_64
+        ARCH_I386
+        ARCH_AARCH64
+        ARCH_S390X
+      EOS
+      expect(s.scan.count { |t| t.sym == :ARCH_VAL }).to be SeccompTools::Const::Audit::ARCH.size
+    end
+
+    it 'syscalls' do
+      syscalls = SeccompTools::Const::Syscall::S390X.keys
+      s = described_class.new(syscalls.join(' '), :s390x)
+      expect(s.scan.count { |t| t.sym == :SYSCALL }).to be syscalls.size
+    end
+
+    it 'symbols' do
+      s = described_class.new(<<-EOS, :amd64)
+      abc: 123:
+    symbol:
+      EOS
+      expect(s.scan.count { |t| t.sym == :SYMBOL }).to be 3
+    end
+
+    it 'integers' do
+      s = described_class.new(<<-EOS, :amd64)
+      0 0x123 -1 -2 1337 -0x1337
+      EOS
+      expect(s.scan.count { |t| t.sym == :HEX_INT || t.sym == :INT }).to be 6
+    end
+
+    it 'alu operators' do
+      s = described_class.new(<<-EOS, :amd64)
+      += -= *= /= &= |= ^= <<= >>=
+      EOS
+      expect(s.scan.count { |t| t.sym == :ALU_OP }).to be 9
+    end
+
+    it 'compare' do
+      s = described_class.new(<<-EOS, :amd64)
+      == != >= <= > < &
+      EOS
+      expect(s.scan.count { |t| t.sym == :COMPARE }).to be 7
+    end
+
+    it 'marks' do
+      s = described_class.new(<<-EOS, :amd64)
+      () [] =
+      EOS
+      expect(s.scan.count { |t| t.sym.is_a?(String) }).to be 5
+    end
+
     it 'if expressions' do
       s = described_class.new(<<-EOS, :amd64)
 if (A <= write) goto   xyz
@@ -72,21 +158,6 @@ if (A <= write) goto   xyz
         '1:15 ):)', '1:20 GOTO:goto', '1:25 GOTO_SYMBOL:dead', '1:32 ELSE:else',
         '1:37 GOTO:goto', '1:42 GOTO_SYMBOL:ok', "1:44 NEWLINE:\n"
       ]
-    end
-
-    it 'keywords' do
-      s = described_class.new(<<-EOS, :amd64)
-      if else gOtO a_label A X () read write open RETurn 123456789 0x1337
-      if(A==ioctl) ][
-      sYmBol:
-      mem args sys_number arch instruction_pointer
-      kill allow errno
-      += -= *= /= &= |= ^= <<= >>=
-      EOS
-      tokens = s.scan
-      # 43 tokens + 6 \n
-      expect(tokens.size).to be 49
-      expect(s.validate).to be_empty
     end
 
     it 'empty lines' do

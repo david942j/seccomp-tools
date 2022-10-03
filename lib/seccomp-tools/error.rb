@@ -12,4 +12,8 @@ module SeccompTools
   # Raised when a referred label is defined no where on compiling seccomp assembly.
   class UndefinedLabelError < Error
   end
+
+  # Raised on RACC parsing error when compiling seccomp assembly.
+  class ParseError < Error
+  end
 end

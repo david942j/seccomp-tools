@@ -9,22 +9,22 @@ rule
          | symbols newlines symbol { val[0] << val[2] }
   symbol: SYMBOL {
             t = val[0]
-            raise_error { |t| "'next' is a reserved label" } if t == 'next'
+            raise_error("'next' is a reserved label") if t == 'next'
             t
           }
   statement: arithmetic { [:alu, val[0]] }
            | assignment { [:assign, val[0]] }
            | conditional { [:if, val[0]] }
-           | return_stat { [:ret, val[0]] }
            | goto_expr { [:if, [0, val[0], val[0]]] }
+           | return_stat { [:ret, val[0]] }
   # TODO: A = -A
   arithmetic: A ALU_OP newlines x_constexpr { [val[1], val[3]] }
   assignment: a ASSIGN rval { [val[0], val[2]] }
             | x ASSIGN a { [val[0], val[2]] }
-            | memory ASSIGN ax { [[:mem, val[0]], val[2]] }
-  rval: x_constexpr { val[0] }
-      | argument { [:arg, val[0]] }
-      | memory { [:mem, val[0]] }
+            | memory ASSIGN ax { [val[0], val[2]] }
+  rval: x_constexpr
+      | argument { Scalar::Data.new(val[0]) }
+      | memory
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
   else_block: ELSE newlines goto_expr { val[2] }
             | { 'next' }
@@ -38,22 +38,30 @@ rule
                (val[2] & Const::BPF::SECCOMP_RET_DATA)
            }
          | constexpr
-  memory: MEM LBRACK constexpr RBRACK { val[2] }
+  memory: MEM LBRACK constexpr RBRACK {
+            idx = val[2]
+            raise_error(format("Index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
+            Scalar::Mem.new(idx)
+          }
   x_constexpr: x
-             | constexpr
+             | constexpr { Scalar::ConstVal.new(val[0]) }
   argument: argument_long
-          | argument_long '>>' constexpr { val[0] + 4 } # TODO
+          | argument_long '>>' number { val[0] + 4 } # TODO
           | SYS_NUMBER { 0 }
           | ARCH { 4 }
   # 8-byte long arguments
-  argument_long: ARGS LBRACK constexpr RBRACK { 16 + val[2] * 8 }
+  argument_long: ARGS LBRACK constexpr RBRACK {
+                   idx = val[2]
+                   raise_error(format('Index of args[] must between 0 and 5, got %d', idx), -1) unless idx.between?(0, 5)
+                   16 + idx * 8
+                 }
                | INSTRUCTION_POINTER { 8 }
   constexpr: number { val[0] & 0xffffffff }
            | LPAREN constexpr RPAREN { val[1] }
   ax: a
      | x
-  a: A { :A }
-  x: X { :X }
+  a: A { Scalar::A.instance }
+  x: X { Scalar::X.instance }
   number: INT { val[0].to_i }
         | HEX_INT { val[0].to_i(16) }
         | ARCH_VAL { Const::Audit::ARCH[val[0]] }
@@ -70,6 +78,7 @@ rule
 end
 
 ---- header
+require 'seccomp-tools/asm/scalar'
 require 'seccomp-tools/asm/scanner'
 require 'seccomp-tools/asm/statement'
 
@@ -79,6 +88,7 @@ require 'seccomp-tools/asm/statement'
     super()
   end
 
+  # @return [Array<Statement>]
   def parse
     @tokens = @scanner.scan.dup
     @cur_idx = 0
@@ -94,13 +104,20 @@ require 'seccomp-tools/asm/statement'
   end
 
   def on_error(t, val, vstack)
-    raise_error { |token| "unexpect string #{token.str.inspect}" }
+    raise_error("unexpect string #{last_token.str.inspect}")
   end
 
+  # @param [String] msg
+  # @param [Integer] offset
   # @private
-  def raise_error
-    token = @tokens[@cur_idx - 1]
-    raise SeccompTools::ParseError, @scanner.format_error(token, yield(token))
+  def raise_error(msg, offset = 0)
+    raise SeccompTools::ParseError, @scanner.format_error(last_token(offset), msg)
+  end
+
+  # @param [Integer] off
+  #   0 for the last parsed token, -n for the n-th previous parsed token, n for the future n-th token.
+  def last_token(off = 0)
+    @tokens[@cur_idx - 1 + off]
   end
 
 ---- footer

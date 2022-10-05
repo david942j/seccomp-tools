@@ -6,6 +6,7 @@
 
 require 'racc/parser.rb'
 
+require 'seccomp-tools/asm/scalar'
 require 'seccomp-tools/asm/scanner'
 require 'seccomp-tools/asm/statement'
 
@@ -13,12 +14,13 @@ module SeccompTools
   module Asm
     class SeccompAsmParser < Racc::Parser
 
-module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 77)
+module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 86)
   def initialize(scanner)
     @scanner = scanner
     super()
   end
 
+  # @return [Array<Statement>]
   def parse
     @tokens = @scanner.scan.dup
     @cur_idx = 0
@@ -34,13 +36,20 @@ module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 77)
   end
 
   def on_error(t, val, vstack)
-    raise_error { |token| "unexpect string #{token.str.inspect}" }
+    raise_error("unexpect string #{last_token.str.inspect}")
   end
 
+  # @param [String] msg
+  # @param [Integer] offset
   # @private
-  def raise_error
-    token = @tokens[@cur_idx - 1]
-    raise SeccompTools::ParseError, @scanner.format_error(token, yield(token))
+  def raise_error(msg, offset = 0)
+    raise SeccompTools::ParseError, @scanner.format_error(last_token(offset), msg)
+  end
+
+  # @param [Integer] off
+  #   0 for the last parsed token, -n for the n-th previous parsed token, n for the future n-th token.
+  def last_token(off = 0)
+    @tokens[@cur_idx - 1 + off]
   end
 
 ...end sasm.y/module_eval...
@@ -59,7 +68,7 @@ racc_action_table = [
     82,    84,   nil,    34,    43,    44,    45,    46,   nil,   nil,
    nil,    34,    43,    44,    45,    46,   nil,   nil,   nil,    34,
     43,    44,    45,    46,   nil,   nil,   nil,    34,    43,    44,
-    45,    46,   nil,   nil,   nil,    34 ]
+    45,    46 ]
 
 racc_action_check = [
     18,    71,     2,    87,    26,    26,    98,    26,    18,    98,
@@ -73,8 +82,8 @@ racc_action_check = [
     95,    95,    73,    95,    74,    95,    41,    41,    41,    41,
     80,    86,   nil,    41,    47,    47,    47,    47,   nil,   nil,
    nil,    47,    72,    72,    72,    72,   nil,   nil,   nil,    72,
-    76,    76,    76,    76,   nil,   nil,   nil,    76,    77,    77,
-    77,    77,   nil,   nil,   nil,    77 ]
+    77,    77,    77,    77,   nil,   nil,   nil,    77,    76,    76,
+    76,    76 ]
 
 racc_action_pointer = [
     36,    25,   -21,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
@@ -84,7 +93,7 @@ racc_action_pointer = [
    nil,    67,   nil,   nil,   nil,   nil,   nil,    75,   nil,   nil,
    nil,   nil,   nil,   nil,    50,   nil,   nil,   nil,   nil,   nil,
    nil,    60,   nil,   nil,    47,   nil,   nil,   nil,   nil,   nil,
-     5,    -2,    83,    55,    55,   nil,    91,    99,   nil,   nil,
+     5,    -2,    83,    55,    55,   nil,    99,    91,   nil,   nil,
     63,   nil,   nil,   nil,   nil,   nil,    62,    -3,     8,   nil,
    nil,   nil,   nil,   nil,    16,    59,   nil,   nil,   -18,   nil ]
 
@@ -105,30 +114,30 @@ racc_goto_table = [
      2,    22,    33,     1,    52,    89,    23,    53,    66,    68,
     55,    90,    58,    67,    54,    57,    73,    75,    59,    70,
     71,    96,    74,    99,    72,    32,    50,    28,    30,    31,
-    91,    36,    61,   nil,   nil,   nil,   nil,   nil,   nil,    77,
+    91,    36,    61,    85,   nil,   nil,   nil,   nil,   nil,    77,
    nil,   nil,   nil,   nil,   nil,   nil,   nil,    80,   nil,    79,
-   nil,    85,    86,   nil,   nil,   nil,   nil,   nil,    97,    59,
+   nil,   nil,    86,   nil,   nil,   nil,   nil,   nil,    97,    59,
    nil,   nil,   nil,   nil,   nil,    87,    88,   nil,   nil,   nil,
    nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    94,
     95,   nil,   nil,   nil,    98 ]
 
 racc_goto_check = [
-     5,    13,    17,    26,    27,    17,    14,    12,    24,    28,
+     5,    13,    17,    26,    27,    17,    14,    11,    24,    28,
      2,     2,    23,     1,     6,    24,     3,     7,    14,    14,
     16,    28,    18,    19,     5,    20,    26,    13,    17,     5,
-     5,    12,    26,    24,    23,    21,     3,    15,    15,    15,
-    22,    25,    29,   nil,   nil,   nil,   nil,   nil,   nil,    27,
+     5,    11,    26,    24,    23,    21,     3,    15,    15,    15,
+    22,    25,    29,    30,   nil,   nil,   nil,   nil,   nil,    27,
    nil,   nil,   nil,   nil,   nil,   nil,   nil,    26,   nil,    14,
-   nil,    26,    26,   nil,   nil,   nil,   nil,   nil,    13,    17,
+   nil,   nil,    26,   nil,   nil,   nil,   nil,   nil,    13,    17,
    nil,   nil,   nil,   nil,   nil,     5,     5,   nil,   nil,   nil,
    nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,     5,
      5,   nil,   nil,   nil,     5 ]
 
 racc_goto_pointer = [
    nil,    13,    10,    14,   nil,    -3,   -12,    -9,   nil,   nil,
-   nil,   nil,   -63,   -27,   -12,    24,    -8,   -26,    -6,    -8,
+   nil,   -63,   nil,   -27,   -12,    24,    -8,   -26,    -6,    -8,
     -3,    19,   -47,    -4,   -65,    23,   -15,   -15,   -65,    14,
-   nil ]
+   -33 ]
 
 racc_goto_default = [
    nil,   nil,   nil,   nil,     3,    24,     4,     5,     7,     8,
@@ -154,22 +163,22 @@ racc_reduce_table = [
   3, 39, :_reduce_14,
   3, 39, :_reduce_15,
   3, 39, :_reduce_16,
-  1, 46, :_reduce_17,
+  1, 46, :_reduce_none,
   1, 46, :_reduce_18,
-  1, 46, :_reduce_19,
+  1, 46, :_reduce_none,
   6, 40, :_reduce_20,
   3, 52, :_reduce_21,
   0, 52, :_reduce_22,
   9, 51, :_reduce_23,
-  2, 42, :_reduce_24,
-  2, 41, :_reduce_25,
+  2, 41, :_reduce_24,
+  2, 42, :_reduce_25,
   1, 55, :_reduce_none,
   1, 55, :_reduce_27,
   4, 55, :_reduce_28,
   1, 55, :_reduce_none,
   4, 48, :_reduce_30,
   1, 43, :_reduce_none,
-  1, 43, :_reduce_none,
+  1, 43, :_reduce_32,
   1, 50, :_reduce_none,
   3, 50, :_reduce_34,
   1, 50, :_reduce_35,
@@ -294,8 +303,8 @@ Racc_token_to_s_table = [
   "arithmetic",
   "assignment",
   "conditional",
-  "return_stat",
   "goto_expr",
+  "return_stat",
   "x_constexpr",
   "a",
   "ASSIGN",
@@ -360,7 +369,7 @@ module_eval(<<'.,.,', 'sasm.y', 8)
 module_eval(<<'.,.,', 'sasm.y', 10)
   def _reduce_7(val, _values)
                 t = val[0]
-            raise_error { |t| "'next' is a reserved label" } if t == 'next'
+            raise_error("'next' is a reserved label") if t == 'next'
             t
 
   end
@@ -386,13 +395,13 @@ module_eval(<<'.,.,', 'sasm.y', 16)
 
 module_eval(<<'.,.,', 'sasm.y', 17)
   def _reduce_11(val, _values)
-     [:ret, val[0]]
+     [:if, [0, val[0], val[0]]]
   end
 .,.,
 
 module_eval(<<'.,.,', 'sasm.y', 18)
   def _reduce_12(val, _values)
-     [:if, [0, val[0], val[0]]]
+     [:ret, val[0]]
   end
 .,.,
 
@@ -416,27 +425,19 @@ module_eval(<<'.,.,', 'sasm.y', 22)
 
 module_eval(<<'.,.,', 'sasm.y', 23)
   def _reduce_16(val, _values)
-     [[:mem, val[0]], val[2]]
+     [val[0], val[2]]
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 24)
-  def _reduce_17(val, _values)
-     val[0]
-  end
-.,.,
+# reduce 17 omitted
 
 module_eval(<<'.,.,', 'sasm.y', 25)
   def _reduce_18(val, _values)
-     [:arg, val[0]]
+     Scalar::Data.new(val[0])
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 26)
-  def _reduce_19(val, _values)
-     [:mem, val[0]]
-  end
-.,.,
+# reduce 19 omitted
 
 module_eval(<<'.,.,', 'sasm.y', 27)
   def _reduce_20(val, _values)
@@ -492,55 +493,65 @@ module_eval(<<'.,.,', 'sasm.y', 36)
 
 # reduce 29 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 40)
+module_eval(<<'.,.,', 'sasm.y', 41)
   def _reduce_30(val, _values)
-     val[2]
+                idx = val[2]
+            raise_error(format("Index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
+            Scalar::Mem.new(idx)
+
   end
 .,.,
 
 # reduce 31 omitted
 
-# reduce 32 omitted
+module_eval(<<'.,.,', 'sasm.y', 46)
+  def _reduce_32(val, _values)
+     Scalar::ConstVal.new(val[0])
+  end
+.,.,
 
 # reduce 33 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 44)
+module_eval(<<'.,.,', 'sasm.y', 48)
   def _reduce_34(val, _values)
      val[0] + 4
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 45)
+module_eval(<<'.,.,', 'sasm.y', 49)
   def _reduce_35(val, _values)
      0
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 46)
+module_eval(<<'.,.,', 'sasm.y', 50)
   def _reduce_36(val, _values)
      4
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 48)
+module_eval(<<'.,.,', 'sasm.y', 53)
   def _reduce_37(val, _values)
-     16 + val[2] * 8
+                       idx = val[2]
+                   raise_error(format('Index of args[] must between 0 and 5, got %d', idx), -1) unless idx.between?(0, 5)
+                   16 + idx * 8
+
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 49)
+module_eval(<<'.,.,', 'sasm.y', 57)
   def _reduce_38(val, _values)
      8
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 50)
+module_eval(<<'.,.,', 'sasm.y', 58)
   def _reduce_39(val, _values)
      val[0] & 0xffffffff
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 51)
+module_eval(<<'.,.,', 'sasm.y', 59)
   def _reduce_40(val, _values)
      val[1]
   end
@@ -550,37 +561,37 @@ module_eval(<<'.,.,', 'sasm.y', 51)
 
 # reduce 42 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 54)
+module_eval(<<'.,.,', 'sasm.y', 62)
   def _reduce_43(val, _values)
-     :A
+     Scalar::A.instance
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 55)
+module_eval(<<'.,.,', 'sasm.y', 63)
   def _reduce_44(val, _values)
-     :X
+     Scalar::X.instance
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 56)
+module_eval(<<'.,.,', 'sasm.y', 64)
   def _reduce_45(val, _values)
      val[0].to_i
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 57)
+module_eval(<<'.,.,', 'sasm.y', 65)
   def _reduce_46(val, _values)
      val[0].to_i(16)
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 58)
+module_eval(<<'.,.,', 'sasm.y', 66)
   def _reduce_47(val, _values)
      Const::Audit::ARCH[val[0]]
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 59)
+module_eval(<<'.,.,', 'sasm.y', 67)
   def _reduce_48(val, _values)
      @scanner.syscalls[val[0].to_sym]
   end

@@ -23,9 +23,9 @@ module SeccompTools
       # are case-insensitive.
       ARCHES = Const::Audit::ARCH.keys
       # Comparisons.
-      COMPARE = %w[== != >= <= > < &].freeze
+      COMPARE = %w[== != >= <= > <].freeze
       # All valid arithmetic operators.
-      ALU_OP = %w[+ - * / & | ^ << >>].freeze
+      ALU_OP = %w[+ - * / | ^ << >>].freeze
 
       # @param [String] str
       # @param [Symbol] arch
@@ -112,11 +112,12 @@ module SeccompTools
             add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/
             add_token_def.call(:INT)
-          when /\A(#{ALU_OP.map { |o| ::Regexp.escape("#{o}=") }.join('|')})/
+          when /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/
             add_token_def.call(:ALU_OP)
           when /\A(#{COMPARE.join('|')})/
             add_token_def.call(:COMPARE)
-          when /\A(\(|\)|=|\[|\])/
+          when /\A(\(|\)|=|\[|\]|&)/
+            # '&' is in both compare and ALU op category, handle it here
             add_token_def.call(::Regexp.last_match(0))
           when /\A[^\s]+\s/
             # unrecognized token - match until \s

@@ -124,16 +124,16 @@ meow
 
     it 'alu operators' do
       s = described_class.new(<<-EOS, :amd64)
-      += -= *= /= &= |= ^= <<= >>=
+      += -= *= /= |= ^= <<= >>=
       EOS
-      expect(s.scan.count { |t| t.sym == :ALU_OP }).to be 9
+      expect(s.scan.count { |t| t.sym == :ALU_OP }).to be 8
     end
 
     it 'compare' do
       s = described_class.new(<<-EOS, :amd64)
-      == != >= <= > < &
+      == != >= <= > <
       EOS
-      expect(s.scan.count { |t| t.sym == :COMPARE }).to be 7
+      expect(s.scan.count { |t| t.sym == :COMPARE }).to be 6
     end
 
     it 'marks' do

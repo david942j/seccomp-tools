@@ -18,7 +18,7 @@ rule
            | goto_expr { [:if, [nil, val[0], val[0]]] }
            | return_stat { [:ret, val[0]] }
   # TODO: A = -A
-  arithmetic: A ALU_OP newlines x_constexpr { [val[1], val[3]] }
+  arithmetic: A alu_op_eq newlines x_constexpr { [val[1], val[3]] }
   assignment: a ASSIGN rval { [val[0], val[2]] }
             | x ASSIGN a { [val[0], val[2]] }
             | memory ASSIGN ax { [val[0], val[2]] }
@@ -28,7 +28,9 @@ rule
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
   else_block: ELSE newlines goto_expr { val[2] }
             | { 'next' }
-  comparison: LPAREN newlines a newlines COMPARE newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
+  comparison: LPAREN newlines a newlines compare newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
+  compare: COMPARE
+         | AND
   goto_expr: GOTO GOTO_SYMBOL { val[1] }
   return_stat: RETURN ret_val { val[1] }
   ret_val: a
@@ -46,7 +48,13 @@ rule
   x_constexpr: x
              | constexpr { Scalar::ConstVal.new(val[0]) }
   argument: argument_long
-          | argument_long '>>' number { val[0] + 4 } # TODO
+          | argument_long alu_op INT {
+              if val[1] != '>>' || val[2].to_i != 4
+                off = val[1] == '>>' ? 0 : -1
+                raise_error("operator after an argument can only be '>> 4'", off)
+              end
+              val[0] + 4
+            }
           | SYS_NUMBER { 0 }
           | ARCH { 4 }
   # 8-byte long arguments
@@ -56,6 +64,9 @@ rule
                    16 + idx * 8
                  }
                | INSTRUCTION_POINTER { 8 }
+  alu_op_eq: alu_op ASSIGN { val[0] + val[1] }
+  alu_op: ALU_OP
+        | AND
   constexpr: number { val[0] & 0xffffffff }
            | LPAREN constexpr RPAREN { val[1] }
   ax: a
@@ -75,6 +86,7 @@ rule
   RPAREN: ')'
   LBRACK: '['
   RBRACK: ']'
+  AND: '&'
 end
 
 ---- header

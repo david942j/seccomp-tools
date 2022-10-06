@@ -86,10 +86,11 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = -1
       A = sys_number
       A = read
-      # TODO: A = instruction_pointer >> 4
       A = instruction_pointer
+      A = instruction_pointer >> 4
       A = args[0]
       A = args[1]
+      A = args[2] >> 4
       A = mem[0]
       A = mem[12]
       EOS
@@ -99,11 +100,32 @@ describe SeccompTools::Asm::SeccompAsmParser do
         statement.new(:assign, [a, data.new(0)], []),
         statement.new(:assign, [a, const_val.new(0)], []),
         statement.new(:assign, [a, data.new(0x8)], []),
+        statement.new(:assign, [a, data.new(0xc)], []),
         statement.new(:assign, [a, data.new(0x10)], []),
         statement.new(:assign, [a, data.new(0x18)], []),
+        statement.new(:assign, [a, data.new(0x24)], []),
         statement.new(:assign, [a, mem.new(0)], []),
         statement.new(:assign, [a, mem.new(12)], [])
       ]
+    end
+
+    it 'catches invalid right shift' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = args[0] >> 5
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
+<inline>:1:22 operator after an argument can only be '>> 4'
+      A = args[0] >> 5
+                     ^
+      EOS
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = instruction_pointer + 1
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
+<inline>:1:31 operator after an argument can only be '>> 4'
+      A = instruction_pointer + 1
+                              ^
+      EOS
     end
 
     it 'accepts x = a' do
@@ -233,7 +255,58 @@ describe SeccompTools::Asm::SeccompAsmParser do
     end
   end
 
-  it 'reduce none' do
+  describe 'constexpr' do
+    it 'accepts parentheses' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      return (123)
+      EOS
+      expect(described_class.new(scanner).parse).to eq [
+        statement.new(:ret, 123, [])
+      ]
+    end
+  end
+
+  describe 'labels' do
+    it 'accepts multiple labels' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      line1:
+      goto next
+      label1: label2: goto next
+      multi1:
+      multi2: multi3: goto next
+      EOS
+      expect(described_class.new(scanner).parse.map(&:symbols)).to eq [
+        %w[line1],
+        %w[label1 label2],
+        %w[multi1 multi2 multi3]
+      ]
+    end
+
+    it 'raises an error with a trailing label' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      goto oob
+      oob:
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error SeccompTools::ParseError, <<-EOS
+<inline>:2:11 unexpect string "\\n"
+      oob:
+          ^
+      EOS
+    end
+
+    it 'reserves label next' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      next: A = 1
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error SeccompTools::ParseError, <<-EOS
+<inline>:1:7 'next' is a reserved label
+      next: A = 1
+      ^^^^
+      EOS
+    end
+  end
+
+  it 'calls reduce_none' do
     # For unknown reasons the function is never called. Call it here to increase test coverage.
     expect(described_class.new(nil)._reduce_none([1], nil)).to eq 1
   end

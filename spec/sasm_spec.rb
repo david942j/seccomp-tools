@@ -97,7 +97,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
         statement.new(:assign, [a, x], []),
         statement.new(:assign, [a, const_val.new(0xffffffff)], []),
         statement.new(:assign, [a, data.new(0)], []),
-        statement.new(:assign, [a, const_val.new(3)], []),
+        statement.new(:assign, [a, const_val.new(0)], []),
         statement.new(:assign, [a, data.new(0x8)], []),
         statement.new(:assign, [a, data.new(0x10)], []),
         statement.new(:assign, [a, data.new(0x18)], []),
@@ -157,6 +157,79 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = args[8]
                ^
       EOS
+    end
+  end
+
+  describe 'conditional' do
+    it 'accepts if-else' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      if (A <= X) goto next else goto next
+
+      if (
+        A <= X # a comment
+      )
+        goto next
+      else
+        goto next
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['<=', x], 'next', 'next'], [])] * 2
+    end
+
+    it 'accepts if' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      if (A != 0x123) goto label
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['!=', 0x123], 'label', 'next'], [])]
+    end
+
+    it 'accepts goto' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      goto label
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [nil, 'label', 'label'], [])]
+    end
+  end
+
+  describe 'return' do
+    it 'accepts A' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      return A
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:ret, a, [])]
+    end
+
+    it 'accepts const' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      return 0x123
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:ret, 0x123, [])]
+    end
+
+    it 'accepts actions' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      return KILL_PROCESS
+      return KILL_THREAD
+      return KILL
+      return TRAP
+      return ERRNO
+      return USER_NOTIF
+      return LOG
+      return TRACE
+      return ALLOW
+      EOS
+      res = SeccompTools::Const::BPF::ACTION.map { |_, v| statement.new(:ret, v, []) }
+      expect(described_class.new(scanner).parse).to eq res
+    end
+
+    it 'accepts actions with data' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      return ERRNO(0x1234)
+      return TRAP(0xfabcd)
+      EOS
+      expect(described_class.new(scanner).parse).to eq [
+        statement.new(:ret, 0x51234, []),
+        statement.new(:ret, 0x3abcd, [])
+      ]
     end
   end
 

@@ -395,7 +395,7 @@ module_eval(<<'.,.,', 'sasm.y', 16)
 
 module_eval(<<'.,.,', 'sasm.y', 17)
   def _reduce_11(val, _values)
-     [:if, [0, val[0], val[0]]]
+     [:if, [nil, val[0], val[0]]]
   end
 .,.,
 

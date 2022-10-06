@@ -36,7 +36,8 @@ module SeccompTools
         @filename = filename
         @str = str
         @syscalls = case arch
-                    when :amd64, :i386 then Const::Syscall::AMD64.merge(Const::Syscall::I386)
+                    when :amd64 then Const::Syscall::AMD64
+                    when :i386 then Const::Syscall::I386
                     when :aarch64 then Const::Syscall::AARCH64
                     when :s390x then Const::Syscall::S390X
                     end

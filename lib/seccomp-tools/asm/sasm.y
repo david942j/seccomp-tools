@@ -15,7 +15,7 @@ rule
   statement: arithmetic { [:alu, val[0]] }
            | assignment { [:assign, val[0]] }
            | conditional { [:if, val[0]] }
-           | goto_expr { [:if, [0, val[0], val[0]]] }
+           | goto_expr { [:if, [nil, val[0], val[0]]] }
            | return_stat { [:ret, val[0]] }
   # TODO: A = -A
   arithmetic: A ALU_OP newlines x_constexpr { [val[1], val[3]] }

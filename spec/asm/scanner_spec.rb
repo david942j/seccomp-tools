@@ -181,12 +181,6 @@ if (A <= write) goto   xyz
                              SeccompTools::Asm::Token.new(:A, 'A', 1, 6),
                              SeccompTools::Asm::Token.new(:NEWLINE, "\n", 1, 16)
                            ])
-      p described_class.new(<<-EOS, :aarch64).scan
-      A = -A
-      EOS
-      p described_class.new(<<-EOS, :aarch64).scan
-      A = 0x123+456-0x3*9
-      EOS
     end
   end
 end

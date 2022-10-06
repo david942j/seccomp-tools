@@ -17,7 +17,6 @@ rule
            | conditional { [:if, val[0]] }
            | goto_expr { [:if, [nil, val[0], val[0]]] }
            | return_stat { [:ret, val[0]] }
-  # TODO: A = -A
   arithmetic: A alu_op_eq newlines x_constexpr { [val[1], val[3]] }
   assignment: a ASSIGN rval { [val[0], val[2]] }
             | x ASSIGN a { [val[0], val[2]] }
@@ -25,6 +24,11 @@ rule
   rval: x_constexpr
       | argument { Scalar::Data.new(val[0]) }
       | memory
+      # A = -A is a special case, it's in an assignment form but belongs to ALU BPF
+      | ALU_OP A {
+        raise_error('do you mean A = -A?', -1) if val[0] != '-'
+        :neg
+      }
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
   else_block: ELSE newlines goto_expr { val[2] }
             | { 'next' }

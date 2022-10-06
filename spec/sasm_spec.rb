@@ -93,6 +93,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = args[2] >> 4
       A = mem[0]
       A = mem[12]
+      A = -A
       EOS
       expect(described_class.new(scanner).parse).to eq [
         statement.new(:assign, [a, x], []),
@@ -105,8 +106,20 @@ describe SeccompTools::Asm::SeccompAsmParser do
         statement.new(:assign, [a, data.new(0x18)], []),
         statement.new(:assign, [a, data.new(0x24)], []),
         statement.new(:assign, [a, mem.new(0)], []),
-        statement.new(:assign, [a, mem.new(12)], [])
+        statement.new(:assign, [a, mem.new(12)], []),
+        statement.new(:assign, [a, :neg], [])
       ]
+    end
+
+    it 'raises error on A = <ALU_OP> A' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = +A
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
+<inline>:1:11 do you mean A = -A?
+      A = +A
+          ^
+      EOS
     end
 
     it 'catches invalid right shift' do

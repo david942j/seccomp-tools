@@ -4,7 +4,8 @@ plugins:
   duplication:
     enabled: true
     exclude_paths:
-    - spec/
+      - spec/
+      - lib/seccomp-tools/asm/sasm.tab.rb
 checks:
   file-lines:
     enabled: false

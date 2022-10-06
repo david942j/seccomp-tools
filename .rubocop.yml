@@ -1,6 +1,10 @@
 AllCops:
   DisplayCopNames: true
   DisplayStyleGuide: true
+  Exclude:
+    - lib/**/*.tab.rb
+    - tmp/**/*
+    - vendor/bundle/**/*
 
 Layout/EndOfLine:
   EnforcedStyle: lf

@@ -19,7 +19,7 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.0)
       rake
-    regexp_parser (2.5.0)
+    regexp_parser (2.6.0)
     rexml (3.2.5)
     rspec (3.11.0)
       rspec-core (~> 3.11.0)
@@ -27,13 +27,13 @@ GEM
       rspec-mocks (~> 3.11.0)
     rspec-core (3.11.0)
       rspec-support (~> 3.11.0)
-    rspec-expectations (3.11.0)
+    rspec-expectations (3.11.1)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.11.0)
-    rspec-mocks (3.11.0)
+    rspec-mocks (3.11.1)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.11.0)
-    rspec-support (3.11.0)
+    rspec-support (3.11.1)
     rubocop (1.36.0)
       json (~> 2.3)
       parallel (~> 1.10)
@@ -53,7 +53,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    unicode-display_width (2.2.0)
+    unicode-display_width (2.3.0)
     webrick (1.7.0)
     yard (0.9.28)
       webrick (~> 1.7.0)
@@ -71,4 +71,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.9
+   2.3.23

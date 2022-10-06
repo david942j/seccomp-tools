@@ -141,14 +141,28 @@ describe SeccompTools::Asm::SeccompAsmParser do
       EOS
     end
 
-    it 'accepts x = a' do
+    it 'accepts X as the assignee' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       X = A
-      x =a
-      X=a
-      x= A
+      X = 64
+      X = mem[2]
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:assign, [x, a], [])] * 4
+      expect(described_class.new(scanner).parse).to eq [
+        statement.new(:assign, [x, a], []),
+        statement.new(:assign, [x, const_val.new(64)], []),
+        statement.new(:assign, [x, mem.new(2)], [])
+      ]
+    end
+
+    it 'rejects X = args[]' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      X = sys_number
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
+<inline>:1:11 unexpected string "sys_number"
+      X = sys_number
+          ^^^^^^^^^^
+      EOS
     end
 
     it 'accepts mem[] = AX' do
@@ -301,7 +315,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       oob:
       EOS
       expect { described_class.new(scanner).parse }.to raise_error SeccompTools::ParseError, <<-EOS
-<inline>:2:11 unexpect string "\\n"
+<inline>:2:11 unexpected string "\\n"
       oob:
           ^
       EOS

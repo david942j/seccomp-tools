@@ -18,17 +18,22 @@ rule
            | goto_expr { [:if, [nil, val[0], val[0]]] }
            | return_stat { [:ret, val[0]] }
   arithmetic: A alu_op_eq newlines x_constexpr { [val[1], val[3]] }
-  assignment: a ASSIGN rval { [val[0], val[2]] }
-            | x ASSIGN a { [val[0], val[2]] }
+  assignment: a ASSIGN a_rval { [val[0], val[2]] }
+            | x ASSIGN x_rval { [val[0], val[2]] }
             | memory ASSIGN ax { [val[0], val[2]] }
-  rval: x_constexpr
-      | argument { Scalar::Data.new(val[0]) }
-      | memory
-      # A = -A is a special case, it's in an assignment form but belongs to ALU BPF
-      | ALU_OP A {
-        raise_error('do you mean A = -A?', -1) if val[0] != '-'
-        :neg
-      }
+  # X = ?
+  x_rval: constexpr
+        | memory
+        | a
+  # A = ?
+  a_rval: x_constexpr
+        | argument { Scalar::Data.new(val[0]) }
+        | memory
+        # A = -A is a special case, it's in an assignment form but belongs to ALU BPF
+        | ALU_OP A {
+          raise_error('do you mean A = -A?', -1) if val[0] != '-'
+          :neg
+        }
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
   else_block: ELSE newlines goto_expr { val[2] }
             | { 'next' }
@@ -120,7 +125,7 @@ require 'seccomp-tools/asm/statement'
   end
 
   def on_error(t, val, vstack)
-    raise_error("unexpect string #{last_token.str.inspect}")
+    raise_error("unexpected string #{last_token.str.inspect}")
   end
 
   # @param [String] msg

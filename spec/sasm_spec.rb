@@ -221,28 +221,47 @@ describe SeccompTools::Asm::SeccompAsmParser do
       else
         goto next
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['<=', x], 'next', 'next'], [])] * 2
+      statements = described_class.new(scanner).parse
+      expect(statements.size).to be 2
+      statements.each do |statement|
+        expect(statement.type).to eq :if
+        expect(statement.data[0]).to eq ['<=', x]
+        expect(statement.data[1].str).to eq 'next'
+        expect(statement.data[2].str).to eq 'next'
+      end
     end
 
     it 'accepts if' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       if (A != 0x123) goto label
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['!=', 0x123], 'label', 'next'], [])]
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['!=', 0x123]
+      expect(statement.data[1].str).to eq 'label'
+      expect(statement.data[2]).to eq :next
     end
 
     it 'accepts goto' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       goto label
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [nil, 'label', 'label'], [])]
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to be_nil
+      expect(statement.data[1].str).to eq 'label'
+      expect(statement.data[2].str).to eq 'label'
     end
 
     it 'accepts ternary operators' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       A == X ? next : label
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['==', x], 'next', 'label'], [])]
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['==', x]
+      expect(statement.data[1].str).to eq 'next'
+      expect(statement.data[2].str).to eq 'label'
     end
   end
 
@@ -309,7 +328,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       multi1:
       multi2: multi3: goto next
       EOS
-      expect(described_class.new(scanner).parse.map(&:symbols)).to eq [
+      expect(described_class.new(scanner).parse.map { |s| s.symbols.map(&:str) }).to eq [
         %w[line1],
         %w[label1 label2],
         %w[multi1 multi2 multi3]

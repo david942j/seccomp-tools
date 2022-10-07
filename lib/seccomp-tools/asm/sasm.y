@@ -10,7 +10,7 @@ rule
   symbol: SYMBOL {
             t = val[0]
             raise_error("'next' is a reserved label") if t == 'next'
-            t
+            last_token
           }
   statement: arithmetic { [:alu, val[0]] }
            | assignment { [:assign, val[0]] }
@@ -35,14 +35,15 @@ rule
           :neg
         }
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
-             | comparison GOTO_SYMBOL GOTO_SYMBOL { val }
+             | comparison goto_symbol goto_symbol { val }
   else_block: ELSE newlines goto_expr { val[2] }
-            | { 'next' }
+            | { :next }
   comparison: LPAREN newlines a newlines compare newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
             | a newlines compare newlines x_constexpr { [val[2], val[4]] }
   compare: COMPARE
          | AND
-  goto_expr: GOTO GOTO_SYMBOL { val[1] }
+  goto_expr: GOTO goto_symbol { val[1] }
+  goto_symbol: GOTO_SYMBOL { last_token }
   return_stat: RETURN ret_val { val[1] }
   ret_val: a
          | ACTION { Const::BPF::ACTION[val[0].to_sym] }

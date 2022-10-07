@@ -35,9 +35,11 @@ rule
           :neg
         }
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
+             | comparison GOTO_SYMBOL GOTO_SYMBOL { val }
   else_block: ELSE newlines goto_expr { val[2] }
             | { 'next' }
   comparison: LPAREN newlines a newlines compare newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
+            | a newlines compare newlines x_constexpr { [val[2], val[4]] }
   compare: COMPARE
          | AND
   goto_expr: GOTO GOTO_SYMBOL { val[1] }

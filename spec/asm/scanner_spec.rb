@@ -182,5 +182,19 @@ if (A <= write) goto   xyz
                              SeccompTools::Asm::Token.new(:NEWLINE, "\n", 1, 16)
                            ])
     end
+
+    it 'accepts ternary operator' do
+      s = described_class.new(<<-EOS, :aarch64)
+      A == ARCH_X86_64 ? next : dead
+      EOS
+      expect(s.scan).to eq([
+                             SeccompTools::Asm::Token.new(:A, 'A', 0, 6),
+                             SeccompTools::Asm::Token.new(:COMPARE, '==', 0, 8),
+                             SeccompTools::Asm::Token.new(:ARCH_VAL, 'ARCH_X86_64', 0, 11),
+                             SeccompTools::Asm::Token.new(:GOTO_SYMBOL, 'next', 0, 25),
+                             SeccompTools::Asm::Token.new(:GOTO_SYMBOL, 'dead', 0, 32),
+                             SeccompTools::Asm::Token.new(:NEWLINE, "\n", 0, 36)
+                           ])
+    end
   end
 end

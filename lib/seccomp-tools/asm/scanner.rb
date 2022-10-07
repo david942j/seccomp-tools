@@ -119,6 +119,14 @@ module SeccompTools
           when /\A(\(|\)|=|\[|\]|&)/
             # '&' is in both compare and ALU op category, handle it here
             add_token_def.call(::Regexp.last_match(0))
+          when /\A\?\s*(?<jt>\w+)\s*:\s*(?<jf>\w+)/
+            orig_col = col
+            col += ::Regexp.last_match.begin(:jt)
+            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(:jt))
+            col = orig_col + ::Regexp.last_match.begin(:jf)
+            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(:jf))
+            col = orig_col + ::Regexp.last_match(0).size
+            str = ::Regexp.last_match.post_match
           when /\A[^\s]+\s/
             # unrecognized token - match until \s
             last = ::Regexp.last_match(0)

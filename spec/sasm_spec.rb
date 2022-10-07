@@ -237,6 +237,13 @@ describe SeccompTools::Asm::SeccompAsmParser do
       EOS
       expect(described_class.new(scanner).parse).to eq [statement.new(:if, [nil, 'label', 'label'], [])]
     end
+
+    it 'accepts ternary operators' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A == X ? next : label
+      EOS
+      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['==', x], 'next', 'label'], [])]
+    end
   end
 
   describe 'return' do

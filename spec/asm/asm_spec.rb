@@ -66,7 +66,9 @@ describe SeccompTools::Asm do
     rule = <<-EOS
       A = execve
       A = sys_number
-      A == read ? 1 : next
+      A == read ? 0004 : next
+      A = X
+0004: return ALLOW
     EOS
     raw = described_class.asm(rule, arch: :amd64)
     expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to include <<-EOS
@@ -123,6 +125,7 @@ describe SeccompTools::Asm do
       A |= 2
       A >>= 1
       A <<= 1
+      A = -A
       A ^= 0x1337
     EOS
     expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to eq <<-EOS
@@ -136,7 +139,8 @@ describe SeccompTools::Asm do
  0005: 0x44 0x00 0x00 0x00000002  A |= 0x2
  0006: 0x74 0x00 0x00 0x00000001  A >>= 1
  0007: 0x64 0x00 0x00 0x00000001  A <<= 1
- 0008: 0xa4 0x00 0x00 0x00001337  A ^= 0x1337
+ 0008: 0x84 0x00 0x00 0x00000000  A = -A
+ 0009: 0xa4 0x00 0x00 0x00001337  A ^= 0x1337
     EOS
   end
 end

@@ -87,10 +87,10 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = sys_number
       A = read
       A = instruction_pointer
-      A = instruction_pointer >> 4
+      A = instruction_pointer >> 32
       A = args[0]
       A = args[1]
-      A = args[2] >> 4
+      A = args[2] >> 32
       A = mem[0]
       A = mem[12]
       A = -A
@@ -127,7 +127,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = args[0] >> 5
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:22 operator after an argument can only be '>> 4'
+<inline>:1:22 operator after an argument can only be '>> 32'
       A = args[0] >> 5
                      ^
       EOS
@@ -135,7 +135,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = instruction_pointer + 1
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:31 operator after an argument can only be '>> 4'
+<inline>:1:31 operator after an argument can only be '>> 32'
       A = instruction_pointer + 1
                               ^
       EOS
@@ -221,21 +221,47 @@ describe SeccompTools::Asm::SeccompAsmParser do
       else
         goto next
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['<=', x], 'next', 'next'], [])] * 2
+      statements = described_class.new(scanner).parse
+      expect(statements.size).to be 2
+      statements.each do |statement|
+        expect(statement.type).to eq :if
+        expect(statement.data[0]).to eq ['<=', x]
+        expect(statement.data[1].str).to eq 'next'
+        expect(statement.data[2].str).to eq 'next'
+      end
     end
 
     it 'accepts if' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       if (A != 0x123) goto label
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [['!=', 0x123], 'label', 'next'], [])]
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['!=', 0x123]
+      expect(statement.data[1].str).to eq 'label'
+      expect(statement.data[2]).to eq :next
     end
 
     it 'accepts goto' do
       scanner = scan.new(<<-EOS, :amd64).validate!
       goto label
       EOS
-      expect(described_class.new(scanner).parse).to eq [statement.new(:if, [nil, 'label', 'label'], [])]
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to be_nil
+      expect(statement.data[1].str).to eq 'label'
+      expect(statement.data[2].str).to eq 'label'
+    end
+
+    it 'accepts ternary operators' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A == X ? next : label
+      EOS
+      statement = described_class.new(scanner).parse.first
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['==', x]
+      expect(statement.data[1].str).to eq 'next'
+      expect(statement.data[2].str).to eq 'label'
     end
   end
 
@@ -302,7 +328,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       multi1:
       multi2: multi3: goto next
       EOS
-      expect(described_class.new(scanner).parse.map(&:symbols)).to eq [
+      expect(described_class.new(scanner).parse.map { |s| s.symbols.map(&:str) }).to eq [
         %w[line1],
         %w[label1 label2],
         %w[multi1 multi2 multi3]
@@ -336,5 +362,10 @@ describe SeccompTools::Asm::SeccompAsmParser do
   it 'calls reduce_none' do
     # For unknown reasons the function is never called. Call it here to increase test coverage.
     expect(described_class.new(nil)._reduce_none([1], nil)).to eq 1
+  end
+
+  it 'accepts empty input' do
+    scanner = scan.new('', :amd64).validate!
+    expect(described_class.new(scanner).parse).to be_empty
   end
 end

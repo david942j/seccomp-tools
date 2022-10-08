@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module SeccompTools
-  # Basic error class.
+  # Base error class.
   class Error < StandardError
   end
 
@@ -15,5 +15,13 @@ module SeccompTools
 
   # Raised on RACC parsing error when compiling seccomp assembly.
   class ParseError < Error
+  end
+
+  # Raised when a jump expression goes backward on compiling seccomp assembly.
+  class BackwardJumpError < Error
+  end
+
+  # Raised when a label is defined more than once on compiling seccomp assembly.
+  class DuplicateLabelError < Error
   end
 end

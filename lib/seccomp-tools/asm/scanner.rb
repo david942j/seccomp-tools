@@ -15,7 +15,7 @@ module SeccompTools
       attr_reader :syscalls
 
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
-      KEYWORDS = %w[a x if else return mem args sys_number arch instruction_pointer].freeze
+      KEYWORDS = %w[a x if else return mem args args_h data len sys_number arch instruction_pointer].freeze
       # Action strings can be used in a return statement. Actions must be in upper case.
       # See {SeccompTools::Const::BPF::ACTION}.
       ACTIONS = Const::BPF::ACTION.keys.map(&:to_s)
@@ -29,11 +29,11 @@ module SeccompTools
 
       # @param [String] str
       # @param [Symbol] arch
-      # @param [String] filename
+      # @param [String?] filename
       # @example
       #   Scanner.new('return ALLOW', :amd64)
-      def initialize(str, arch, filename: '<inline>')
-        @filename = filename
+      def initialize(str, arch, filename: nil)
+        @filename = filename || '<inline>'
         @str = str
         @syscalls = case arch
                     when :amd64 then Const::Syscall::AMD64
@@ -68,46 +68,45 @@ module SeccompTools
         row = 0
         col = 0
         str = @str
-        add_token = ->(sym, s) { @tokens.push(Token.new(sym, s, row, col)) }
+        add_token = ->(sym, s, c = col) { @tokens.push(Token.new(sym, s, row, c)) }
         # define a helper because it's commonly used - add a token with matched string, bump col with string size
-        add_token_def = lambda do |sym|
-          add_token.call(sym, ::Regexp.last_match(0))
+        bump_vars = lambda {
           col += ::Regexp.last_match(0).size
           str = ::Regexp.last_match.post_match
+        }
+        add_token_def = lambda do |sym|
+          add_token.call(sym, ::Regexp.last_match(0))
+          bump_vars.call
         end
-        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse
+        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse.join('|')
+        syscall_matcher = ::Regexp.compile("\\A\\b(#{syscalls})\\b")
         until str.empty?
           case str
           when /\A\n+/
-            add_token.call(:NEWLINE, ::Regexp.last_match(0))
+            # Don't push newline as the first token
+            add_token.call(:NEWLINE, ::Regexp.last_match(0)) unless @tokens.empty?
             row += ::Regexp.last_match(0).size
             col = 0
             str = ::Regexp.last_match.post_match
           when /\A\s+/
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            bump_vars.call
           when /\A#.*/
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
-          when /\Agoto\s+\w+\b/i
-            str = ::Regexp.last_match.post_match
-            match = ::Regexp.last_match(0).split(/\s/)
-            add_token.call(:GOTO, match.first)
-            col += 'goto'.size + match.size - 1
-            add_token.call(:GOTO_SYMBOL, match.last)
-            col += match.last.size
+            bump_vars.call
+          when /\A(goto|jmp|jump)\s+(\w+)\b/i
+            add_token.call(:GOTO, ::Regexp.last_match(1), col + ::Regexp.last_match.begin(1))
+            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2), col + ::Regexp.last_match.begin(2))
+            bump_vars.call
           when /\A\b(#{KEYWORDS.join('|')})\b/i
             add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
           when /\A\b(#{ACTIONS.join('|')})\b/
             add_token_def.call(:ACTION)
           when /\A\b(#{ARCHES.join('|')})\b/i
             add_token_def.call(:ARCH_VAL)
-          when /\A\b(#{syscalls.join('|')})\b/
+          when syscall_matcher
             add_token_def.call(:SYSCALL)
           when /\A\w+:/
             add_token.call(:SYMBOL, ::Regexp.last_match(0)[0..-2])
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            bump_vars.call
           when /\A-?0x[0-9a-f]+\b/
             add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/
@@ -119,12 +118,17 @@ module SeccompTools
           when /\A(\(|\)|=|\[|\]|&)/
             # '&' is in both compare and ALU op category, handle it here
             add_token_def.call(::Regexp.last_match(0))
-          when /\A[^\s]+\s/
+          when /\A\?\s*(?<jt>\w+)\s*:\s*(?<jf>\w+)/
+            %i[jt jf].each do |s|
+              add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(s), col + ::Regexp.last_match.begin(s))
+            end
+            bump_vars.call
+          when /\A([^\s]+)(\s?)/
             # unrecognized token - match until \s
-            last = ::Regexp.last_match(0)
-            add_token.call(:unknown, last[0..-2])
-            col += last.size - 1
-            str = last[-1] + ::Regexp.last_match.post_match
+            last = ::Regexp.last_match(1)
+            add_token.call(:unknown, last)
+            col += last.size
+            str = ::Regexp.last_match(2) + ::Regexp.last_match.post_match
           end
         end
         @tokens

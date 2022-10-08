@@ -10,7 +10,7 @@ rule
   symbol: SYMBOL {
             t = val[0]
             raise_error("'next' is a reserved label") if t == 'next'
-            t
+            last_token
           }
   statement: arithmetic { [:alu, val[0]] }
            | assignment { [:assign, val[0]] }
@@ -29,54 +29,67 @@ rule
   a_rval: x_constexpr
         | argument { Scalar::Data.new(val[0]) }
         | memory
+        | LEN { Scalar::Len.instance }
         # A = -A is a special case, it's in an assignment form but belongs to ALU BPF
         | ALU_OP A {
           raise_error('do you mean A = -A?', -1) if val[0] != '-'
           :neg
         }
   conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
+             | A compare x_constexpr goto_symbol goto_symbol { [[val[1], val[2]], val[3], val[4]] }
   else_block: ELSE newlines goto_expr { val[2] }
-            | { 'next' }
+            | { :next }
   comparison: LPAREN newlines a newlines compare newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
   compare: COMPARE
          | AND
-  goto_expr: GOTO GOTO_SYMBOL { val[1] }
+  goto_expr: GOTO goto_symbol { val[1] }
+  goto_symbol: GOTO_SYMBOL { last_token }
   return_stat: RETURN ret_val { val[1] }
   ret_val: a
-         | ACTION { Const::BPF::ACTION[val[0].to_sym] }
+         | ACTION { Scalar::ConstVal.new(Const::BPF::ACTION[val[0].to_sym]) }
          | ACTION LPAREN constexpr RPAREN {
-             Const::BPF::ACTION[val[0].to_sym] |
-               (val[2] & Const::BPF::SECCOMP_RET_DATA)
+             Scalar::ConstVal.new(Const::BPF::ACTION[val[0].to_sym] |
+               (val[2].to_i & Const::BPF::SECCOMP_RET_DATA))
            }
          | constexpr
   memory: MEM LBRACK constexpr RBRACK {
-            idx = val[2]
+            idx = val[2].to_i
             raise_error(format("Index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
             Scalar::Mem.new(idx)
           }
   x_constexpr: x
-             | constexpr { Scalar::ConstVal.new(val[0]) }
+             | constexpr
   argument: argument_long
           | argument_long alu_op INT {
-              if val[1] != '>>' || val[2].to_i != 4
+              if val[1] != '>>' || val[2].to_i != 32
                 off = val[1] == '>>' ? 0 : -1
-                raise_error("operator after an argument can only be '>> 4'", off)
+                raise_error("operator after an argument can only be '>> 32'", off)
               end
               val[0] + 4
             }
           | SYS_NUMBER { 0 }
           | ARCH { 4 }
+          | DATA LBRACK constexpr RBRACK {
+              idx = val[2].to_i
+              if idx % 4 != 0 || idx >= 64
+                raise_error(format('Index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
+              end
+              idx
+            }
   # 8-byte long arguments
-  argument_long: ARGS LBRACK constexpr RBRACK {
-                   idx = val[2]
-                   raise_error(format('Index of args[] must between 0 and 5, got %d', idx), -1) unless idx.between?(0, 5)
-                   16 + idx * 8
+  argument_long: args LBRACK constexpr RBRACK {
+                   idx = val[2].to_i
+                   s = val[0]
+                   raise_error(format('Index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
+                   16 + idx * 8 + (s.downcase.end_with?('h') ? 4 : 0)
                  }
                | INSTRUCTION_POINTER { 8 }
+  args: ARGS
+      | ARGS_H
   alu_op_eq: alu_op ASSIGN { val[0] + val[1] }
   alu_op: ALU_OP
         | AND
-  constexpr: number { val[0] & 0xffffffff }
+  constexpr: number { Scalar::ConstVal.new(val[0] & 0xffffffff) }
            | LPAREN constexpr RPAREN { val[1] }
   ax: a
      | x
@@ -112,6 +125,8 @@ require 'seccomp-tools/asm/statement'
   # @return [Array<Statement>]
   def parse
     @tokens = @scanner.scan.dup
+    return [] if @tokens.empty?
+
     @cur_idx = 0
     do_parse
   end

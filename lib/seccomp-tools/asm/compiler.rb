@@ -76,22 +76,28 @@ module SeccompTools
         end
       end
 
+      # @param [Integer] index
       # @param [SeccompTools::Asm::Token, :next] sym
       def resolve_symbol(index, sym)
         return 0 if sym.is_a?(Symbol) && sym == :next
-        return 0 if sym.str == 'next'
 
-        if @symbols[sym.str].nil?
+        str = sym.str
+        return 0 if str == 'next'
+
+        if @symbols[str].nil?
+          # special case - goto <n> can be considered as $+1+<n>
+          return str.to_i if str == str.to_i.to_s
+
           raise SeccompTools::UndefinedLabelError,
-                @scanner.format_error(sym, "Cannot find label '#{sym.str}'")
+                @scanner.format_error(sym, "Cannot find label '#{str}'")
         end
-        if @symbols[sym.str][1] <= index
+        if @symbols[str][1] <= index
           raise SeccompTools::BackwardJumpError,
                 @scanner.format_error(sym,
-                                      "Does not support backward jumping to '#{sym.str}'")
+                                      "Does not support backward jumping to '#{str}'")
         end
 
-        @symbols[sym.str][1] - index - 1
+        @symbols[str][1] - index - 1
       end
 
       # Emits a raw BPF object.

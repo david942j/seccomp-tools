@@ -58,7 +58,7 @@ A = data[1]
       compiler = described_class.new(<<-EOS, nil, :amd64)
 0000: A = sys_number
 0001: A == read ? ok : dead
-0002: A != read ? ok : dead
+0002: A != read ? ok : 2
 0003: A <= 0x1337 ? ok : next
 0004: A < 1337 ? ok : dead
 0005: A >= read ? ok : dead
@@ -70,7 +70,7 @@ return KILL
       expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
 A = sys_number
 if (A == 0) goto 0006 else goto 0007
-if (A == 0) goto 0007 else goto 0006
+if (A == 0) goto 0005 else goto 0006
 if (A <= 4919) goto 0006
 if (A >= 1337) goto 0007 else goto 0006
 if (A < 0) goto 0007

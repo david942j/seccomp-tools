@@ -70,9 +70,9 @@ meow
     it 'keywords' do
       s = described_class.new(<<-EOS, :amd64)
       if else A X RETurn
-      mem ARGS sYS_NUMBEr aRch instRUCtion_pointer
+      len mem ARGS args_h data sYS_NUMBEr aRch instRUCtion_pointer
       EOS
-      expect(s.scan.count { |t| t.sym != :NEWLINE }).to be 10
+      expect(s.scan.count { |t| t.sym != :NEWLINE }).to be 13
       expect(s.validate).to be_empty
     end
 
@@ -177,7 +177,6 @@ if (A <= write) goto   xyz
       A # return
       EOS
       expect(s.scan).to eq([
-                             SeccompTools::Asm::Token.new(:NEWLINE, "\n", 0, 17),
                              SeccompTools::Asm::Token.new(:A, 'A', 1, 6),
                              SeccompTools::Asm::Token.new(:NEWLINE, "\n", 1, 16)
                            ])

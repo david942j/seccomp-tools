@@ -15,7 +15,7 @@ module SeccompTools
       attr_reader :syscalls
 
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
-      KEYWORDS = %w[a x if else return mem args sys_number arch instruction_pointer].freeze
+      KEYWORDS = %w[a x if else return mem args args_h data len sys_number arch instruction_pointer].freeze
       # Action strings can be used in a return statement. Actions must be in upper case.
       # See {SeccompTools::Const::BPF::ACTION}.
       ACTIONS = Const::BPF::ACTION.keys.map(&:to_s)
@@ -29,11 +29,11 @@ module SeccompTools
 
       # @param [String] str
       # @param [Symbol] arch
-      # @param [String] filename
+      # @param [String?] filename
       # @example
       #   Scanner.new('return ALLOW', :amd64)
-      def initialize(str, arch, filename: '<inline>')
-        @filename = filename
+      def initialize(str, arch, filename: nil)
+        @filename = filename || '<inline>'
         @str = str
         @syscalls = case arch
                     when :amd64 then Const::Syscall::AMD64
@@ -79,7 +79,8 @@ module SeccompTools
         until str.empty?
           case str
           when /\A\n+/
-            add_token.call(:NEWLINE, ::Regexp.last_match(0))
+            # Don't push newline as the first token
+            add_token.call(:NEWLINE, ::Regexp.last_match(0)) unless @tokens.empty?
             row += ::Regexp.last_match(0).size
             col = 0
             str = ::Regexp.last_match.post_match
@@ -89,13 +90,14 @@ module SeccompTools
           when /\A#.*/
             col += ::Regexp.last_match(0).size
             str = ::Regexp.last_match.post_match
-          when /\Agoto\s+\w+\b/i
+          when /\A(goto|jmp|jump)\s+(\w+)\b/i
+            orig_col = col
+            col += ::Regexp.last_match.begin(1)
+            add_token.call(:GOTO, ::Regexp.last_match(1))
+            col = orig_col + ::Regexp.last_match.begin(2)
+            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2))
+            col = orig_col + ::Regexp.last_match(0).size
             str = ::Regexp.last_match.post_match
-            match = ::Regexp.last_match(0).split(/\s/)
-            add_token.call(:GOTO, match.first)
-            col += 'goto'.size + match.size - 1
-            add_token.call(:GOTO_SYMBOL, match.last)
-            col += match.last.size
           when /\A\b(#{KEYWORDS.join('|')})\b/i
             add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
           when /\A\b(#{ACTIONS.join('|')})\b/
@@ -127,12 +129,12 @@ module SeccompTools
             add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(:jf))
             col = orig_col + ::Regexp.last_match(0).size
             str = ::Regexp.last_match.post_match
-          when /\A[^\s]+\s/
+          when /\A([^\s]+)(\s?)/
             # unrecognized token - match until \s
-            last = ::Regexp.last_match(0)
-            add_token.call(:unknown, last[0..-2])
-            col += last.size - 1
-            str = last[-1] + ::Regexp.last_match.post_match
+            last = ::Regexp.last_match(1)
+            add_token.call(:unknown, last)
+            col += last.size
+            str = ::Regexp.last_match(2) + ::Regexp.last_match.post_match
           end
         end
         @tokens

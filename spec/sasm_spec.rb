@@ -363,4 +363,9 @@ describe SeccompTools::Asm::SeccompAsmParser do
     # For unknown reasons the function is never called. Call it here to increase test coverage.
     expect(described_class.new(nil)._reduce_none([1], nil)).to eq 1
   end
+
+  it 'accepts empty input' do
+    scanner = scan.new('', :amd64).validate!
+    expect(described_class.new(scanner).parse).to be_empty
+  end
 end

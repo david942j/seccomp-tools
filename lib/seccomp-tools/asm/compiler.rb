@@ -112,13 +112,11 @@ module SeccompTools
         BPF.new({ code: code, k: k, jt: jt, jf: jf }, @arch, @line)
       end
 
+      # A = -A
       # A = X / X = A
       # mem[i] = <A|X>
-      # <A|X> = 123|sys_const
       # A = len
-      # <A|X> = mem[i]
-      # A = args_h[i]|args[i]|sys_number|arch
-      # A = data[4 * i]
+      # <A|X> = <immi|mem[i]|data[i]>
       def emit_assign(dst, src)
         return emit(:alu, :neg) if src.is_a?(Symbol) && src == :neg
         # misc txa / tax
@@ -127,9 +125,8 @@ module SeccompTools
         return emit(src.x? ? :stx : :st, k: dst.val) if dst.mem?
 
         ld = dst.x? ? :ldx : :ld
-        # <A|X> = <immi>
-        return emit(ld, :imm, k: src.to_i) if src.const?
         return emit(ld, :len, k: 0) if src.len?
+        return emit(ld, :imm, k: src.to_i) if src.const?
         return emit(ld, :mem, k: src.val) if src.mem?
 
         emit(ld, :abs, k: src.val) if src.data?

@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
-require 'seccomp-tools/asm/tokenizer'
+require 'seccomp-tools/asm/sasm.tab'
+require 'seccomp-tools/asm/scalar'
+require 'seccomp-tools/asm/scanner'
 require 'seccomp-tools/bpf'
-require 'seccomp-tools/const'
+require 'seccomp-tools/error'
 
 module SeccompTools
   module Asm
@@ -12,73 +14,85 @@ module SeccompTools
     class Compiler
       # Instantiate a {Compiler} object.
       #
+      # @param [String] source
+      #   Input string.
+      # @param [String?] filename
+      #   Only used in error messages.
       # @param [Symbol] arch
       #   Architecture.
-      def initialize(arch)
+      def initialize(source, filename, arch)
+        @scanner = Scanner.new(source, arch, filename: filename)
         @arch = arch
-        @insts = []
-        @labels = {}
-        @insts_linenum = {}
-        @input = []
-      end
-
-      # Before compile assembly codes, process each lines.
-      #
-      # With this we can support label in seccomp rules.
-      # @param [String] line
-      #   One line of seccomp rule.
-      # @return [void]
-      def process(line)
-        @input << line.strip
-        line = remove_comment(line)
-        @token = Tokenizer.new(line, @arch)
-        return if line.empty?
-
-        begin
-          res = case line
-                when /\?/ then cmp
-                when /^#{Tokenizer::LABEL_REGEXP}:/ then define_label
-                when /^return/ then ret
-                when /^A\s*=\s*-A/ then alu_neg
-                when /^(A|X)\s*=[^=]/ then assign
-                when /^mem\[\d+\]\s*=\s*(A|X)/ then store
-                when /^A\s*.{1,2}=/ then alu
-                when /^(goto|jmp|jump)/ then jmp_abs
-                end
-        rescue ArgumentError => e
-          invalid(@input.size - 1, e.message)
-        end
-        invalid(@input.size - 1) if res.nil?
-        if res.first == :label
-          @labels[res.last] = @insts.size
-        else
-          @insts << res
-          @insts_linenum[@insts.size - 1] = @input.size - 1
-        end
+        @symbols = {}
       end
 
       # Compiles the processed instructions.
       #
       # @return [Array<SeccompTools::BPF>]
       #   Returns the compiled {BPF} array.
-      # @raise [ArgumentError]
+      # @raise [SeccompTools::Error]
       #   Raises the error found during compilation.
       def compile!
-        @insts.map.with_index do |inst, idx|
+        @scanner.validate!
+        statements = SeccompAsmParser.new(@scanner).parse
+        fixup_symbols(statements)
+        resolve_symbols(statements)
+
+        statements.map.with_index do |s, idx|
           @line = idx
-          case inst.first
-          when :assign then compile_assign(inst[1], inst[2])
-          when :alu then compile_alu(inst[1], inst[2])
-          when :ret then compile_ret(inst[1])
-          when :cmp then compile_cmp(inst[1], inst[2], inst[3], inst[4])
-          when :jmp_abs then compile_jmp_abs(inst[1])
+          case s.type
+          when :alu then emit_alu(*s.data)
+          when :assign then emit_assign(*s.data)
+          when :if then emit_cmp(*s.data)
+          when :ret then emit_ret(*s.data)
           end
         end
-      rescue ArgumentError => e
-        invalid(@insts_linenum[@line], e.message)
       end
 
       private
+
+      def fixup_symbols(statements)
+        statements.each_with_index do |statement, idx|
+          statement.symbols.uniq(&:str).each do |s|
+            if @symbols[s.str]
+              msg = @scanner.format_error(s, "duplicate label '#{s.str}'")
+              msg += @scanner.format_error(@symbols[s.str][0], 'previously defined here')
+              raise SeccompTools::DuplicateLabelError, msg
+            end
+
+            @symbols[s.str] = [s, idx]
+          end
+        end
+      end
+
+      def resolve_symbols(statements)
+        statements.each_with_index do |statement, idx|
+          next if statement.type != :if
+
+          jt = resolve_symbol(idx, statement.data[1])
+          jf = resolve_symbol(idx, statement.data[2])
+          statement.data[1] = jt
+          statement.data[2] = jf
+        end
+      end
+
+      # @param [SeccompTools::Asm::Token, :next] sym
+      def resolve_symbol(index, sym)
+        return 0 if sym.is_a?(Symbol) && sym == :next
+        return 0 if sym.str == 'next'
+
+        if @symbols[sym.str].nil?
+          raise SeccompTools::UndefinedLabelError,
+                @scanner.format_error(sym, "Cannot find label '#{sym.str}'")
+        end
+        if @symbols[sym.str][1] <= index
+          raise SeccompTools::BackwardJumpError,
+                @scanner.format_error(sym,
+                                      "Does not support backward jumping to '#{sym.str}'")
+        end
+
+        @symbols[sym.str][1] - index - 1
+      end
 
       # Emits a raw BPF object.
       #
@@ -105,194 +119,76 @@ module SeccompTools
       # <A|X> = mem[i]
       # A = args_h[i]|args[i]|sys_number|arch
       # A = data[4 * i]
-      def compile_assign(dst, src)
+      def emit_assign(dst, src)
+        return emit(:alu, :neg) if src.is_a?(Symbol) && src == :neg
         # misc txa / tax
-        return compile_assign_misc(dst, src) if (dst == :a && src == :x) || (dst == :x && src == :a)
+        return emit_assign_misc(dst, src) if (dst.a? && src.x?) || (dst.x? && src.a?)
         # case of st / stx
-        return emit(src == :x ? :stx : :st, k: dst.last) if dst.is_a?(Array) && dst.first == :mem
+        return emit(src.x? ? :stx : :st, k: dst.val) if dst.mem?
 
-        src = evaluate(src)
-        ld = dst == :x ? :ldx : :ld
+        ld = dst.x? ? :ldx : :ld
         # <A|X> = <immi>
-        return emit(ld, :imm, k: src) if src.is_a?(Integer)
-        # now src must be in form [:len/:mem/:data, num]
-        return emit(ld, src.first, k: src.last) if src.first == :mem || src.first == :len
-        # check if num is multiple of 4
-        raise ArgumentError, 'Index of data[] must be a multiple of 4' if src.last % 4 != 0
+        return emit(ld, :imm, k: src.to_i) if src.const?
+        return emit(ld, :len, k: 0) if src.len?
+        return emit(ld, :mem, k: src.val) if src.mem?
 
-        emit(ld, :abs, k: src.last)
+        emit(ld, :abs, k: src.val) if src.data?
       end
 
-      def compile_assign_misc(dst, _src)
-        emit(:misc, dst == :a ? :txa : :tax)
+      def emit_assign_misc(dst, _src)
+        emit(:misc, dst.a? ? :txa : :tax)
       end
 
-      def compile_alu(op, val)
-        return emit(:alu, :neg) if op == :neg
-
-        val = evaluate(val)
-        src = val == :x ? :x : :k
-        val = 0 if val == :x
-        emit(:alu, op, src, k: val)
+      def emit_alu(op, val)
+        src, k = val.x? ? [:x, 0] : [:k, val.to_i]
+        emit(:alu, convert_alu_op(op), src, k: k)
       end
 
-      def compile_ret(val)
-        if val == :a
+      def convert_alu_op(op)
+        {
+          '+' => :add,
+          '-' => :sub,
+          '*' => :mul,
+          '/' => :div,
+          '|' => :or,
+          '&' => :and,
+          '<<' => :lsh,
+          '>>' => :rsh,
+          '^' => :xor
+        }[op[0..-2]]
+      end
+
+      def emit_ret(val)
+        if val.a?
           src = :a
           val = 0
         end
-        emit(:ret, src, k: val)
+        emit(:ret, src, k: val.to_i)
       end
 
-      def compile_jmp_abs(target)
-        targ = label_offset(target)
-        emit(:jmp, :ja, k: targ)
+      def emit_cmp(cmp, jt, jf)
+        jop, jt, jf = convert_jmp_op(cmp, jt, jf)
+        return emit(:jmp, jop, 0, jt: 0, jf: 0, k: jt) if jop == :ja || jt == jf
+
+        val = cmp[1]
+        src = val.x? ? :x : :k
+        k = val.x? ? 0 : val.to_i
+        emit(:jmp, jop, src, jt: jt, jf: jf, k: k)
       end
 
-      # Compiles comparison.
-      def compile_cmp(op, val, jt, jf)
-        jt = label_offset(jt)
-        jf = label_offset(jf)
-        val = evaluate(val)
-        src = val == :x ? :x : :k
-        val = 0 if val == :x
-        emit(:jmp, op, src, jt: jt, jf: jf, k: val)
-      end
+      # == != >= <= > < &
+      def convert_jmp_op(cmp, jt, jf)
+        return [:ja, jt, jf] if cmp.nil?
 
-      def label_offset(label)
-        return label if label.is_a?(Integer)
-        return 0 if label == 'next'
-        raise ArgumentError, "Undefined label #{label.inspect}" if @labels[label].nil?
-        raise ArgumentError, "Does not support backward jumping to #{label.inspect}" if @labels[label] < @line
-
-        @labels[label] - @line - 1
-      end
-
-      def evaluate(val)
-        return val if val.is_a?(Integer) || val == :x || val == :a
-
-        # keywords
-        val = case val
-              when 'sys_number' then [:data, 0]
-              when 'arch' then [:data, 4]
-              when 'len' then [:len, 0]
-              else val
-              end
-        return eval_constants(val) if val.is_a?(String)
-
-        # remains are [:mem/:data/:args/:args_h, <num>]
-        # first convert args to data
-        val = [:data, val.last * 8 + 16] if val.first == :args
-        val = [:data, val.last * 8 + 20] if val.first == :args_h
-        val
-      end
-
-      def eval_constants(str)
-        Const::Syscall.const_get(@arch.upcase.to_sym)[str.to_sym] ||
-          Const::Audit::ARCH[str] ||
-          raise(ArgumentError, "Invalid constant: #{str.inspect}")
-      end
-
-      attr_reader :token
-
-      # <goto|jmp|jump> <label|Integer>
-      def jmp_abs
-        token.fetch('goto') ||
-          token.fetch('jmp') ||
-          token.fetch('jump') ||
-          raise(ArgumentError, "Invalid jump alias: #{token.cur.inspect}")
-        target = token.fetch!(:goto)
-        [:jmp_abs, target]
-      end
-
-      # A <comparison> <sys_str|X|Integer> ? <label|Integer> : <label|Integer>
-      def cmp
-        token.fetch!('A')
-        op = token.fetch!(:comparison)
-        dst = token.fetch!(:sys_num_x)
-        token.fetch!('?')
-        jt = token.fetch!(:goto)
-        token.fetch!(':')
-        jf = token.fetch!(:goto)
-        convert = {
-          :< => :>=,
-          :<= => :>,
-          :!= => :==
-        }
-        if convert[op]
-          op = convert[op]
-          jt, jf = jf, jt
+        case cmp[0]
+        when '==' then [:jeq, jt, jf]
+        when '!=' then [:jeq, jf, jt]
+        when '>=' then [:jge, jt, jf]
+        when '<=' then [:jgt, jf, jt]
+        when '>' then [:jgt, jt, jf]
+        when '<' then [:jge, jf, jt]
+        when '&' then [:jset, jt, jf]
         end
-        op = {
-          :>= => :jge,
-          :> => :jgt,
-          :== => :jeq
-        }[op]
-        [:cmp, op, dst, jt, jf]
-      end
-
-      def ret
-        token.fetch!('return')
-        [:ret, token.fetch!(:ret)]
-      end
-
-      # possible types after '=':
-      #   A = X
-      #   X = A
-      #   A = 123
-      #   A = data[i]
-      #   A = mem[i]
-      #   A = args[i]
-      #   A = sys_number|arch
-      #   A = len
-      def assign
-        dst = token.fetch!(:ax)
-        token.fetch!('=')
-        src = token.fetch(:ax) ||
-              token.fetch(:sys_num_x) ||
-              token.fetch(:ary) ||
-              token.fetch('sys_number') ||
-              token.fetch('arch') ||
-              token.fetch('len') ||
-              raise(ArgumentError, "Invalid source: #{token.cur.inspect}")
-        [:assign, dst, src]
-      end
-
-      # returns same format as assign
-      def store
-        [:assign, token.fetch!(:ary), token.fetch!('=') && token.fetch!(:ax)]
-      end
-
-      def define_label
-        name = token.fetch!(:goto)
-        token.fetch(':')
-        [:label, name]
-      end
-
-      # A op= sys_num_x
-      def alu
-        token.fetch!('A')
-        op = token.fetch!(:alu_op)
-        token.fetch!('=')
-        src = token.fetch!(:sys_num_x)
-        [:alu, op, src]
-      end
-
-      # A = -A
-      def alu_neg
-        %i[alu neg]
-      end
-
-      def remove_comment(line)
-        line = line.to_s.dup
-        line.slice!(/#.*\Z/m)
-        line.strip
-      end
-
-      def invalid(line, extra_msg = nil)
-        message = "Invalid instruction at line #{line + 1}: #{@input[line].inspect}"
-        message += "\nError: #{extra_msg}" if extra_msg
-        raise ArgumentError, message
       end
     end
   end

@@ -44,7 +44,7 @@ module SeccompTools
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
 
-        res = SeccompTools::Asm.asm(input, arch: option[:arch])
+        res = SeccompTools::Asm.asm(input, filename: option[:ifile], arch: option[:arch])
         output do
           case option[:format]
           when :inspect then "#{res.inspect}\n"

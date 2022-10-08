@@ -48,29 +48,54 @@ A = data[1]
     end
   end
 
-  it 'cmp' do
-    compiler = described_class.new(<<-EOS, nil, :amd64)
-0001: A = sys_number
-0002: A == read ? ok : dead
-0003: A != read ? ok : 0006
-0004: A <= 0x1337 ? ok : next
-0005: A < 1337 ? ok : dead
-0006: A >= read ? ok : dead
+  describe 'condtional' do
+    it 'accepts ternary' do
+      compiler = described_class.new(<<-EOS, nil, :amd64)
+0000: A = sys_number
+0001: A == read ? ok : dead
+0002: A != read ? ok : dead
+0003: A <= 0x1337 ? ok : next
+0004: A < 1337 ? ok : dead
+0005: A >= read ? ok : dead
 ok:
 return ALLOW
 dead:
 return KILL
-    EOS
-    expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
+      EOS
+      expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
 A = sys_number
 if (A == 0) goto 0006 else goto 0007
-if (A == 0) goto 0005 else goto 0006
+if (A == 0) goto 0007 else goto 0006
 if (A <= 4919) goto 0006
 if (A >= 1337) goto 0007 else goto 0006
 if (A < 0) goto 0007
 return ALLOW
 return KILL
-    EOS
+      EOS
+    end
+
+    it 'accepts if-else' do
+      compiler = described_class.new(<<-EOS, nil, :amd64)
+0000: A = sys_number
+0001: if (A == 0) goto 0006 else goto 0007
+0002: if (A & X) goto 0005 else goto 0006
+0003: if (A != 4919) goto 0006
+0004: if (A & 1337) goto 0007 else goto 0006
+0005: if (A > 0) goto 0007
+0006: return ALLOW
+0007: return KILL
+      EOS
+      expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
+A = sys_number
+if (A == 0) goto 0006 else goto 0007
+if (A & X) goto 0005 else goto 0006
+if (A != 4919) goto 0006
+if (A & 1337) goto 0007 else goto 0006
+if (A > 0) goto 0007
+return ALLOW
+return KILL
+      EOS
+    end
   end
 
   it 'ret' do

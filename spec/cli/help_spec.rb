@@ -53,6 +53,9 @@ disasm - Disassemble seccomp bpf.
 
 Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
+        --[no-]bpf                   Display BPF bytes (code, jt, etc.).
+                                     Output with '--no-bpf' is a valid syntax for passing to "seccomp-tools asm".
+                                     Default: true
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|s390x>.
                                      Default: amd64

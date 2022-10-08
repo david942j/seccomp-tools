@@ -7,16 +7,17 @@ require 'seccomp-tools/disasm/context'
 require 'seccomp-tools/util'
 
 module SeccompTools
-  # Disassembler of seccomp bpf.
+  # Disassembler of seccomp BPF.
   module Disasm
     module_function
 
-    # Disassemble bpf codes.
+    # Disassemble BPF codes.
     # @param [String] raw
-    #   The raw bpf bytes.
+    #   The raw BPF bytes.
     # @param [Symbol] arch
     #   Architecture.
-    def disasm(raw, arch: nil)
+    # @param [Boolean] display_bpf
+    def disasm(raw, arch: nil, display_bpf: true)
       codes = to_bpf(raw, arch)
       contexts = Array.new(codes.size) { Set.new }
       contexts[0].add(Context.new)
@@ -28,16 +29,20 @@ module SeccompTools
           end
         end
         code.contexts = ctxs
-        code.disasm
+        code.disasm(show_code: display_bpf)
       end.join("\n")
-      <<-EOS
+      if display_bpf
+        <<-EOS
  line  CODE  JT   JF      K
 =================================
 #{dis}
-      EOS
+        EOS
+      else
+        "#{dis}\n"
+      end
     end
 
-    # Convert raw bpf string to array of {BPF}.
+    # Convert raw BPF string to array of {BPF}.
     # @param [String] raw
     # @param [Symbol] arch
     # @return [Array<BPF>]

@@ -16,16 +16,26 @@ module SeccompTools
 
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
       KEYWORDS = %w[a x if else return mem args args_h data len sys_number arch instruction_pointer].freeze
+      # Regexp for matching keywords.
+      KEYWORD_MATCHER = /\A\b(#{KEYWORDS.join('|')})\b/i.freeze
       # Action strings can be used in a return statement. Actions must be in upper case.
       # See {SeccompTools::Const::BPF::ACTION}.
       ACTIONS = Const::BPF::ACTION.keys.map(&:to_s)
+      # Regexp for matching actions.
+      ACTION_MATCHER = /\A\b(#{ACTIONS.join('|')})\b/.freeze
       # Special constants for checking the current architecture. See {SeccompTools::Const::Audit::ARCH}. These constants
       # are case-insensitive.
       ARCHES = Const::Audit::ARCH.keys
+      # Regexp for matching arch values.
+      ARCH_MATCHER = /\A\b(#{ARCHES.join('|')})\b/i.freeze
       # Comparisons.
       COMPARE = %w[== != >= <= > <].freeze
+      # Regexp for matching comparisons.
+      COMPARE_MATCHER = /\A(#{COMPARE.join('|')})/.freeze
       # All valid arithmetic operators.
       ALU_OP = %w[+ - * / | ^ << >>].freeze
+      # Regexp for matching ALU operators.
+      ALU_OP_MATCHER = /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/.freeze
 
       # @param [String] str
       # @param [Symbol] arch
@@ -88,36 +98,24 @@ module SeccompTools
             row += ::Regexp.last_match(0).size
             col = 0
             str = ::Regexp.last_match.post_match
-          when /\A\s+/
-            bump_vars.call
-          when /\A#.*/
-            bump_vars.call
+          when /\A\s+/, /\A#.*/ then bump_vars.call
           when /\A(goto|jmp|jump)\s+(\w+)\b/i
             add_token.call(:GOTO, ::Regexp.last_match(1), col + ::Regexp.last_match.begin(1))
             add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2), col + ::Regexp.last_match.begin(2))
             bump_vars.call
-          when /\A\b(#{KEYWORDS.join('|')})\b/i
-            add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
-          when /\A\b(#{ACTIONS.join('|')})\b/
-            add_token_def.call(:ACTION)
-          when /\A\b(#{ARCHES.join('|')})\b/i
-            add_token_def.call(:ARCH_VAL)
-          when syscall_matcher
-            add_token_def.call(:SYSCALL)
-          when /\A\w+:/
-            add_token.call(:SYMBOL, ::Regexp.last_match(0)[0..-2])
+          when KEYWORD_MATCHER then add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
+          when ACTION_MATCHER then add_token_def.call(:ACTION)
+          when ARCH_MATCHER then add_token_def.call(:ARCH_VAL)
+          when syscall_matcher then add_token_def.call(:SYSCALL)
+          when /\A(\w+):/
+            add_token.call(:SYMBOL, ::Regexp.last_match(1))
             bump_vars.call
-          when /\A-?0x[0-9a-f]+\b/
-            add_token_def.call(:HEX_INT)
-          when /\A-?[0-9]+\b/
-            add_token_def.call(:INT)
-          when /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/
-            add_token_def.call(:ALU_OP)
-          when /\A(#{COMPARE.join('|')})/
-            add_token_def.call(:COMPARE)
-          when /\A(\(|\)|=|\[|\]|&)/
-            # '&' is in both compare and ALU op category, handle it here
-            add_token_def.call(::Regexp.last_match(0))
+          when /\A-?0x[0-9a-f]+\b/ then add_token_def.call(:HEX_INT)
+          when /\A-?[0-9]+\b/ then add_token_def.call(:INT)
+          when ALU_OP_MATCHER then add_token_def.call(:ALU_OP)
+          when COMPARE_MATCHER then add_token_def.call(:COMPARE)
+          # '&' is in both compare and ALU op category, handle it here
+          when /\A(\(|\)|=|\[|\]|&)/ then add_token_def.call(::Regexp.last_match(0))
           when /\A\?\s*(?<jt>\w+)\s*:\s*(?<jf>\w+)/
             %i[jt jf].each do |s|
               add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(s), col + ::Regexp.last_match.begin(s))

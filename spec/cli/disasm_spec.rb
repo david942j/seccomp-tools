@@ -48,4 +48,27 @@ describe SeccompTools::CLI::Disasm do
  0017: 0x06 0x00 0x00 0x7fff0000  return ALLOW
 EOS
   end
+
+  it 'supports no bpf' do
+    expect { described_class.new([@bpf, '-a', 'i386', '--no-bpf']).handle }.to output(<<-EOS).to_stdout
+0000: A = sys_number
+0001: if (A != fork) goto 0003
+0002: return KILL
+0003: if (A != remap_file_pages) goto 0005
+0004: return KILL
+0005: if (A != oldolduname) goto 0007
+0006: return KILL
+0007: if (A != mpx) goto 0009
+0008: return KILL
+0009: if (A != setpgid) goto 0011
+0010: return KILL
+0011: if (A != ulimit) goto 0013
+0012: return KILL
+0013: if (A != readlink) goto 0015
+0014: return KILL
+0015: if (A != timerfd) goto 0017
+0016: return KILL
+0017: return ALLOW
+    EOS
+  end
 end

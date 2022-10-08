@@ -99,6 +99,9 @@ module SeccompTools
             col = 0
             str = ::Regexp.last_match.post_match
           when /\A\s+/, /\A#.*/ then bump_vars.call
+          when /\A(\w+):/
+            add_token.call(:SYMBOL, ::Regexp.last_match(1))
+            bump_vars.call
           when /\A(goto|jmp|jump)\s+(\w+)\b/i
             add_token.call(:GOTO, ::Regexp.last_match(1), col + ::Regexp.last_match.begin(1))
             add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2), col + ::Regexp.last_match.begin(2))
@@ -107,9 +110,6 @@ module SeccompTools
           when ACTION_MATCHER then add_token_def.call(:ACTION)
           when ARCH_MATCHER then add_token_def.call(:ARCH_VAL)
           when syscall_matcher then add_token_def.call(:SYSCALL)
-          when /\A(\w+):/
-            add_token.call(:SYMBOL, ::Regexp.last_match(1))
-            bump_vars.call
           when /\A-?0x[0-9a-f]+\b/ then add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/ then add_token_def.call(:INT)
           when ALU_OP_MATCHER then add_token_def.call(:ALU_OP)

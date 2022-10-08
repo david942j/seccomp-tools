@@ -27,7 +27,7 @@ module SeccompTools
           end
           opt.on('--[no-]bpf',
                  'Display BPF bytes (code, jt, etc.).',
-                 'Output with \'--no-bpf\' is a valid format for passing to "seccomp-tools asm".',
+                 'Output with \'--no-bpf\' is a valid syntax for passing to "seccomp-tools asm".',
                  'Default: true') do |f|
                    option[:bpf] = f
                  end

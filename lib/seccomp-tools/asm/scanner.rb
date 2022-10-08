@@ -68,14 +68,18 @@ module SeccompTools
         row = 0
         col = 0
         str = @str
-        add_token = ->(sym, s) { @tokens.push(Token.new(sym, s, row, col)) }
+        add_token = ->(sym, s, c = col) { @tokens.push(Token.new(sym, s, row, c)) }
         # define a helper because it's commonly used - add a token with matched string, bump col with string size
-        add_token_def = lambda do |sym|
-          add_token.call(sym, ::Regexp.last_match(0))
+        bump_vars = lambda {
           col += ::Regexp.last_match(0).size
           str = ::Regexp.last_match.post_match
+        }
+        add_token_def = lambda do |sym|
+          add_token.call(sym, ::Regexp.last_match(0))
+          bump_vars.call
         end
-        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse
+        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse.join('|')
+        syscall_matcher = ::Regexp.compile("\\A\\b(#{syscalls})\\b")
         until str.empty?
           case str
           when /\A\n+/
@@ -85,31 +89,24 @@ module SeccompTools
             col = 0
             str = ::Regexp.last_match.post_match
           when /\A\s+/
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            bump_vars.call
           when /\A#.*/
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            bump_vars.call
           when /\A(goto|jmp|jump)\s+(\w+)\b/i
-            orig_col = col
-            col += ::Regexp.last_match.begin(1)
-            add_token.call(:GOTO, ::Regexp.last_match(1))
-            col = orig_col + ::Regexp.last_match.begin(2)
-            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2))
-            col = orig_col + ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            add_token.call(:GOTO, ::Regexp.last_match(1), col + ::Regexp.last_match.begin(1))
+            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(2), col + ::Regexp.last_match.begin(2))
+            bump_vars.call
           when /\A\b(#{KEYWORDS.join('|')})\b/i
             add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
           when /\A\b(#{ACTIONS.join('|')})\b/
             add_token_def.call(:ACTION)
           when /\A\b(#{ARCHES.join('|')})\b/i
             add_token_def.call(:ARCH_VAL)
-          when /\A\b(#{syscalls.join('|')})\b/
+          when syscall_matcher
             add_token_def.call(:SYSCALL)
           when /\A\w+:/
             add_token.call(:SYMBOL, ::Regexp.last_match(0)[0..-2])
-            col += ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            bump_vars.call
           when /\A-?0x[0-9a-f]+\b/
             add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/
@@ -122,13 +119,10 @@ module SeccompTools
             # '&' is in both compare and ALU op category, handle it here
             add_token_def.call(::Regexp.last_match(0))
           when /\A\?\s*(?<jt>\w+)\s*:\s*(?<jf>\w+)/
-            orig_col = col
-            col += ::Regexp.last_match.begin(:jt)
-            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(:jt))
-            col = orig_col + ::Regexp.last_match.begin(:jf)
-            add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(:jf))
-            col = orig_col + ::Regexp.last_match(0).size
-            str = ::Regexp.last_match.post_match
+            %i[jt jf].each do |s|
+              add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(s), col + ::Regexp.last_match.begin(s))
+            end
+            bump_vars.call
           when /\A([^\s]+)(\s?)/
             # unrecognized token - match until \s
             last = ::Regexp.last_match(1)

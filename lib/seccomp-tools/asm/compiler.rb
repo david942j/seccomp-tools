@@ -126,20 +126,20 @@ module SeccompTools
       def emit_assign(dst, src)
         return emit(:alu, :neg) if src.is_a?(Symbol) && src == :neg
         # misc txa / tax
-        return emit_assign_misc(dst, src) if (dst.a? && src.x?) || (dst.x? && src.a?)
+        return emit(:misc, dst.a? ? :txa : :tax) if (dst.a? && src.x?) || (dst.x? && src.a?)
         # case of st / stx
         return emit(src.x? ? :stx : :st, k: dst.val) if dst.mem?
 
+        emit_ld(dst, src)
+      end
+
+      def emit_ld(dst, src)
         ld = dst.x? ? :ldx : :ld
         return emit(ld, :len, k: 0) if src.len?
         return emit(ld, :imm, k: src.to_i) if src.const?
         return emit(ld, :mem, k: src.val) if src.mem?
 
         emit(ld, :abs, k: src.val) if src.data?
-      end
-
-      def emit_assign_misc(dst, _src)
-        emit(:misc, dst.a? ? :txa : :tax)
       end
 
       def emit_alu(op, val)

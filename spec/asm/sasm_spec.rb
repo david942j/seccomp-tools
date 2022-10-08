@@ -263,6 +263,30 @@ describe SeccompTools::Asm::SeccompAsmParser do
       expect(statement.data[1].str).to eq 'next'
       expect(statement.data[2].str).to eq 'label'
     end
+
+    it 'supports NOT conditions' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      if (!(A & 0x123)) goto a else goto b
+      if (! (A != X)) goto c
+      if (!(!(!(!(!(!(A == X))))))) goto d
+      EOS
+      statements = described_class.new(scanner).parse
+      statement = statements[0]
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['&', 0x123]
+      expect(statement.data[1].str).to eq 'b'
+      expect(statement.data[2].str).to eq 'a'
+      statement = statements[1]
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['!=', x]
+      expect(statement.data[1]).to eq :next
+      expect(statement.data[2].str).to eq 'c'
+      statement = statements[2]
+      expect(statement.type).to eq :if
+      expect(statement.data[0]).to eq ['==', x]
+      expect(statement.data[1].str).to eq 'd'
+      expect(statement.data[2]).to eq :next
+    end
   end
 
   describe 'return' do

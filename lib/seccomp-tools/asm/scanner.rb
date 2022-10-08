@@ -115,7 +115,7 @@ module SeccompTools
           when ALU_OP_MATCHER then add_token_def.call(:ALU_OP)
           when COMPARE_MATCHER then add_token_def.call(:COMPARE)
           # '&' is in both compare and ALU op category, handle it here
-          when /\A(\(|\)|=|\[|\]|&)/ then add_token_def.call(::Regexp.last_match(0))
+          when /\A(\(|\)|=|\[|\]|&|!)/ then add_token_def.call(::Regexp.last_match(0))
           when /\A\?\s*(?<jt>\w+)\s*:\s*(?<jf>\w+)/
             %i[jt jf].each do |s|
               add_token.call(:GOTO_SYMBOL, ::Regexp.last_match(s), col + ::Regexp.last_match.begin(s))

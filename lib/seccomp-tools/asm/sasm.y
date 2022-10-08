@@ -35,11 +35,18 @@ rule
           raise_error('do you mean A = -A?', -1) if val[0] != '-'
           :neg
         }
-  conditional: IF comparison newlines goto_expr newlines else_block { [val[1], val[3], val[5]] }
+  conditional: IF comparison newlines goto_expr newlines else_block {
+                 op, rval, parity = val[1]
+                 jt, jf = val[3], val[5]
+                 jt, jf = jf, jt if parity.odd?
+                 [[op, rval], jt, jf]
+               }
              | A compare x_constexpr goto_symbol goto_symbol { [[val[1], val[2]], val[3], val[4]] }
   else_block: ELSE newlines goto_expr { val[2] }
             | { :next }
-  comparison: LPAREN newlines a newlines compare newlines x_constexpr newlines RPAREN { [val[4], val[6]] }
+  comparison: LPAREN newlines comparison_ newlines RPAREN { val[2] }
+  comparison_: a newlines compare newlines x_constexpr { [val[2], val[4], 0] }
+             | BANG LPAREN comparison_ RPAREN { val[2][2] += 1; val[2] }
   compare: COMPARE
          | AND
   goto_expr: GOTO goto_symbol { val[1] }
@@ -109,6 +116,7 @@ rule
   LBRACK: '['
   RBRACK: ']'
   AND: '&'
+  BANG: '!'
 end
 
 ---- header

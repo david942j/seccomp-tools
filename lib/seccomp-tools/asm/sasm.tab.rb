@@ -597,9 +597,9 @@ module_eval(<<'.,.,', 'sasm.y', 55)
 
 module_eval(<<'.,.,', 'sasm.y', 63)
   def _reduce_43(val, _values)
-                  if val[1] != '>>' || val[2].to_i != 4
+                  if val[1] != '>>' || val[2].to_i != 32
                 off = val[1] == '>>' ? 0 : -1
-                raise_error("operator after an argument can only be '>> 4'", off)
+                raise_error("operator after an argument can only be '>> 32'", off)
               end
               val[0] + 4
 

@@ -87,10 +87,10 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = sys_number
       A = read
       A = instruction_pointer
-      A = instruction_pointer >> 4
+      A = instruction_pointer >> 32
       A = args[0]
       A = args[1]
-      A = args[2] >> 4
+      A = args[2] >> 32
       A = mem[0]
       A = mem[12]
       A = -A
@@ -127,7 +127,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = args[0] >> 5
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:22 operator after an argument can only be '>> 4'
+<inline>:1:22 operator after an argument can only be '>> 32'
       A = args[0] >> 5
                      ^
       EOS
@@ -135,7 +135,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = instruction_pointer + 1
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:31 operator after an argument can only be '>> 4'
+<inline>:1:31 operator after an argument can only be '>> 32'
       A = instruction_pointer + 1
                               ^
       EOS

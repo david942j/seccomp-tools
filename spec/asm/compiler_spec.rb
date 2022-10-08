@@ -46,6 +46,11 @@ A = data[1]
       expect(@get_bpf['A = args_h[0]']).to eq 'A = args[0] >> 32'
       expect(@get_bpf['A = args_h[1]']).to eq 'A = args[1] >> 32'
     end
+
+    it 'accepts right shift' do
+      expect(@get_bpf['A = instruction_pointer >> 32']).to eq 'A = instruction_pointer >> 32'
+      expect(@get_bpf['A = args[0] >> 32']).to eq 'A = args[0] >> 32'
+    end
   end
 
   describe 'condtional' do

@@ -17,7 +17,8 @@ module SeccompTools
     # @param [Symbol] arch
     #   Architecture.
     # @param [Boolean] display_bpf
-    def disasm(raw, arch: nil, display_bpf: true)
+    # @param [Boolean] arg_infer
+    def disasm(raw, arch: nil, display_bpf: true, arg_infer: true)
       codes = to_bpf(raw, arch)
       contexts = Array.new(codes.size) { Set.new }
       contexts[0].add(Context.new)
@@ -29,7 +30,7 @@ module SeccompTools
           end
         end
         code.contexts = ctxs
-        code.disasm(show_code: display_bpf)
+        code.disasm(code: display_bpf, arg_infer: arg_infer)
       end.join("\n")
       if display_bpf
         <<-EOS

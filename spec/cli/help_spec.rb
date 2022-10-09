@@ -53,12 +53,18 @@ disasm - Disassemble seccomp bpf.
 
 Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
-        --[no-]bpf                   Display BPF bytes (code, jt, etc.).
-                                     Output with '--no-bpf' is a valid syntax for passing to "seccomp-tools asm".
-                                     Default: true
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|s390x>.
                                      Default: amd64
+        --[no-]bpf                   Display BPF bytes (code, jt, etc.).
+                                     Default: true
+        --[no-]arg-infer             Display syscall arguments with parameter names when possible.
+                                     Default: true
+        --asm-able                   Output with this flag is a valid input of "seccomp-tools asm".
+                                     By default, "seccomp-tools disasm" is in a human-readable format that easy for analysis.
+                                     Passing this flag can have the output be simplified to a valid input for "seccomp-tools asm".
+                                     This flag implies "--no-bpf --no-arg-infer".
+                                     Default: false
 EOS
     RbConfig::CONFIG['host_cpu'] = org
   end

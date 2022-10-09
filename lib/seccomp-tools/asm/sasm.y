@@ -105,7 +105,13 @@ rule
   number: INT { val[0].to_i }
         | HEX_INT { val[0].to_i(16) }
         | ARCH_VAL { Const::Audit::ARCH[val[0]] }
-        | SYSCALL { @scanner.syscalls[val[0].to_sym] }
+        | SYSCALL {
+            s = val[0]
+            return @scanner.syscalls[s.to_sym] unless s.include?('.')
+
+            arch, sys = s.split('.')
+            Const::Syscall.const_get(arch.upcase)[sys.to_sym]
+          }
   terminator: newlines
             | false
   newlines: newlines NEWLINE

@@ -47,6 +47,10 @@ module SeccompTools
         @str = str
         @syscalls =
           begin; Const::Syscall.const_get(arch.to_s.upcase); rescue NameError; []; end
+        @arches = SeccompTools::Syscall::ABI.keys
+        @syscall_all = @arches.each_with_object({}) do |ar, memo|
+          memo.merge!(Const::Syscall.const_get(ar.to_s.upcase))
+        end.keys
       end
 
       # Scans the whole string and raises errors when there are unrecognized tokens.
@@ -84,8 +88,9 @@ module SeccompTools
           add_token.call(sym, ::Regexp.last_match(0))
           bump_vars.call
         end
-        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse.join('|')
+        syscalls = @syscalls.keys.map { |s| ::Regexp.escape(s) }.join('|')
         syscall_matcher = ::Regexp.compile("\\A\\b(#{syscalls})\\b")
+        syscall_all_matcher = ::Regexp.compile("\\A(#{@arches.join('|')})\\.(#{@syscall_all.join('|')})\\b")
         until str.empty?
           case str
           when /\A\n+/
@@ -106,6 +111,7 @@ module SeccompTools
           when ACTION_MATCHER then add_token_def.call(:ACTION)
           when ARCH_MATCHER then add_token_def.call(:ARCH_VAL)
           when syscall_matcher then add_token_def.call(:SYSCALL)
+          when syscall_all_matcher then add_token_def.call(:SYSCALL)
           when /\A-?0x[0-9a-f]+\b/ then add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/ then add_token_def.call(:INT)
           when ALU_OP_MATCHER then add_token_def.call(:ALU_OP)

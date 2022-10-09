@@ -14,7 +14,7 @@ module SeccompTools
   module Asm
     class SeccompAsmParser < Racc::Parser
 
-module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 128)
+module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 134)
   def initialize(scanner)
     @scanner = scanner
     super()
@@ -734,9 +734,14 @@ module_eval(<<'.,.,', 'sasm.y', 106)
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 107)
+module_eval(<<'.,.,', 'sasm.y', 108)
   def _reduce_65(val, _values)
-     @scanner.syscalls[val[0].to_sym]
+                s = val[0]
+            return @scanner.syscalls[s.to_sym] unless s.include?('.')
+
+            arch, sys = s.split('.')
+            Const::Syscall.const_get(arch.upcase)[sys.to_sym]
+
   end
 .,.,
 

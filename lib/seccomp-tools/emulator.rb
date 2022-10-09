@@ -58,13 +58,7 @@ module SeccompTools
     end
 
     def audit(arch)
-      type = {
-        amd64: 'ARCH_X86_64',
-        i386: 'ARCH_I386',
-        aarch64: 'ARCH_AARCH64',
-        s390x: 'ARCH_S390X'
-      }[arch]
-      Const::Audit::ARCH[type]
+      Const::Audit::ARCH[Const::Audit::ARCH_NAME[arch]]
     end
 
     def ret(num)

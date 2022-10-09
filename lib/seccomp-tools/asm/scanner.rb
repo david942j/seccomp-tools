@@ -45,12 +45,8 @@ module SeccompTools
       def initialize(str, arch, filename: nil)
         @filename = filename || '<inline>'
         @str = str
-        @syscalls = case arch
-                    when :amd64 then Const::Syscall::AMD64
-                    when :i386 then Const::Syscall::I386
-                    when :aarch64 then Const::Syscall::AARCH64
-                    when :s390x then Const::Syscall::S390X
-                    end
+        @syscalls =
+          begin; Const::Syscall.const_get(arch.to_s.upcase); rescue NameError; []; end
       end
 
       # Scans the whole string and raises errors when there are unrecognized tokens.

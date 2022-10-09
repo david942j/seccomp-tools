@@ -71,4 +71,42 @@ EOS
 0017: return ALLOW
     EOS
   end
+
+  it 'supports no argument inference' do
+    file = File.join(__dir__, '..', 'data', 'x32.bpf')
+    expect { described_class.new([file, '-a', 'amd64', '--no-arg-infer']).handle }.to output(<<-EOS).to_stdout
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x09 0xc000003e  if (A != ARCH_X86_64) goto 0011
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x35 0x00 0x07 0x40000000  if (A < 0x40000000) goto 0011
+ 0004: 0x15 0x06 0x00 0x40000000  if (A == x32_read) goto 0011
+ 0005: 0x15 0x05 0x00 0x40000001  if (A == x32_write) goto 0011
+ 0006: 0x15 0x04 0x00 0x400000ac  if (A == x32_iopl) goto 0011
+ 0007: 0x15 0x00 0x03 0x40000009  if (A != x32_mmap) goto 0011
+ 0008: 0x20 0x00 0x00 0x00000010  A = args[0]
+ 0009: 0x15 0x01 0x00 0x00000000  if (A == 0x0) goto 0011
+ 0010: 0x06 0x00 0x00 0x00050005  return ERRNO(5)
+ 0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+    EOS
+  end
+
+  it 'supports asm-able' do
+    file = File.join(__dir__, '..', 'data', 'x32.bpf')
+    expect { described_class.new([file, '-a', 'amd64', '--asm-able']).handle }.to output(<<-EOS).to_stdout
+0000: A = arch
+0001: if (A != ARCH_X86_64) goto 0011
+0002: A = sys_number
+0003: if (A < 0x40000000) goto 0011
+0004: if (A == x32_read) goto 0011
+0005: if (A == x32_write) goto 0011
+0006: if (A == x32_iopl) goto 0011
+0007: if (A != x32_mmap) goto 0011
+0008: A = args[0]
+0009: if (A == 0x0) goto 0011
+0010: return ERRNO(5)
+0011: return ALLOW
+    EOS
+  end
 end

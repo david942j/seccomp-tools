@@ -61,7 +61,7 @@ rule
          | constexpr
   memory: MEM LBRACK constexpr RBRACK {
             idx = val[2].to_i
-            raise_error(format("Index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
+            raise_error(format("index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
             Scalar::Mem.new(idx)
           }
   x_constexpr: x
@@ -79,7 +79,7 @@ rule
           | DATA LBRACK constexpr RBRACK {
               idx = val[2].to_i
               if idx % 4 != 0 || idx >= 64
-                raise_error(format('Index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
+                raise_error(format('index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
               end
               idx
             }
@@ -87,7 +87,7 @@ rule
   argument_long: args LBRACK constexpr RBRACK {
                    idx = val[2].to_i
                    s = val[0]
-                   raise_error(format('Index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
+                   raise_error(format('index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
                    16 + idx * 8 + (s.downcase.end_with?('h') ? 4 : 0)
                  }
                | INSTRUCTION_POINTER { 8 }
@@ -110,7 +110,9 @@ rule
             return @scanner.syscalls[s.to_sym] unless s.include?('.')
 
             arch, sys = s.split('.')
-            Const::Syscall.const_get(arch.upcase)[sys.to_sym]
+            Const::Syscall.const_get(arch.upcase)[sys.to_sym].tap do |v|
+              raise_error("syscall '#{sys}' doesn't exist on #{arch}") if v.nil?
+            end
           }
   terminator: newlines
             | false

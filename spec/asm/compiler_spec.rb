@@ -34,7 +34,7 @@ describe SeccompTools::Asm::Compiler do
     it 'data' do
       expect(@get_bpf['A = data[0]']).to eq 'A = sys_number'
       expect { @get_bpf['A = data[1]'] }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:10 Index of data[] must be a multiple of 4 and less than 64, got 1
+<inline>:1:10 index of data[] must be a multiple of 4 and less than 64, got 1
 A = data[1]
          ^
       EOS

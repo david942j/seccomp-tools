@@ -47,7 +47,7 @@ module SeccompTools
 
       private
 
-      %i(code jt jf k arch line contexts).each do |sym|
+      %i(code jt jf k arch line contexts show_arg_infer?).each do |sym|
         define_method(sym) do
           @bpf.__send__(sym)
         end

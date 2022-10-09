@@ -300,65 +300,41 @@ $ seccomp-tools asm spec/data/example.asm -f raw | seccomp-tools disasm -
 
 ```
 
-The output of `seccomp-tools disasm <file> --no-bpf` is a valid syntax of `asm`:
+The output of `seccomp-tools disasm <file> --asm-able` is a valid input of `asm`:
 ```bash
-$ seccomp-tools disasm spec/data/libseccomp.bpf --no-bpf
+$ seccomp-tools disasm spec/data/x32.bpf --asm-able
 # 0000: A = arch
-# 0001: if (A != ARCH_X86_64) goto 0010
+# 0001: if (A != ARCH_X86_64) goto 0011
 # 0002: A = sys_number
-# 0003: if (A >= 0x40000000) goto 0010
-# 0004: if (A == write) goto 0009
-# 0005: if (A == close) goto 0009
-# 0006: if (A == dup) goto 0009
-# 0007: if (A == exit) goto 0009
-# 0008: return ERRNO(5)
-# 0009: return ALLOW
-# 0010: return KILL
+# 0003: if (A < 0x40000000) goto 0011
+# 0004: if (A == x32_read) goto 0011
+# 0005: if (A == x32_write) goto 0011
+# 0006: if (A == x32_iopl) goto 0011
+# 0007: if (A != x32_mmap) goto 0011
+# 0008: A = args[0]
+# 0009: if (A == 0x0) goto 0011
+# 0010: return ERRNO(5)
+# 0011: return ALLOW
 
 
 # disasm then asm then disasm!
-$ seccomp-tools disasm spec/data/libseccomp.bpf --no-bpf | seccomp-tools asm - -f raw | seccomp-tools disasm -
+$ seccomp-tools disasm spec/data/x32.bpf --asm-able | seccomp-tools asm - -f raw | seccomp-tools disasm -
 #  line  CODE  JT   JF      K
 # =================================
 #  0000: 0x20 0x00 0x00 0x00000004  A = arch
-#  0001: 0x15 0x00 0x08 0xc000003e  if (A != ARCH_X86_64) goto 0010
+#  0001: 0x15 0x00 0x09 0xc000003e  if (A != ARCH_X86_64) goto 0011
 #  0002: 0x20 0x00 0x00 0x00000000  A = sys_number
-#  0003: 0x35 0x06 0x00 0x40000000  if (A >= 0x40000000) goto 0010
-#  0004: 0x15 0x04 0x00 0x00000001  if (A == write) goto 0009
-#  0005: 0x15 0x03 0x00 0x00000003  if (A == close) goto 0009
-#  0006: 0x15 0x02 0x00 0x00000020  if (A == dup) goto 0009
-#  0007: 0x15 0x01 0x00 0x0000003c  if (A == exit) goto 0009
-#  0008: 0x06 0x00 0x00 0x00050005  return ERRNO(5)
-#  0009: 0x06 0x00 0x00 0x7fff0000  return ALLOW
-#  0010: 0x06 0x00 0x00 0x00000000  return KILL
+#  0003: 0x35 0x00 0x07 0x40000000  if (A < 0x40000000) goto 0011
+#  0004: 0x15 0x06 0x00 0x40000000  if (A == x32_read) goto 0011
+#  0005: 0x15 0x05 0x00 0x40000001  if (A == x32_write) goto 0011
+#  0006: 0x15 0x04 0x00 0x400000ac  if (A == x32_iopl) goto 0011
+#  0007: 0x15 0x00 0x03 0x40000009  if (A != x32_mmap) goto 0011
+#  0008: 0x20 0x00 0x00 0x00000010  A = addr # x32_mmap(addr, len, prot, flags, fd, pgoff)
+#  0009: 0x15 0x01 0x00 0x00000000  if (A == 0x0) goto 0011
+#  0010: 0x06 0x00 0x00 0x00050005  return ERRNO(5)
+#  0011: 0x06 0x00 0x00 0x7fff0000  return ALLOW
 
 ```
-
-NOTE: it's a known issue that the syscall argument inference output of `disasm` is not supported by `asm`. Which means this string:
-```c
-0000: A = arch
-0001: if (A != ARCH_X86_64) goto 0007
-0002: A = sys_number
-0003: if (A != x32_mmap) goto 0007
-0004: A = addr # x32_mmap(addr, len, prot, flags, fd, pgoff)
-0005: if (A == 0x0) goto 0007
-0006: return ALLOW
-0007: return KILL
-```
-is a possible output of `disasm` but not a valid input of `asm` because `A = addr` is an inference from the context.
-
-You can use
-```c
-A = arch
-if (A != ARCH_X86_64) goto dead
-A = sys_number
-if (A != x32_mmap) goto dead
-A = args[0]
-if (A == 0x0) goto dead
-return ALLOW
-dead: return KILL
-```
-as a valid input of `asm`.
 
 ### Emu
 

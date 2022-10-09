@@ -78,8 +78,10 @@ module SeccompTools
       end
 
       def args_name(idx)
-        sys_nrs = contexts.map { |ctx| ctx.known_data[0] }.uniq
         default = idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
+        return default unless show_arg_infer?
+
+        sys_nrs = contexts.map { |ctx| ctx.known_data[0] }.uniq
         return default if sys_nrs.size != 1 || sys_nrs.first.nil?
 
         sys = Const::Syscall.const_get(arch.upcase.to_sym).invert[sys_nrs.first]

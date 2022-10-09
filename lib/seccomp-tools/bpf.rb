@@ -48,20 +48,35 @@ module SeccompTools
       @arch = arch
       @line = line
       @contexts = Set.new
+      @disasm_setting = {
+        code: true,
+        arg_infer: true
+      }
     end
 
     # Pretty display the disassemble result.
-    # @param [Boolean] show_code
-    #   Whether needs to dump code, jt, jf, k
+    # @param [Hash<Boolean>] options
+    #   Set display settings.
     # @return [String]
-    def disasm(show_code: true)
-      if show_code
+    def disasm(**options)
+      @disasm_setting.merge!(options)
+      if show_code?
         format(' %04d: 0x%02x 0x%02x 0x%02x 0x%08x  %s',
                line, code, jt, jf, k, decompile)
       else
         format('%04d: %s',
                line, decompile)
       end
+    end
+
+    # Whether needs to dump code, jt, jf, k.
+    def show_code?
+      @disasm_setting[:code]
+    end
+
+    # Whether needs to infer the syscall argument names.
+    def show_arg_infer?
+      @disasm_setting[:arg_infer]
     end
 
     # Convert to raw bytes.

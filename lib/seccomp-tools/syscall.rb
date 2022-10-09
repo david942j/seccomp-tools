@@ -20,7 +20,7 @@ module SeccompTools
 
     # @return [Integer] Process id.
     attr_reader :pid
-    # @return [Hash{Symbol => Integer, Array<Integer>}] See {ABI}.
+    # @return [{Symbol => Integer, Array<Integer>}] See {ABI}.
     attr_reader :abi
     # @return [Integer] Syscall number.
     attr_reader :number

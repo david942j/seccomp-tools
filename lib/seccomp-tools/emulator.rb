@@ -7,7 +7,7 @@ module SeccompTools
   class Emulator
     # Instantiate a {Emulator} object.
     #
-    # All parameters except +instructions+ are optional, while a warning will be shown if unset data being accessed.
+    # All parameters except +instructions+ are optional. A warning is shown when uninitialized data is accessed.
     # @param [Array<Instruction::Base>] instructions
     # @param [Integer] sys_nr
     #   Syscall number.
@@ -15,8 +15,8 @@ module SeccompTools
     #   Syscall arguments
     # @param [Integer] instruction_pointer
     #   Program counter address when this syscall invoked.
-    # @param [Symbol] arch
-    #   If not given, use system architecture as default.
+    # @param [Symbol?] arch
+    #   System architecture is used when this parameter is not provided.
     #
     #   See {SeccompTools::Util.supported_archs} for list of supported architectures.
     def initialize(instructions, sys_nr: nil, args: [], instruction_pointer: nil, arch: nil)
@@ -28,7 +28,7 @@ module SeccompTools
     end
 
     # Run emulation!
-    # @return [Hash{Symbol, Integer => Integer}]
+    # @return [{Symbol, Integer => Integer}]
     def run
       @values = { pc: 0, a: 0, x: 0 }
       loop do

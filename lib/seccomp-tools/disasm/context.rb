@@ -58,7 +58,7 @@ module SeccompTools
       #   Value to be set to +reg/mem+.
       # @param [Array<Integer?>] known_data
       #   Records which index of data is known.
-      #   It's used for tracking if the syscall number is known, which can be used to display argument names of the
+      #   It's used for tracking when the syscall number is known, which can be used to display argument names of the
       #   syscall.
       def initialize(values: {}, known_data: [])
         @values = values
@@ -104,7 +104,7 @@ module SeccompTools
       #   Returns the object itself.
       def eql!(val)
         tap do
-          # only cares if A is fetched from data
+          # only cares when A is fetched from data
           next unless a.data?
           next known_data[a.val] = val if val.is_a?(Integer)
           # A == X, we can handle these cases:

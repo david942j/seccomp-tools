@@ -22,7 +22,7 @@ module SeccompTools
       codes = to_bpf(raw, arch)
       contexts = Array.new(codes.size) { Set.new }
       contexts[0].add(Context.new)
-      # all we care is if A is exactly one of data[*]
+      # all we care is whether A is data[*]
       dis = codes.zip(contexts).map do |code, ctxs|
         ctxs.each do |ctx|
           code.branch(ctx) do |pc, c|

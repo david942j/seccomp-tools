@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# Denote a x32 syscall.
 X32_MODE_BIT = 0x40000000
 {
   read: 0,

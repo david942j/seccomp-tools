@@ -8,7 +8,7 @@ module SeccompTools
   module CLI
     # Base class for handlers.
     class Base
-      # @return [Hash{Symbol => Object}] Options.
+      # @return [{Symbol => Object}] Options.
       attr_reader :option
       # @return [Array<String>] Arguments array.
       attr_reader :argv
@@ -25,7 +25,7 @@ module SeccompTools
 
       # Handle show help message.
       # @return [Boolean]
-      #   For decestors to check if need to continue.
+      #   For decestors to check whether need to continue.
       def handle
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].any? { |h| argv.include?(h) }
 

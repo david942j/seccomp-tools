@@ -55,7 +55,7 @@ module SeccompTools
     end
 
     # Pretty display the disassemble result.
-    # @param [Hash<Boolean>] options
+    # @param [{Symbol => Boolean}] options
     #   Set display settings.
     # @return [String]
     def disasm(**options)

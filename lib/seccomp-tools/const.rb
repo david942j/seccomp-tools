@@ -123,6 +123,7 @@ module SeccompTools
         const_set(cons, instance_eval(File.read(filename)))
       end
 
+      # Helper for loading syscall prototypes from generated sys_arg.rb.
       def load_args
         hash = instance_eval(File.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
         Hash.new do |_h, k|
@@ -148,7 +149,9 @@ module SeccompTools
       }.freeze
     end
 
+    # Endianess constants.
     module Endian
+      # Defining default endianess of architectures.
       ENDIAN = {
         i386: '<',
         amd64: '<',

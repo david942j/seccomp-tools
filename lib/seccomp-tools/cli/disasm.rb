@@ -27,18 +27,15 @@ module SeccompTools
             option[:ofile] = o
           end
           option_arch(opt)
-          opt.on('--[no-]bpf',
-                 'Display BPF bytes (code, jt, etc.).',
+          opt.on('--[no-]bpf', 'Display BPF bytes (code, jt, etc.).',
                  'Default: true') do |f|
                    option[:bpf] = f
                  end
-          opt.on('--[no-]arg-infer',
-                 'Display syscall arguments with parameter names when possible.',
+          opt.on('--[no-]arg-infer', 'Display syscall arguments with parameter names when possible.',
                  'Default: true') do |f|
                    option[:arg_infer] = f
                  end
-          opt.on('--asm-able',
-                 'Output with this flag is a valid input of "seccomp-tools asm".',
+          opt.on('--asm-able', 'Output with this flag is a valid input of "seccomp-tools asm".',
                  'By default, "seccomp-tools disasm" is in a human-readable format that easy for analysis.',
                  'Passing this flag can have the output be simplified to a valid input for "seccomp-tools asm".',
                  'This flag implies "--no-bpf --no-arg-infer".',

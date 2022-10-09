@@ -341,6 +341,17 @@ describe SeccompTools::Asm::SeccompAsmParser do
         statement.new(:ret, 123, [])
       ]
     end
+
+    it 'accepts syscalls' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = read
+      A = aarch64.read
+      EOS
+      expect(described_class.new(scanner).parse).to eq [
+        statement.new(:assign, [a, const_val.new(0)], []),
+        statement.new(:assign, [a, const_val.new(63)], [])
+      ]
+    end
   end
 
   describe 'labels' do

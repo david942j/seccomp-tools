@@ -12,6 +12,11 @@ module SeccompTools
       # Usage of this command.
       USAGE = "disasm - #{SUMMARY}\n\nUsage: seccomp-tools disasm BPF_FILE [options]"
 
+      def initialize(*)
+        super
+        option[:bpf] = true
+      end
+
       # Define option parser.
       # @return [OptionParser]
       def parser
@@ -20,6 +25,12 @@ module SeccompTools
           opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.') do |o|
             option[:ofile] = o
           end
+          opt.on('--[no-]bpf',
+                 'Display BPF bytes (code, jt, etc.).',
+                 'Output with \'--no-bpf\' is a valid syntax for passing to "seccomp-tools asm".',
+                 'Default: true') do |f|
+                   option[:bpf] = f
+                 end
 
           option_arch(opt)
         end
@@ -33,7 +44,7 @@ module SeccompTools
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:ifile].nil?
 
-        output { SeccompTools::Disasm.disasm(input, arch: option[:arch]) }
+        output { SeccompTools::Disasm.disasm(input, arch: option[:arch], display_bpf: option[:bpf]) }
       end
     end
   end

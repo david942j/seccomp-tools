@@ -395,4 +395,14 @@ describe SeccompTools::Disasm do
       ArgumentError, 'Line 0 is invalid: unknown jmp type'
     )
   end
+
+  it 'supports don\'t display BPF' do
+    bpf = [0x15, 0x25, 0x35, 0x45].map { |c| "#{c.chr}\x00\x00\x01\x00\x00\x00\x00" }.join
+    expect(described_class.disasm(bpf, arch: :amd64, display_bpf: false)).to eq(<<-EOS)
+0000: if (A != 0) goto 0002
+0001: if (A <= 0) goto 0003
+0002: if (A < 0) goto 0004
+0003: if (!(A & 0)) goto 0005
+    EOS
+  end
 end

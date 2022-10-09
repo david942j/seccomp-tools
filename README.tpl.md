@@ -83,6 +83,47 @@ SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f assembly)
 SHELL_OUTPUT_OF(seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tools disasm -)
 ```
 
+Since v1.6.0 [not released yet], `asm` has switched to using a yacc-based syntax parser, hence supports more flexible and intuitive syntax!
+
+```bash
+SHELL_OUTPUT_OF(cat spec/data/example.asm)
+SHELL_OUTPUT_OF(seccomp-tools asm spec/data/example.asm -f raw | seccomp-tools disasm -)
+```
+
+The output of `seccomp-tools disasm <file> --no-bpf` is a valid syntax of `asm`:
+```bash
+SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/libseccomp.bpf --no-bpf)
+
+# disasm then asm then disasm!
+SHELL_OUTPUT_OF(seccomp-tools disasm spec/data/libseccomp.bpf --no-bpf | seccomp-tools asm - -f raw | seccomp-tools disasm -)
+```
+
+NOTE: it's a known issue that the syscall argument inference output of `disasm` is not supported by `asm`. Which means this string:
+```c
+0000: A = arch
+0001: if (A != ARCH_X86_64) goto 0007
+0002: A = sys_number
+0003: if (A != x32_mmap) goto 0007
+0004: A = addr # x32_mmap(addr, len, prot, flags, fd, pgoff)
+0005: if (A == 0x0) goto 0007
+0006: return ALLOW
+0007: return KILL
+```
+is a possible output of `disasm` but not a valid input of `asm` because `A = addr` is an inference from the context.
+
+You can use
+```c
+A = arch
+if (A != ARCH_X86_64) goto dead
+A = sys_number
+if (A != x32_mmap) goto dead
+A = args[0]
+if (A == 0x0) goto dead
+return ALLOW
+dead: return KILL
+```
+as a valid input of `asm`.
+
 ### Emu
 
 Emulates seccomp given `sys_nr`, `arg0`, `arg1`, etc.

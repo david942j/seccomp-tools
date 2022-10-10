@@ -9,8 +9,8 @@
 # Seccomp Tools
 Provide powerful tools for seccomp analysis.
 
-This project is targeted to (but not limited to) analyze seccomp sandbox in CTF pwn challenges.
-Some features might be CTF-specific, but still useful for analyzing seccomp of real cases.
+This project targets to (but is not limited to) analyze seccomp sandbox in CTF pwn challenges.
+Some features might be CTF-specific, but also useful for analyzing seccomp of real cases.
 
 ## Features
 * Dump - Automatically dumps seccomp BPF from execution file(s).
@@ -20,7 +20,7 @@ Some features might be CTF-specific, but still useful for analyzing seccomp of r
   - Colorful!
 * Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
-* Supports multi-architectures.
+* Supports multi-architecture.
 
 ## Installation
 
@@ -116,13 +116,15 @@ SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)
 
 ![emu](https://github.com/david942j/seccomp-tools/blob/master/examples/emu-amigo.png?raw=true)
 
-## Architecture Supported
+## Supported Architectures
 
 - [x] x86_64
 - [x] x32
 - [x] x86
 - [x] arm64 (@saagarjha)
 - [x] s390x (@iii-i)
+
+Pull Requests of adding more architectures support are welcome!
 
 ## Development
 
@@ -143,6 +145,6 @@ I recommend to use [rbenv](https://github.com/rbenv/rbenv) for your Ruby environ
 
 ## I Need You
 
-Any suggestion or feature request is welcome!
-Feel free to file an issue or send a pull request.
+Any suggestions or feature requests are welcome!
+Feel free to file issues or send pull requests.
 And, if you like this work, I'll be happy to be [starred](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:

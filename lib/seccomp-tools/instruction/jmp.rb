@@ -74,7 +74,20 @@ module SeccompTools
       end
 
       def sysname_by_k
-        Const::Syscall.const_get(arch.upcase.to_sym).invert[k]
+        a = infer_arch || arch
+        name = Const::Syscall.const_get(a.upcase.to_sym).invert[k]
+        return name if name.nil?
+
+        a == arch ? name : "#{a}.#{name}"
+      end
+
+      # Infers the architecture from context.
+      # @return [Symbol?]
+      def infer_arch
+        arches = contexts.map { |ctx| ctx.known_data[4] }.uniq
+        return nil unless arches.size == 1 && !arches.first.nil?
+
+        Const::Audit::ARCH_NAME.invert[Const::Audit::ARCH.invert[arches.first]]
       end
 
       def src

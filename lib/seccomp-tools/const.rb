@@ -140,6 +140,14 @@ module SeccompTools
 
     # Constants from https://github.com/torvalds/linux/blob/master/include/uapi/linux/audit.h.
     module Audit
+      # Maps arch name to {ARCH}'s key.
+      ARCH_NAME = {
+        amd64: 'ARCH_X86_64',
+        i386: 'ARCH_I386',
+        aarch64: 'ARCH_AARCH64',
+        s390x: 'ARCH_S390X'
+      }.freeze
+
       # AUDIT_ARCH_*
       ARCH = {
         'ARCH_X86_64' => 0xc000003e,

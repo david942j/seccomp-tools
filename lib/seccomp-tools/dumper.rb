@@ -8,7 +8,6 @@ require 'seccomp-tools/syscall'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
-  # Currently support x86_64, aarch64 and s390x.
   module Dumper
     # Whether the dumper is supported.
     # Dumper works based on ptrace, so we need the platform be Linux.
@@ -66,7 +65,7 @@ module SeccompTools
       # @yieldparam [String] bpf
       #   Seccomp bpf in raw bytes.
       # @yieldparam [Symbol] arch
-      #   Architecture, either :i386 or :amd64.
+      #   Architecture. See {SeccompTools::Syscall::ABI} for supported architectures.
       # @return [Array<Object>, Array<String>]
       #   Return the block returned. If block is not given, array of raw bytes will be returned.
       def handle(limit, &block)

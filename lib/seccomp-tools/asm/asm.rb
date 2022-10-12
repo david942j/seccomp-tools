@@ -12,7 +12,7 @@ module SeccompTools
     # @param [String] str
     # @param [String] filename
     #   Only used for error messages.
-    # @param [:amd64, :i386] arch
+    # @param [Symbol?] arch
     # @return [String]
     #   Raw BPF bytes.
     # @example

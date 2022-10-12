@@ -3,6 +3,7 @@
 require 'seccomp-tools/asm/token'
 require 'seccomp-tools/const'
 require 'seccomp-tools/error'
+require 'seccomp-tools/syscall'
 
 module SeccompTools
   module Asm
@@ -25,9 +26,9 @@ module SeccompTools
       ACTION_MATCHER = /\A\b(#{ACTIONS.join('|')})\b/.freeze
       # Special constants for checking the current architecture. See {SeccompTools::Const::Audit::ARCH}. These constants
       # are case-insensitive.
-      ARCHES = Const::Audit::ARCH.keys
+      AUDIT_ARCHES = Const::Audit::ARCH.keys
       # Regexp for matching arch values.
-      ARCH_MATCHER = /\A\b(#{ARCHES.join('|')})\b/i.freeze
+      AUDIT_ARCH_MATCHER = /\A\b(#{AUDIT_ARCHES.join('|')})\b/i.freeze
       # Comparisons.
       COMPARE = %w[== != >= <= > <].freeze
       # Regexp for matching comparisons.
@@ -36,6 +37,8 @@ module SeccompTools
       ALU_OP = %w[+ - * / | ^ << >>].freeze
       # Regexp for matching ALU operators.
       ALU_OP_MATCHER = /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/.freeze
+      # Supported architectures
+      ARCHES = SeccompTools::Syscall::ABI.keys.map(&:to_s)
 
       # @param [String] str
       # @param [Symbol] arch
@@ -45,12 +48,11 @@ module SeccompTools
       def initialize(str, arch, filename: nil)
         @filename = filename || '<inline>'
         @str = str
-        @syscalls = case arch
-                    when :amd64 then Const::Syscall::AMD64
-                    when :i386 then Const::Syscall::I386
-                    when :aarch64 then Const::Syscall::AARCH64
-                    when :s390x then Const::Syscall::S390X
-                    end
+        @syscalls =
+          begin; Const::Syscall.const_get(arch.to_s.upcase); rescue NameError; []; end
+        @syscall_all = ARCHES.each_with_object({}) do |ar, memo|
+          memo.merge!(Const::Syscall.const_get(ar.to_s.upcase))
+        end.keys
       end
 
       # Scans the whole string and raises errors when there are unrecognized tokens.
@@ -88,8 +90,9 @@ module SeccompTools
           add_token.call(sym, ::Regexp.last_match(0))
           bump_vars.call
         end
-        syscalls = @syscalls.keys.map(&:to_s).sort_by(&:size).reverse.join('|')
+        syscalls = @syscalls.keys.map { |s| ::Regexp.escape(s) }.join('|')
         syscall_matcher = ::Regexp.compile("\\A\\b(#{syscalls})\\b")
+        syscall_all_matcher = ::Regexp.compile("\\A(#{ARCHES.join('|')})\\.(#{@syscall_all.join('|')})\\b")
         until str.empty?
           case str
           when /\A\n+/
@@ -108,8 +111,8 @@ module SeccompTools
             bump_vars.call
           when KEYWORD_MATCHER then add_token_def.call(::Regexp.last_match(0).upcase.to_sym)
           when ACTION_MATCHER then add_token_def.call(:ACTION)
-          when ARCH_MATCHER then add_token_def.call(:ARCH_VAL)
-          when syscall_matcher then add_token_def.call(:SYSCALL)
+          when AUDIT_ARCH_MATCHER then add_token_def.call(:ARCH_VAL)
+          when syscall_matcher, syscall_all_matcher then add_token_def.call(:SYSCALL)
           when /\A-?0x[0-9a-f]+\b/ then add_token_def.call(:HEX_INT)
           when /\A-?[0-9]+\b/ then add_token_def.call(:INT)
           when ALU_OP_MATCHER then add_token_def.call(:ALU_OP)

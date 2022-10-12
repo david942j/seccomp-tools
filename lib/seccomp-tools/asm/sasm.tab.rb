@@ -14,7 +14,7 @@ module SeccompTools
   module Asm
     class SeccompAsmParser < Racc::Parser
 
-module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 128)
+module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 136)
   def initialize(scanner)
     @scanner = scanner
     super()
@@ -612,7 +612,7 @@ module_eval(<<'.,.,', 'sasm.y', 57)
 module_eval(<<'.,.,', 'sasm.y', 62)
   def _reduce_41(val, _values)
                 idx = val[2].to_i
-            raise_error(format("Index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
+            raise_error(format("index of mem[] must between 0 and 15, got %d", idx), -1) unless idx.between?(0, 15)
             Scalar::Mem.new(idx)
 
   end
@@ -651,7 +651,7 @@ module_eval(<<'.,.,', 'sasm.y', 79)
   def _reduce_48(val, _values)
                   idx = val[2].to_i
               if idx % 4 != 0 || idx >= 64
-                raise_error(format('Index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
+                raise_error(format('index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
               end
               idx
 
@@ -662,7 +662,7 @@ module_eval(<<'.,.,', 'sasm.y', 87)
   def _reduce_49(val, _values)
                        idx = val[2].to_i
                    s = val[0]
-                   raise_error(format('Index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
+                   raise_error(format('index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
                    16 + idx * 8 + (s.downcase.end_with?('h') ? 4 : 0)
 
   end
@@ -734,9 +734,16 @@ module_eval(<<'.,.,', 'sasm.y', 106)
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 107)
+module_eval(<<'.,.,', 'sasm.y', 108)
   def _reduce_65(val, _values)
-     @scanner.syscalls[val[0].to_sym]
+                s = val[0]
+            return @scanner.syscalls[s.to_sym] unless s.include?('.')
+
+            arch, sys = s.split('.')
+            Const::Syscall.const_get(arch.upcase)[sys.to_sym].tap do |v|
+              raise_error("syscall '#{sys}' doesn't exist on #{arch}") if v.nil?
+            end
+
   end
 .,.,
 

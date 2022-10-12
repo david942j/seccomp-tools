@@ -107,6 +107,12 @@ meow
       expect(s.scan.count { |t| t.sym == :SYSCALL }).to be syscalls.size
     end
 
+    it 'accepts arch.syscall' do
+      arches = SeccompTools::Syscall::ABI.keys
+      s = described_class.new(arches.map { |a| "#{a}.open" }.join(' '), :amd64)
+      expect(s.scan.count { |t| t.sym == :SYSCALL }).to be arches.size
+    end
+
     it 'symbols' do
       s = described_class.new(<<-EOS, :amd64)
       abc: 123:

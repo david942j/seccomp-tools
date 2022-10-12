@@ -183,7 +183,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       mem[16] = A
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:11 Index of mem[] must between 0 and 15, got 16
+<inline>:1:11 index of mem[] must between 0 and 15, got 16
       mem[16] = A
           ^^
       EOS
@@ -191,7 +191,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = mem[0xaa]
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:15 Index of mem[] must between 0 and 15, got 170
+<inline>:1:15 index of mem[] must between 0 and 15, got 170
       A = mem[0xaa]
               ^^^^
       EOS
@@ -202,7 +202,7 @@ describe SeccompTools::Asm::SeccompAsmParser do
       A = args[8]
       EOS
       expect { described_class.new(scanner).parse }.to raise_error(SeccompTools::ParseError, <<-EOS)
-<inline>:1:16 Index of args[] must between 0 and 5, got 8
+<inline>:1:16 index of args[] must between 0 and 5, got 8
       A = args[8]
                ^
       EOS
@@ -340,6 +340,28 @@ describe SeccompTools::Asm::SeccompAsmParser do
       expect(described_class.new(scanner).parse).to eq [
         statement.new(:ret, 123, [])
       ]
+    end
+
+    it 'accepts syscalls' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = read
+      A = aarch64.read
+      EOS
+      expect(described_class.new(scanner).parse).to eq [
+        statement.new(:assign, [a, const_val.new(0)], []),
+        statement.new(:assign, [a, const_val.new(63)], [])
+      ]
+    end
+
+    it 'raises on non-existing syscalls' do
+      scanner = scan.new(<<-EOS, :amd64).validate!
+      A = aarch64.open
+      EOS
+      expect { described_class.new(scanner).parse }.to raise_error SeccompTools::ParseError, <<-EOS
+<inline>:1:11 syscall 'open' doesn't exist on aarch64
+      A = aarch64.open
+          ^^^^^^^^^^^^
+      EOS
     end
   end
 

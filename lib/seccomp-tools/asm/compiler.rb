@@ -76,6 +76,9 @@ module SeccompTools
         end
       end
 
+      # The farthest distance of a relative jump in BPF.
+      JUMP_DISTANCE_MAX = 255
+
       # @param [Integer] index
       # @param [SeccompTools::Asm::Token, :next] sym
       def resolve_symbol(index, sym)
@@ -86,18 +89,22 @@ module SeccompTools
 
         if @symbols[str].nil?
           # special case - goto <n> can be considered as $+1+<n>
-          return str.to_i if str == str.to_i.to_s
+          return str.to_i if str == str.to_i.to_s && str.to_i <= JUMP_DISTANCE_MAX
 
           raise SeccompTools::UndefinedLabelError,
                 @scanner.format_error(sym, "Cannot find label '#{str}'")
         end
-        if @symbols[str][1] <= index
-          raise SeccompTools::BackwardJumpError,
-                @scanner.format_error(sym,
-                                      "Does not support backward jumping to '#{str}'")
-        end
 
-        @symbols[str][1] - index - 1
+        (@symbols[str][1] - index - 1).tap do |dis|
+          if dis.negative?
+            raise SeccompTools::BackwardJumpError,
+                  @scanner.format_error(sym, "Does not support backward jumping to '#{str}'")
+          end
+          if dis > JUMP_DISTANCE_MAX
+            raise SeccompTools::LongJumpError,
+                  @scanner.format_error(sym, "Does not support jumping farther than #{JUMP_DISTANCE_MAX}, got: #{dis}")
+          end
+        end
       end
 
       # Emits a raw BPF object.

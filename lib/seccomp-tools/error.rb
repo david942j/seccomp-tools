@@ -24,4 +24,8 @@ module SeccompTools
   # Raised when a label is defined more than once on compiling seccomp assembly.
   class DuplicateLabelError < Error
   end
+
+  # Raised when a jump is longer than supported distance.
+  class LongJumpError < Error
+  end
 end

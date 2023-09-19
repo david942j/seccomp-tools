@@ -224,5 +224,20 @@ label: A = X
 ^^^^^
       EOS
     end
+
+    it 'raises on long jump' do
+      compiler = described_class.new(<<-EOS, nil, :amd64)
+       A = args[0]
+       A == 0 ? next : end
+#{"A = 0\n" * 260}
+end:   return ALLOW
+      EOS
+
+      expect { compiler.compile! }.to raise_error(SeccompTools::LongJumpError, <<-EOS)
+<inline>:2:24 Does not support jumping farther than 255, got: 260
+       A == 0 ? next : end
+                       ^^^
+      EOS
+    end
   end
 end

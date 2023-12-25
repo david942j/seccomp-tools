@@ -178,7 +178,7 @@ module SeccompTools
 
       def emit_cmp(cmp, jt, jf)
         jop, jt, jf = convert_jmp_op(cmp, jt, jf)
-        return emit(:jmp, jop, 0, jt: 0, jf: 0, k: jt) if jop == :ja || jt == jf
+        return emit(:jmp, :none, 0, jt: 0, jf: 0, k: jt) if jop == :ja || jt == jf
 
         val = cmp[1]
         src = val.x? ? :x : :k

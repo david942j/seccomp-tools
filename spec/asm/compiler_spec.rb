@@ -186,6 +186,25 @@ X = A
 A = arch
       EOS
     end
+
+    it 'optimizes jump targets' do
+      compiler = described_class.new(<<-EOS, nil, :amd64)
+A = args[0]
+X = A
+if (A == X) goto out
+else goto out
+A = X
+out: return ALLOW
+      EOS
+
+      expect(compiler.compile!.map(&:decompile).join("\n")).to eq <<-EOS.strip
+A = args[0]
+X = A
+goto 0004
+A = X
+return ALLOW
+      EOS
+    end
   end
 
   describe 'label' do

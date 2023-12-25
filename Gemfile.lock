@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    seccomp-tools (1.6.0)
+    seccomp-tools (1.6.1)
       os (~> 1.1, >= 1.1.1)
 
 GEM

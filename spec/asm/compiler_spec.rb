@@ -205,6 +205,17 @@ A = X
 return ALLOW
       EOS
     end
+
+    it 'supports long direct jump' do
+      compiler = described_class.new(<<-EOS, nil, :amd64)
+       A = args[0]
+       goto end
+#{"A = 0\n" * 260}
+end:   return ALLOW
+      EOS
+
+      expect { compiler.compile! }.not_to raise_error
+    end
   end
 
   describe 'label' do

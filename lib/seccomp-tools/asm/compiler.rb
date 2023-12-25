@@ -71,13 +71,10 @@ module SeccompTools
 
           jt = resolve_symbol(idx, statement.data[1])
           jf = resolve_symbol(idx, statement.data[2])
-          statement.data[1] = jt
-          statement.data[2] = jf
+          statement.data[1] = [jt, statement.data[1]]
+          statement.data[2] = [jf, statement.data[2]]
         end
       end
-
-      # The farthest distance of a relative jump in BPF.
-      JUMP_DISTANCE_MAX = 255
 
       # @param [Integer] index
       # @param [SeccompTools::Asm::Token, :next] sym
@@ -89,7 +86,7 @@ module SeccompTools
 
         if @symbols[str].nil?
           # special case - goto <n> can be considered as $+1+<n>
-          return str.to_i if str == str.to_i.to_s && str.to_i <= JUMP_DISTANCE_MAX
+          return str.to_i if str == str.to_i.to_s
 
           raise SeccompTools::UndefinedLabelError,
                 @scanner.format_error(sym, "Cannot find label '#{str}'")
@@ -99,10 +96,6 @@ module SeccompTools
           if dis.negative?
             raise SeccompTools::BackwardJumpError,
                   @scanner.format_error(sym, "Does not support backward jumping to '#{str}'")
-          end
-          if dis > JUMP_DISTANCE_MAX
-            raise SeccompTools::LongJumpError,
-                  @scanner.format_error(sym, "Does not support jumping farther than #{JUMP_DISTANCE_MAX}, got: #{dis}")
           end
         end
       end
@@ -176,10 +169,21 @@ module SeccompTools
         emit(:ret, src, k: val.to_i)
       end
 
-      def emit_cmp(cmp, jt, jf)
+      # The farthest distance of a relative jump in BPF.
+      JUMP_DISTANCE_MAX = 255
+
+      def emit_cmp(cmp, jt_sym, jf_sym)
+        jt = jt_sym[0]
+        jf = jf_sym[0]
         jop, jt, jf = convert_jmp_op(cmp, jt, jf)
         return emit(:jmp, :none, 0, jt: 0, jf: 0, k: jt) if jop == :ja || jt == jf
 
+        [jt_sym, jf_sym].each do |dis, sym|
+          if dis > JUMP_DISTANCE_MAX
+            raise SeccompTools::LongJumpError,
+                  @scanner.format_error(sym, "Does not support jumping farther than #{JUMP_DISTANCE_MAX}, got: #{dis}")
+          end
+        end
         val = cmp[1]
         src = val.x? ? :x : :k
         k = val.x? ? 0 : val.to_i

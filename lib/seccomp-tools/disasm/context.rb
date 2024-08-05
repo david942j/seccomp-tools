@@ -78,7 +78,7 @@ module SeccompTools
         values[reg] = if rel == :mem
                         values[val]
                       else
-                        Value.new(rel: rel, val: val)
+                        Value.new(rel:, val:)
                       end
       end
 

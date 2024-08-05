@@ -15,7 +15,7 @@ describe SeccompTools::Emulator do
         code |= SeccompTools::Const::BPF::SRC[:a]
         k = 0
       end
-      SeccompTools::Instruction::RET.new(OpenStruct.new(code: code, k: k))
+      SeccompTools::Instruction::RET.new(OpenStruct.new(code:, k:))
     end
 
     # ld A, immi
@@ -68,9 +68,9 @@ describe SeccompTools::Emulator do
 
     it 'args' do
       args = [0, 0, 0, 0, 0, 0]
-      expect(described_class.new(@insts, sys_nr: 4, args: args, arch: :amd64).run[:ret]).to be 0
+      expect(described_class.new(@insts, sys_nr: 4, args:, arch: :amd64).run[:ret]).to be 0
       args = [0, 0, 0, 0, 0, 0x313373133731337]
-      expect(described_class.new(@insts, sys_nr: 4, args: args, arch: :amd64).run[:ret]).to be 0x7fff0000
+      expect(described_class.new(@insts, sys_nr: 4, args:, arch: :amd64).run[:ret]).to be 0x7fff0000
     end
   end
 

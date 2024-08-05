@@ -28,7 +28,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
     'source_code_uri' => 'https://github.com/david942j/seccomp-tools'
   }
 
-  s.required_ruby_version = '>= 2.6'
+  s.required_ruby_version = '>= 3.1'
 
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rake-compiler', '~> 1.0'

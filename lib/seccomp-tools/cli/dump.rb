@@ -15,7 +15,7 @@ module SeccompTools
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
       # Usage of this command.
       USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux." \
-              "\n\nUsage: seccomp-tools dump [exec] [options]"
+              "\n\nUsage: seccomp-tools dump [exec] [options]".freeze
 
       def initialize(*)
         super
@@ -72,7 +72,7 @@ module SeccompTools
           case option[:format]
           when :inspect then output { "\"#{bpf.bytes.map { |b| format('\\x%02X', b) }.join}\"\n" }
           when :raw then output { bpf }
-          when :disasm then output { SeccompTools::Disasm.disasm(bpf, arch: arch) }
+          when :disasm then output { SeccompTools::Disasm.disasm(bpf, arch:) }
           end
         end
         if option[:pid].nil?

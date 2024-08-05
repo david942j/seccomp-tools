@@ -101,7 +101,7 @@ module SeccompTools
         child, status = Process.wait2
         cont = true
         # TODO: Test if clone / vfork works
-        if [Ptrace::EVENT_CLONE, Ptrace::EVENT_FORK, Ptrace::EVENT_VFORK].include?(status >> 16)
+        if [Ptrace::EVENT_CLONE, Ptrace::EVENT_FORK, Ptrace::EVENT_VFORK].include?(status.to_i >> 16)
           # New child launched!
           # newpid = SeccompTools::Ptrace.geteventmsg(child)
         elsif status.stopped? && status.stopsig & 0x80 != 0

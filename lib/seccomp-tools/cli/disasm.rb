@@ -10,7 +10,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Disassemble seccomp bpf.'
       # Usage of this command.
-      USAGE = "disasm - #{SUMMARY}\n\nUsage: seccomp-tools disasm BPF_FILE [options]"
+      USAGE = "disasm - #{SUMMARY}\n\nUsage: seccomp-tools disasm BPF_FILE [options]".freeze
 
       def initialize(*)
         super

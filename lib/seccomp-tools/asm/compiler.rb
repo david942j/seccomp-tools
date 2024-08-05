@@ -21,7 +21,7 @@ module SeccompTools
       # @param [Symbol] arch
       #   Architecture.
       def initialize(source, filename, arch)
-        @scanner = Scanner.new(source, arch, filename: filename)
+        @scanner = Scanner.new(source, arch, filename:)
         @arch = arch
         @symbols = {}
       end
@@ -115,7 +115,7 @@ module SeccompTools
           code |= Const::BPF::OP.fetch(a, 0)
           code |= Const::BPF::MISCOP.fetch(a, 0)
         end
-        BPF.new({ code: code, k: k, jt: jt, jf: jf }, @arch, @line)
+        BPF.new({ code:, k:, jt:, jf: }, @arch, @line)
       end
 
       # A = -A
@@ -144,7 +144,7 @@ module SeccompTools
 
       def emit_alu(op, val)
         src, k = val.x? ? [:x, 0] : [:k, val.to_i]
-        emit(:alu, convert_alu_op(op), src, k: k)
+        emit(:alu, convert_alu_op(op), src, k:)
       end
 
       def convert_alu_op(op)
@@ -187,7 +187,7 @@ module SeccompTools
         val = cmp[1]
         src = val.x? ? :x : :k
         k = val.x? ? 0 : val.to_i
-        emit(:jmp, jop, src, jt: jt, jf: jf, k: k)
+        emit(:jmp, jop, src, jt:, jf:, k:)
       end
 
       # == != >= <= > < &

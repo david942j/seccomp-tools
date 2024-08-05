@@ -10,7 +10,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Seccomp bpf assembler.'
       # Usage of this command.
-      USAGE = "asm - #{SUMMARY}\n\nUsage: seccomp-tools asm IN_FILE [options]"
+      USAGE = "asm - #{SUMMARY}\n\nUsage: seccomp-tools asm IN_FILE [options]".freeze
 
       def initialize(*)
         super

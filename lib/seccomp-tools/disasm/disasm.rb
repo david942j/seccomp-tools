@@ -30,7 +30,7 @@ module SeccompTools
           end
         end
         code.contexts = ctxs
-        code.disasm(code: display_bpf, arg_infer: arg_infer)
+        code.disasm(code: display_bpf, arg_infer:)
       end.join("\n")
       if display_bpf
         <<-EOS

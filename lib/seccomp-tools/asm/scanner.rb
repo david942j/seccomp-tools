@@ -18,25 +18,25 @@ module SeccompTools
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
       KEYWORDS = %w[a x if else return mem args args_h data len sys_number arch instruction_pointer].freeze
       # Regexp for matching keywords.
-      KEYWORD_MATCHER = /\A\b(#{KEYWORDS.join('|')})\b/i.freeze
+      KEYWORD_MATCHER = /\A\b(#{KEYWORDS.join('|')})\b/i
       # Action strings can be used in a return statement. Actions must be in upper case.
       # See {SeccompTools::Const::BPF::ACTION}.
       ACTIONS = Const::BPF::ACTION.keys.map(&:to_s)
       # Regexp for matching actions.
-      ACTION_MATCHER = /\A\b(#{ACTIONS.join('|')})\b/.freeze
+      ACTION_MATCHER = /\A\b(#{ACTIONS.join('|')})\b/
       # Special constants for checking the current architecture. See {SeccompTools::Const::Audit::ARCH}. These constants
       # are case-insensitive.
       AUDIT_ARCHES = Const::Audit::ARCH.keys
       # Regexp for matching arch values.
-      AUDIT_ARCH_MATCHER = /\A\b(#{AUDIT_ARCHES.join('|')})\b/i.freeze
+      AUDIT_ARCH_MATCHER = /\A\b(#{AUDIT_ARCHES.join('|')})\b/i
       # Comparisons.
       COMPARE = %w[== != >= <= > <].freeze
       # Regexp for matching comparisons.
-      COMPARE_MATCHER = /\A(#{COMPARE.join('|')})/.freeze
+      COMPARE_MATCHER = /\A(#{COMPARE.join('|')})/
       # All valid arithmetic operators.
       ALU_OP = %w[+ - * / | ^ << >>].freeze
       # Regexp for matching ALU operators.
-      ALU_OP_MATCHER = /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/.freeze
+      ALU_OP_MATCHER = /\A(#{ALU_OP.map { |o| ::Regexp.escape(o) }.join('|')})/
       # Supported architectures
       ARCHES = SeccompTools::Syscall::ABI.keys.map(&:to_s)
 

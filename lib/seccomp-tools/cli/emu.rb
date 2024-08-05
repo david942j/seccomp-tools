@@ -15,7 +15,7 @@ module SeccompTools
       # Summary of this command.
       SUMMARY = 'Emulate seccomp rules.'
       # Usage of this command.
-      USAGE = "emu - #{SUMMARY}\n\nUsage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]"
+      USAGE = "emu - #{SUMMARY}\n\nUsage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]".freeze
 
       def initialize(*)
         super
@@ -50,7 +50,7 @@ module SeccompTools
         sys = evaluate_sys_nr(sys) if sys
         args.map! { |v| Integer(v) }
         trace = Set.new
-        res = SeccompTools::Emulator.new(insts, sys_nr: sys, args: args, arch: option[:arch]).run do |ctx|
+        res = SeccompTools::Emulator.new(insts, sys_nr: sys, args:, arch: option[:arch]).run do |ctx|
           trace << ctx[:pc]
         end
 

@@ -31,7 +31,7 @@ $ gem install seccomp-tools
 
 If you failed when compiling, try:
 ```
-sudo apt install gcc ruby-dev
+sudo apt install gcc ruby-dev make
 ```
 and install seccomp-tools again.
 

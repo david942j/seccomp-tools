@@ -30,6 +30,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
 
   s.required_ruby_version = '>= 3.1'
 
+  s.add_development_dependency 'ostruct'
   s.add_development_dependency 'rake', '~> 13.0'
   s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'rspec', '~> 3.9'

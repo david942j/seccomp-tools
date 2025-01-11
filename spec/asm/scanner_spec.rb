@@ -125,7 +125,7 @@ meow
       s = described_class.new(<<-EOS, :amd64)
       0 0x123 -1 -2 1337 -0x1337
       EOS
-      expect(s.scan.count { |t| t.sym == :HEX_INT || t.sym == :INT }).to be 6
+      expect(s.scan.count { |t| %i[HEX_INT INT].include?(t.sym) }).to be 6
     end
 
     it 'alu operators' do

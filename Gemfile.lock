@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     seccomp-tools (1.6.1)
+      logger
       os (~> 1.1, >= 1.1.1)
 
 GEM
@@ -12,6 +13,7 @@ GEM
     docile (1.4.1)
     json (2.9.1)
     language_server-protocol (3.17.0.3)
+    logger (1.6.5)
     os (1.1.4)
     parallel (1.26.3)
     parser (3.3.6.0)

@@ -37,5 +37,6 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.add_development_dependency 'simplecov', '~> 0.21'
   s.add_development_dependency 'yard', '~> 0.9'
 
+  s.add_dependency 'logger'
   s.add_dependency 'os', '~> 1.1', '>= 1.1.1'
 end

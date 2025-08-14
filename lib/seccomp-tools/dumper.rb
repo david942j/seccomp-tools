@@ -180,7 +180,11 @@ module SeccompTools
         while limit.negative? || i < limit
           begin
             bpf = Ptrace.seccomp_get_filter(pid, i)
-          rescue Errno::ENOENT, Errno::EINVAL
+          rescue Errno::EINVAL
+            Logger.error('No seccomp filters installed')
+            break
+          rescue Errno::ENOENT
+            Logger.error('No filter exists at this index')
             break
           end
           collect << (block.nil? ? bpf : yield(bpf, nil))

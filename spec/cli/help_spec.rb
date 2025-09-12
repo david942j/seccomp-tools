@@ -80,6 +80,7 @@ Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
                                      Supported architectures are <aarch64|amd64|i386|s390x>.
                                      Default: amd64
     -q, --[no-]quiet                 Run quietly, only show emulation result.
+    -i, --ip=VAL                     Set instruction pointer.
 EOS
     RbConfig::CONFIG['host_cpu'] = org
   end

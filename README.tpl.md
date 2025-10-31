@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/david942j/seccomp-tools/workflows/build/badge.svg)](https://github.com/david942j/seccomp-tools/actions)
-[![Maintainability](https://qlty.sh/gh/david942j/projects/patchelf.rb/maintainability.svg)](https://qlty.sh/gh/david942j/projects/patchelf.rb)
-[![Code Coverage](https://qlty.sh/gh/david942j/projects/patchelf.rb/coverage.svg)](https://qlty.sh/gh/david942j/projects/patchelf.rb)
+[![Maintainability](https://qlty.sh/gh/david942j/projects/seccomp-tools/maintainability.svg)](https://qlty.sh/gh/david942j/projects/seccomp-tools)
+[![Code Coverage](https://qlty.sh/gh/david942j/projects/seccomp-tools/coverage.svg)](https://qlty.sh/gh/david942j/projects/seccomp-tools)
 [![Inline docs](https://inch-ci.org/github/david942j/seccomp-tools.svg?branch=master)](https://inch-ci.org/github/david942j/seccomp-tools)
 [![Yard Docs](http://img.shields.io/badge/yard-docs-blue.svg)](https://www.rubydoc.info/github/david942j/seccomp-tools/)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://choosealicense.com/licenses/mit/)

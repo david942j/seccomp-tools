@@ -33,6 +33,10 @@ module SeccompTools
           opt.on('-q', '--[no-]quiet', 'Run quietly, only show emulation result.') do |v|
             option[:verbose] = 0 if v
           end
+
+          opt.on('-i', '--ip=VAL', Integer, 'Set instruction pointer.') do |val|
+            option[:instruction_pointer] = val
+          end
         end
       end
 
@@ -50,8 +54,13 @@ module SeccompTools
         sys = evaluate_sys_nr(sys) if sys
         args.map! { |v| Integer(v) }
         trace = Set.new
-        res = SeccompTools::Emulator.new(insts, sys_nr: sys, args:, arch: option[:arch]).run do |ctx|
-          trace << ctx[:pc]
+        res = SeccompTools::Emulator.new(
+          insts,
+          sys_nr: sys,
+          args:,
+          instruction_pointer: option[:instruction_pointer] && Integer(option[:instruction_pointer]),
+          arch: option[:arch]
+        ).run do |ctx|
         end
 
         if option[:verbose] >= 1

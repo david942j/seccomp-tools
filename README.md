@@ -348,6 +348,7 @@ $ seccomp-tools emu --help
 #                                      Supported architectures are <aarch64|amd64|i386|s390x>.
 #                                      Default: amd64
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
+#     -i, --ip=VAL                     Set instruction pointer.
 
 $ seccomp-tools emu spec/data/libseccomp.bpf write 0x3
 #  line  CODE  JT   JF      K

@@ -17,7 +17,7 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.authors       = ['david942j']
   s.email         = ['david942j@gmail.com']
   s.files         = Dir['lib/**/*.rb'] + Dir['lib/**/*.y'] +
-                    Dir['lib/seccomp-tools/templates/*'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md)
+                    Dir['lib/seccomp-tools/templates/*'] + Dir['bin/*'] + Dir['ext/**/*'] + %w(README.md LICENSE)
   s.extensions    = %w[ext/ptrace/extconf.rb]
   s.executables   = 'seccomp-tools'
 
@@ -39,5 +39,6 @@ Visit https://github.com/david942j/seccomp-tools for more details.
   s.add_development_dependency 'yard', '~> 0.9'
 
   s.add_dependency 'logger'
+  s.add_dependency 'racc', '~> 1.8'
   s.add_dependency 'os', '~> 1.1', '>= 1.1.1'
 end

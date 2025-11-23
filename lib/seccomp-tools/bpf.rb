@@ -108,8 +108,8 @@ module SeccompTools
     # @yieldparam [Context] ctx
     #   Context after this instruction.
     # @return [void]
-    def branch(context, &block)
-      inst.branch(context).each(&block)
+    def branch(context, &)
+      inst.branch(context).each(&)
     end
 
     # Corresponding instruction object.

@@ -7,7 +7,7 @@ require 'seccomp-tools/version'
 
 Gem::Specification.new do |s|
   s.name          = 'seccomp-tools'
-  s.version       = ::SeccompTools::VERSION
+  s.version       = SeccompTools::VERSION
   s.summary       = 'seccomp-tools'
   s.description   = <<-EOS
 Provide useful tools to analyze seccomp rules.
@@ -25,7 +25,8 @@ Visit https://github.com/david942j/seccomp-tools for more details.
     'bug_tracker_uri' => 'https://github.com/david942j/seccomp-tools/issues',
     'documentation_uri' => 'https://www.rubydoc.info/github/david942j/seccomp-tools/master',
     'homepage_uri' => 'https://github.com/david942j/seccomp-tools',
-    'source_code_uri' => 'https://github.com/david942j/seccomp-tools'
+    'source_code_uri' => 'https://github.com/david942j/seccomp-tools',
+    'rubygems_mfa_required' => 'true'
   }
 
   s.required_ruby_version = '>= 3.1'

@@ -338,4 +338,4 @@ X32_MODE_BIT = 0x40000000
   pkey_alloc: 330,
   pkey_free: 331,
   statx: 332
-}.tap { |h| h.keys.each { |k| h["x32_#{k}".to_sym] = h[k] | X32_MODE_BIT } }
+}.tap { |h| h.keys.each { |k| h[:"x32_#{k}"] = h[k] | X32_MODE_BIT } }

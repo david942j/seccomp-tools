@@ -36,7 +36,7 @@ module SeccompTools
         # Defines hash function.
         # @return [Integer]
         def hash
-          @rel.hash ^ @val.hash
+          [@rel, @val].hash
         end
 
         # Defines +eql?+.
@@ -164,7 +164,7 @@ module SeccompTools
       # For +Set+ to get the hash value.
       # @return [Integer]
       def hash
-        values.hash ^ known_data.hash
+        [values, known_data].hash
       end
     end
   end

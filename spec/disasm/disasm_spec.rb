@@ -391,7 +391,7 @@ describe SeccompTools::Disasm do
   end
 
   it 'invalid jmp' do
-    expect { described_class.disasm(0x55.chr + "\x00" * 7, arch: :amd64) }.to raise_error(
+    expect { described_class.disasm(0x55.chr + ("\x00" * 7), arch: :amd64) }.to raise_error(
       ArgumentError, 'Line 0 is invalid: unknown jmp type'
     )
   end

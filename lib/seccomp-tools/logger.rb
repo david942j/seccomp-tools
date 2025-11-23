@@ -24,7 +24,7 @@ module SeccompTools
             str.strip.empty? ? str : prep + str
           end
           color = severity.downcase.to_sym
-          msg = +"[#{SeccompTools::Util.colorize(severity, t: color)}] #{message.join}"
+          msg = "[#{SeccompTools::Util.colorize(severity, t: color)}] #{message.join}"
           msg << "\n" unless msg.end_with?("\n")
           msg
         end

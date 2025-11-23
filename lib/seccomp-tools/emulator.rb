@@ -98,7 +98,7 @@ module SeccompTools
 
     def alu(op, src)
       if op == :neg
-        set(:a, 2**32 - get(:a))
+        set(:a, (2**32) - get(:a))
       else
         src = get(:x) if src == :x
         set(:a, get(:a).__send__(op, src))
@@ -140,14 +140,14 @@ module SeccompTools
     end
 
     def data_of(index)
-      raise IndexError, "Invalid index: #{index}" unless (index & 3).zero? && index.between?(0, 63)
+      raise IndexError, "Invalid index: #{index}" unless index.nobits?(3) && index.between?(0, 63)
 
       index /= 4
       case index
       when 0 then @sys_nr || undefined('sys_number')
       when 1 then @arch || undefined('arch')
-      when 2 then @ip & 0xffffffff || undefined('instruction_pointer')
-      when 3 then @ip >> 32 || undefined('instruction_pointer')
+      when 2 then (@ip & 0xffffffff) || undefined('instruction_pointer')
+      when 3 then (@ip >> 32) || undefined('instruction_pointer')
       else
         val = @args[(index - 4) / 2] || undefined("args[#{(index - 4) / 2}]")
         (val >> (index.even? ? 0 : 32)) & 0xffffffff

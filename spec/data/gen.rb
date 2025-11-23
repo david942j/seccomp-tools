@@ -11,6 +11,7 @@
 require 'seccomp-tools/const'
 
 include SeccompTools::Const::BPF # rubocop:disable Style/MixinUsage
+
 output = File.open(File.join(__dir__, 'all_inst.bpf'), 'w')
 
 INST_LIST = [
@@ -75,7 +76,7 @@ end
 # special case handled by Linux kernel
 # BPF_LD | BPF_W | BPF_ABS
 code = COMMAND[:ld] | MODE[:abs]
-[0, 4, 8, *Array.new(6) { |i| i * 8 + 16 }].each do |off|
+[0, 4, 8, *Array.new(6) { |i| (i * 8) + 16 }].each do |off|
   output.write("#{code.chr}\x00\x00\x00#{[off].pack('L')}")
 end
 

@@ -147,7 +147,7 @@ describe SeccompTools::Asm do
   it 'accepts output of disasm' do
     files = Dir.glob('spec/data/*.bpf')
     files.each do |f|
-      input = SeccompTools::Disasm.disasm(IO.binread(f), display_bpf: false, arg_infer: false)
+      input = SeccompTools::Disasm.disasm(File.binread(f), display_bpf: false, arg_infer: false)
       expect { described_class.asm(input, arch: :amd64, filename: f) }.to_not raise_error
     end
   end

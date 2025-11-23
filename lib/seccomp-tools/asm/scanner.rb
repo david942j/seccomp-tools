@@ -149,14 +149,14 @@ module SeccompTools
         <<-EOS
 #{@filename}:#{tok.line + 1}:#{tok.col + 1} #{msg}
 #{line}
-#{' ' * calculate_spaces(@lines[tok.line][0...tok.col]) + '^' * tok.str.size}
+#{(' ' * calculate_spaces(@lines[tok.line][0...tok.col])) + ('^' * tok.str.size)}
         EOS
       end
 
       private
 
       def calculate_spaces(str)
-        str.size + str.count("\t") * (TAB_WIDTH - 1)
+        str.size + (str.count("\t") * (TAB_WIDTH - 1))
       end
     end
   end

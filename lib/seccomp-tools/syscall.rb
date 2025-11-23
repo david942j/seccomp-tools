@@ -58,8 +58,8 @@ module SeccompTools
     def dump_bpf
       addr = args[2]
       len = Ptrace.peekdata(pid, addr, 0) & 0xffff # len is unsigned short
-      filter = Ptrace.peekdata(pid, addr + bits / 8, 0) & ((1 << bits) - 1)
-      Array.new(len) { |i| Ptrace.peekdata(pid, filter + i * 8, 0) }.pack('Q*')
+      filter = Ptrace.peekdata(pid, addr + (bits / 8), 0) & ((1 << bits) - 1)
+      Array.new(len) { |i| Ptrace.peekdata(pid, filter + (i * 8), 0) }.pack('Q*')
     end
 
     # @return [Symbol]

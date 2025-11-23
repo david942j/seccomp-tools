@@ -5,6 +5,7 @@ AllCops:
     - lib/**/*.tab.rb
     - tmp/**/*
     - vendor/bundle/**/*
+  NewCops: enable
 
 Layout/EndOfLine:
   EnforcedStyle: lf

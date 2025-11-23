@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    seccomp-tools (1.6.1)
+    seccomp-tools (1.6.2)
       logger
       os (~> 1.1, >= 1.1.1)
       racc (~> 1.8)

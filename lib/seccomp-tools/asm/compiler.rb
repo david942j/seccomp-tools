@@ -12,6 +12,9 @@ module SeccompTools
     #
     # Compile seccomp rules.
     class Compiler
+      # The farthest distance of a relative jump in BPF.
+      JUMP_DISTANCE_MAX = 255
+
       # Instantiate a {Compiler} object.
       #
       # @param [String] source
@@ -168,9 +171,6 @@ module SeccompTools
         end
         emit(:ret, src, k: val.to_i)
       end
-
-      # The farthest distance of a relative jump in BPF.
-      JUMP_DISTANCE_MAX = 255
 
       def emit_cmp(cmp, jt_sym, jf_sym)
         jt = jt_sym[0]

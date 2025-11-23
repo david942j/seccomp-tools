@@ -60,8 +60,7 @@ module SeccompTools
           args:,
           instruction_pointer: option[:instruction_pointer] && Integer(option[:instruction_pointer]),
           arch: option[:arch]
-        ).run do |ctx|
-        end
+        ).run
 
         if option[:verbose] >= 1
           disasm = SeccompTools::Disasm.disasm(raw, arch: option[:arch]).lines

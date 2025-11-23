@@ -60,11 +60,9 @@ EOS
     # Just write message to stdout.
     # @param [String] msg
     #   The message.
-    # @return [false]
-    #   Always return +false+.
+    # @return [void]
     def show(msg)
       puts msg
-      false
     end
 
     class << self

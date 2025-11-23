@@ -132,7 +132,7 @@ module SeccompTools
       def handle_child(*args)
         Ptrace.traceme_and_stop
         exec(*args)
-      rescue # rubocop:disable Style/RescueStandardError # exec fail
+      rescue # rubocop:disable Style/RescueStandardError
         Logger.error("Failed to execute #{args.join(' ')}")
         exit(1)
       end

@@ -34,8 +34,19 @@ EOS
         break if line.start_with?('Welcome')
       end
       expect { described_class.new(['-f', 'inspect', '-p', pid.to_s]).handle }.to output(@bpf_inspect).to_stdout
-      expect { described_class.new(['-l', '2', '-p', pid.to_s]).handle }.to output(@bpf_disasm).to_stdout
+      expect { described_class.new(['-l', '2', '-p', pid.to_s]).handle }.to output(@bpf_disasm+"[ERROR] No filter exists at this index\n").to_stdout
       i.write("0\n")
+    end
+  end
+
+  it 'by pid without filter' do
+    pid = Process.spawn('sleep 60')
+    begin
+      error = /No seccomp filters installed/
+      expect { described_class.new(['-p', pid.to_s]).handle }.to output(error).to_stdout
+    ensure
+      Process.kill('TERM', pid)
+      Process.wait(pid)
     end
   end
 

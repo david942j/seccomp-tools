@@ -12,7 +12,7 @@ require 'seccomp-tools/const'
 
 include SeccompTools::Const::BPF # rubocop:disable Style/MixinUsage
 
-output = File.open(File.join(__dir__, 'all_inst.bpf'), 'w')
+output = File.open(File.join(__dir__, 'all_inst.bpf'), 'w') # rubocop:disable Style/FileOpen
 
 INST_LIST = [
   COMMAND[:jmp] | JMP[:ja],

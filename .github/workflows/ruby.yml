@@ -19,10 +19,15 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu]
-        ruby-version: ['3.2', '3.3', '3.4', 'head']
+        ruby-version: ['3.3', '3.4', '4.0', 'head']
 
     steps:
     - uses: actions/checkout@v2
+    - name: Strip lockfile on Ruby Head to bypass mismatch bundler version
+      if: matrix.ruby-version == 'head'
+      run: |
+        echo "Removing Gemfile.lock"
+        rm -f Gemfile.lock
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:

@@ -17,6 +17,9 @@ module SeccompTools
       USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux." \
               "\n\nUsage: seccomp-tools dump [exec] [options]".freeze
 
+      # Instantiate a {Dump} object, dumping the first filter as disassembly by default.
+      #
+      # Takes the same arguments as {Base#initialize}.
       def initialize(*)
         super
         option[:format] = :disasm
@@ -26,6 +29,7 @@ module SeccompTools
 
       # Define option parser.
       # @return [OptionParser]
+      #   The parser of this command's options.
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
@@ -62,7 +66,9 @@ module SeccompTools
         end
       end
 
-      # Handle options.
+      # Traces the target process and writes out the seccomp filters it installs.
+      #
+      # Only available on Linux, logs an error and returns otherwise.
       # @return [void]
       def handle
         return Logger.error('Dump is only available on Linux.') unless Dumper::SUPPORTED

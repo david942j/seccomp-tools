@@ -12,6 +12,9 @@ module SeccompTools
       # Usage of this command.
       USAGE = "disasm - #{SUMMARY}\n\nUsage: seccomp-tools disasm BPF_FILE [options]".freeze
 
+      # Instantiate a {Disasm} object, showing raw BPF and inferred arguments by default.
+      #
+      # Takes the same arguments as {Base#initialize}.
       def initialize(*)
         super
         option[:bpf] = true
@@ -20,6 +23,7 @@ module SeccompTools
 
       # Define option parser.
       # @return [OptionParser]
+      #   The parser of this command's options.
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
@@ -46,7 +50,7 @@ module SeccompTools
         end
       end
 
-      # Handle options.
+      # Disassembles the input file and writes the result.
       # @return [void]
       def handle
         return unless super

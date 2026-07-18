@@ -17,6 +17,9 @@ module SeccompTools
       # Usage of this command.
       USAGE = "emu - #{SUMMARY}\n\nUsage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]".freeze
 
+      # Instantiate an {Emu} object, defaulting to verbose output.
+      #
+      # Takes the same arguments as {Base#initialize}.
       def initialize(*)
         super
         option[:verbose] = 1
@@ -24,6 +27,7 @@ module SeccompTools
 
       # Define option parser.
       # @return [OptionParser]
+      #   The parser of this command's options.
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
@@ -40,7 +44,7 @@ module SeccompTools
         end
       end
 
-      # Handle options.
+      # Emulates the filter against the given syscall and shows the resulting action.
       # @return [void]
       def handle
         return unless super
@@ -75,17 +79,28 @@ module SeccompTools
 
       private
 
+      # Resolves a syscall given on the command line, by name or by number.
+      #
       # @param [String] str
+      #   A syscall name valid for +option[:arch]+, or an integer literal.
       # @return [Integer]
+      #   The syscall number.
+      # @raise [ArgumentError]
+      #   If +str+ is neither a known syscall name nor a valid integer.
       def evaluate_sys_nr(str)
         consts = SeccompTools::Const::Syscall.const_get(option[:arch].to_s.upcase)
         consts[str.to_sym] || Integer(str)
       end
 
-      # output the path during emulation
+      # Outputs the disassembly, highlighting the lines that were executed during emulation.
+      #
       # @param [Array<String>] disasm
-      # @param [Set] trace
-      # @param [{Symbol => Object}] result
+      #   Lines of the disassembly, including the two header lines.
+      # @param [Set<Integer>] trace
+      #   Line numbers that were reached.
+      # @param [{Symbol => Integer}] result
+      #   The emulation result, as returned by {SeccompTools::Emulator#run}.
+      # @return [void]
       def output_emulate_path(disasm, trace, result)
         output { disasm.shift }
         output { disasm.shift }

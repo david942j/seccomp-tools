@@ -14,7 +14,7 @@ task :sys_arg do
     args = args.gsub(/\s+/m, ' ')
     args = args.split(', ').map { |c| c.scan(/ *?(\w+)$/).flatten.first }
     return nil unless args.all?
-    return nil if %w[int long].any? { |t| args.include?(t) }
+    return nil if %w[int long].intersect?(args)
 
     args
   end

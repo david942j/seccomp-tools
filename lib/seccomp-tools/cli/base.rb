@@ -27,7 +27,7 @@ module SeccompTools
       # @return [Boolean]
       #   For decestors to check whether need to continue.
       def handle
-        return CLI.show(parser.help) if argv.empty? || %w[-h --help].any? { |h| argv.include?(h) }
+        return CLI.show(parser.help) if argv.empty? || %w[-h --help].intersect?(argv)
 
         parser.parse!(argv)
         option[:arch] ||= Util.system_arch

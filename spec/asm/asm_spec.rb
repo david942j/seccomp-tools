@@ -146,9 +146,13 @@ describe SeccompTools::Asm do
 
   it 'accepts output of disasm' do
     files = Dir.glob('spec/data/*.bpf')
-    files.each do |f|
-      input = SeccompTools::Disasm.disasm(File.binread(f), display_bpf: false, arg_infer: false)
-      expect { described_class.asm(input, arch: :amd64, filename: f) }.to_not raise_error
+    # Disassemble and reassemble under the same arch, otherwise the round-trip depends on the host arch:
+    # syscall names are arch-specific, so names emitted for one arch may not exist in another's table.
+    SeccompTools::Syscall::ABI.each_key do |arch|
+      files.each do |f|
+        input = SeccompTools::Disasm.disasm(File.binread(f), arch:, display_bpf: false, arg_infer: false)
+        expect { described_class.asm(input, arch:, filename: f) }.to_not raise_error
+      end
     end
   end
 end

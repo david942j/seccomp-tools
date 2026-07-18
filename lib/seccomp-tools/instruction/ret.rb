@@ -4,22 +4,29 @@ require 'seccomp-tools/instruction/base'
 
 module SeccompTools
   module Instruction
-    # Instruction ret.
+    # Instruction ret, terminates the filter with an action such as +ALLOW+ or +KILL+.
+    #
+    # The action comes from either the accumulator register A or the immediate +k+.
     class RET < Base
       # Decompile instruction.
+      # @return [String]
+      #   The return as assembly, e.g. +"return ERRNO(1)"+.
       def decompile
         "return #{ret_str}"
       end
 
       # See {Instruction::Base#symbolize}.
       # @return [[:ret, (:a, Integer)]]
+      #   +:a+ when the action is taken from the A register, otherwise the immediate action value.
       def symbolize
         [:ret, code & 0x18 == SRC[:a] ? :a : k]
       end
 
       # See {Base#branch}.
-      # @return [[]]
-      #   Always return an empty array.
+      #
+      # Accepts and ignores any arguments, the context is irrelevant here.
+      # @return [Array]
+      #   Always an empty array, a filter stops executing at a return.
       def branch(*)
         []
       end

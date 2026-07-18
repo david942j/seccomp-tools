@@ -5,9 +5,13 @@ require 'seccomp-tools/instruction/base'
 
 module SeccompTools
   module Instruction
-    # Instruction jmp.
+    # Instruction jmp, an unconditional jump or a comparison of A against X or an immediate.
+    #
+    # Jumps are always forward, +jt+ and +jf+ being offsets relative to the following line.
     class JMP < Base
       # Decompile instruction.
+      # @return [String]
+      #   The jump as assembly, e.g. +"if (A == read) goto 0003"+.
       def decompile
         return goto(k) if jop == :none
         # if jt == 0 && jf == 0 => no-op # should not happen
@@ -23,6 +27,8 @@ module SeccompTools
 
       # See {Instruction::Base#symbolize}.
       # @return [[:cmp, Symbol, (:x, Integer), Integer, Integer], [:jmp, Integer]]
+      #   +[:jmp, offset]+ for an unconditional jump, otherwise +[:cmp, operator, right operand,
+      #   jt, jf]+.
       def symbolize
         return [:jmp, k] if jop == :none
 
@@ -30,9 +36,17 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [Context] context
+      #
+      # Unlike the other instructions, a conditional jump has two possible successors. On the
+      # taken branch of an equality test the context is narrowed, recording that A is known to
+      # equal the compared value.
+      # @param [SeccompTools::Disasm::Context] context
       #   Current context.
-      # @return [Array<(Integer, Context)>]
+      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      #   One pair for an unconditional jump, two otherwise.
+      # @example
+      #   # 0000: if (A == 0) goto 0002 else goto 0003
+      #   jeq.branch(ctx) #=> [[2, narrowed_ctx], [3, ctx]]
       def branch(context)
         return [[at(k), context]] if jop == :none
         return [[at(jt), context]] if jt == jf

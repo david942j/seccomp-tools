@@ -4,7 +4,9 @@ require 'seccomp-tools/instruction/base'
 
 module SeccompTools
   module Instruction
-    # Instruction alu.
+    # Instruction alu, performs an arithmetic or bitwise operation on the accumulator register A.
+    #
+    # The right operand is either the X register or the immediate +k+.
     class ALU < Base
       # Mapping from name to operator.
       OP_SYM = {
@@ -21,6 +23,8 @@ module SeccompTools
         xor: :^
       }.freeze
       # Decompile instruction.
+      # @return [String]
+      #   The operation as assembly, e.g. +"A &= 0x7fff"+.
       def decompile
         return 'A = -A' if op == :neg
 
@@ -29,6 +33,8 @@ module SeccompTools
 
       # See {Instruction::Base#symbolize}.
       # @return [[:alu, Symbol, (:x, Integer, nil)]]
+      #   The operator and its right operand, which is +:x+ for the X register, an Integer for an
+      #   immediate, or +nil+ for the unary +neg+.
       def symbolize
         return [:alu, :neg, nil] if op == :neg
 
@@ -36,9 +42,10 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [Context] context
+      # @param [SeccompTools::Disasm::Context] context
       #   Current context.
-      # @return [Array<(Integer, Context)>]
+      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      #   Always the next line, with A marked as no longer tracked.
       def branch(context)
         ctx = context.dup
         ctx[:a] = Disasm::Context::Value.new

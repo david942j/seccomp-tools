@@ -31,10 +31,21 @@ module SeccompTools
 
       # Compiles the processed instructions.
       #
+      # Scans and parses the source, resolves the labels into relative jump distances, then emits
+      # one {BPF} per statement.
+      #
       # @return [Array<SeccompTools::BPF>]
       #   Returns the compiled {BPF} array.
-      # @raise [SeccompTools::Error]
-      #   Raises the error found during compilation.
+      # @raise [SeccompTools::UnrecognizedTokenError]
+      #   If the source contains text that is not valid assembly.
+      # @raise [SeccompTools::ParseError]
+      #   If the tokens do not form valid statements.
+      # @raise [SeccompTools::DuplicateLabelError]
+      #   If a label is defined more than once.
+      # @raise [SeccompTools::UndefinedLabelError]
+      #   If a jump refers to a label that is never defined.
+      # @raise [SeccompTools::BackwardJumpError]
+      #   If a jump goes backward, which BPF cannot express.
       def compile!
         @scanner.validate!
         statements = SeccompAsmParser.new(@scanner).parse
@@ -79,8 +90,18 @@ module SeccompTools
         end
       end
 
+      # Resolves a jump target into a relative distance from +index+.
+      #
       # @param [Integer] index
+      #   Index of the statement the jump is written in.
       # @param [SeccompTools::Asm::Token, :next] sym
+      #   The jump target, either a label token or +:next+ for the following instruction.
+      # @return [Integer]
+      #   Number of instructions to skip, +0+ meaning the next instruction.
+      # @raise [SeccompTools::UndefinedLabelError]
+      #   If +sym+ names a label that is never defined.
+      # @raise [SeccompTools::BackwardJumpError]
+      #   If the target lies before +index+.
       def resolve_symbol(index, sym)
         return 0 if sym.is_a?(Symbol) && sym == :next
 
@@ -105,6 +126,15 @@ module SeccompTools
 
       # Emits a raw BPF object.
       #
+      # @param [Array<Symbol>] args
+      #   Names of the flags to be OR-ed together into the instruction's +code+ field, looked up in
+      #   the {Const::BPF} tables. Unknown names contribute nothing.
+      # @param [Integer] k
+      #   The +k+ field, an immediate operand or a jump target.
+      # @param [Integer] jt
+      #   The +jt+ field, instructions to skip when a comparison is true.
+      # @param [Integer] jf
+      #   The +jf+ field, instructions to skip when a comparison is false.
       # @return [BPF]
       #   Returns the emitted {BPF} object.
       def emit(*args, k: 0, jt: 0, jf: 0)

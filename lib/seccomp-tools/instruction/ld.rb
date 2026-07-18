@@ -6,9 +6,14 @@ require 'seccomp-tools/util'
 
 module SeccompTools
   module Instruction
-    # Instruction ld.
+    # Instruction ld, loads a value into the accumulator register A.
+    #
+    # The value can be an immediate, a word of +struct seccomp_data+, or a slot of the scratch
+    # memory. {LDX} inherits from this class and targets the X register instead.
     class LD < Base
       # Decompile instruction.
+      # @return [String]
+      #   The assignment as assembly, e.g. +"A = sys_number"+.
       def decompile
         ret = "#{reg} = "
         _, _reg, type = symbolize
@@ -18,22 +23,27 @@ module SeccompTools
         ret + seccomp_data_str
       end
 
-      # @return [void]
+      # See {Instruction::Base#symbolize}.
+      # @return [[:ld, Symbol, {rel: Symbol, val: Integer}]]
+      #   The target register and the value being loaded, whose +:rel+ is one of +:immi+, +:mem+
+      #   or +:data+.
       def symbolize
         type = load_val
         [:ld, reg.downcase.to_sym, type]
       end
 
-      # Accumulator register.
-      # @return ['A']
+      # Name of the register being loaded into.
+      # @return [String]
+      #   The accumulator register, +"A"+.
       def reg
         'A'
       end
 
       # See {Base#branch}.
-      # @param [Context] context
+      # @param [SeccompTools::Disasm::Context] context
       #   Current context.
-      # @return [Array<(Integer, Context)>]
+      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      #   Always the next line, with the loaded value recorded in the context.
       def branch(context)
         ctx = context.dup
         ctx.load(reg, **load_val)

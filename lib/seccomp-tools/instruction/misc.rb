@@ -4,9 +4,11 @@ require 'seccomp-tools/instruction/base'
 
 module SeccompTools
   module Instruction
-    # Instruction misc.
+    # Instruction misc, copies a value between the A and X registers.
     class MISC < Base
       # Decompile instruction.
+      # @return [String]
+      #   Either +"A = X"+ or +"X = A"+.
       def decompile
         case op
         when :txa then 'A = X'
@@ -16,14 +18,16 @@ module SeccompTools
 
       # See {Instruction::Base#symbolize}.
       # @return [[:misc, (:tax, :txa)]]
+      #   +:tax+ copies A into X, +:txa+ copies X into A.
       def symbolize
         [:misc, op]
       end
 
       # See {Base#branch}.
-      # @param [Context] context
+      # @param [SeccompTools::Disasm::Context] context
       #   Current context.
-      # @return [Array<(Integer, Context)>]
+      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      #   Always the next line, with the copied value recorded in the context.
       def branch(context)
         ctx = context.dup
         case op

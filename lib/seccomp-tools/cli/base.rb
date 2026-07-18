@@ -7,8 +7,13 @@ require 'seccomp-tools/util'
 module SeccompTools
   module CLI
     # Base class for handlers.
+    #
+    # Each subcommand is a subclass that defines a +USAGE+ constant and a +parser+, and overrides
+    # {#handle} to do its work.
     class Base
-      # @return [{Symbol => Object}] Options.
+      # @return [{Symbol => Object}]
+      #   Options parsed from the command line. Common keys are +:arch+, +:ifile+, +:ofile+,
+      #   +:format+, +:limit+, +:pid+ and +:verbose+, depending on the subcommand.
       attr_reader :option
       # @return [Array<String>] Arguments array.
       attr_reader :argv
@@ -23,9 +28,10 @@ module SeccompTools
 
       private
 
-      # Handle show help message.
+      # Parses the common options, and shows the help message when asked to.
       # @return [Boolean]
-      #   For decestors to check whether need to continue.
+      #   For descendants to check whether they need to continue. +false+ when the help message
+      #   was shown and there is nothing left to do.
       def handle
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].intersect?(argv)
 
@@ -43,6 +49,9 @@ module SeccompTools
       end
 
       # Write data to stdout or file(s).
+      #
+      # When +option[:ofile]+ is set, each call writes to a new file named after it with an
+      # incrementing serial number, see {#file_of}. Colors are disabled while writing to a file.
       # @yieldreturn [String]
       #   The data to be written.
       # @return [void]
@@ -89,6 +98,11 @@ module SeccompTools
         self.class.const_get(:USAGE)
       end
 
+      # Registers the common +--arch+ option on +opt+.
+      #
+      # @param [OptionParser] opt
+      #   The parser to add the option to.
+      # @return [void]
       def option_arch(opt)
         supported = Util.supported_archs
         opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',

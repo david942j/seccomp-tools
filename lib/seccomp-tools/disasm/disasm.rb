@@ -12,12 +12,23 @@ module SeccompTools
     module_function
 
     # Disassemble BPF codes.
+    #
+    # Emulates the filter to track what each register holds, so syscall names and argument
+    # positions can be inferred and shown as comments.
     # @param [String] raw
     #   The raw BPF bytes.
-    # @param [Symbol] arch
-    #   Architecture.
+    # @param [Symbol?] arch
+    #   Target architecture, must be one of {SeccompTools::Util.supported_archs}.
+    #   Defaults to {SeccompTools::Util.system_arch} when +nil+.
     # @param [Boolean] display_bpf
+    #   Whether to prepend each line with its raw +code+, +jt+, +jf+ and +k+ fields.
     # @param [Boolean] arg_infer
+    #   Whether to annotate lines with the inferred syscall name and argument.
+    # @return [String]
+    #   The disassembly result, ready to be printed.
+    # @example
+    #   SeccompTools::Disasm.disasm(raw, arch: :amd64, display_bpf: false)
+    #   #=> "0000: A = sys_number\n0001: if (A == read) goto 0003\n0002: return KILL\n0003: return ALLOW\n"
     def disasm(raw, arch: nil, display_bpf: true, arg_infer: true)
       codes = to_bpf(raw, arch)
       contexts = Array.new(codes.size) { Set.new }
@@ -45,8 +56,11 @@ module SeccompTools
 
     # Convert raw BPF string to array of {BPF}.
     # @param [String] raw
-    # @param [Symbol] arch
+    #   The raw BPF bytes, each instruction being 8 bytes long.
+    # @param [Symbol?] arch
+    #   Target architecture, defaults to {SeccompTools::Util.system_arch} when +nil+.
     # @return [Array<BPF>]
+    #   One {BPF} per instruction, in order.
     def to_bpf(raw, arch)
       arch ||= Util.system_arch
       raw.scan(/.{8}/m).map.with_index { |b, i| BPF.new(b, arch, i) }

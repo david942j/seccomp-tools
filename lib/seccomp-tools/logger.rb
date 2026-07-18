@@ -13,6 +13,9 @@ module SeccompTools
 
     # Returns a +::Logger+ object for internal logging.
     #
+    # The returned logger writes to +$stdout+ with a formatter that prefixes each message with its
+    # colorized severity and indents continuation lines to align with the first.
+    #
     # @return [::Logger]
     def logger
       ::Logger.new($stdout).tap do |log|
@@ -31,6 +34,11 @@ module SeccompTools
       end
     end
 
+    # @!method error(msg)
+    #   Logs +msg+ at the +error+ severity.
+    #   @param [String] msg
+    #     The message to be logged.
+    #   @return [true]
     %i[error].each do |sym|
       define_method(sym) do |msg|
         logger.__send__(sym, msg)

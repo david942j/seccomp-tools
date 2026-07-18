@@ -57,9 +57,9 @@ EOS
       COMMANDS[cmd].new(argv).handle
     end
 
-    # Just write message to stdout.
+    # Writes a message to stdout, followed by a newline.
     # @param [String] msg
-    #   The message.
+    #   The message to be written.
     # @return [void]
     def show(msg)
       puts msg

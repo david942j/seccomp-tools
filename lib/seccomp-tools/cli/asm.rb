@@ -12,6 +12,9 @@ module SeccompTools
       # Usage of this command.
       USAGE = "asm - #{SUMMARY}\n\nUsage: seccomp-tools asm IN_FILE [options]".freeze
 
+      # Instantiate an {Asm} object, defaulting the output format to +:inspect+.
+      #
+      # Takes the same arguments as {Base#initialize}.
       def initialize(*)
         super
         option[:format] = :inspect
@@ -19,6 +22,7 @@ module SeccompTools
 
       # Define option parser.
       # @return [OptionParser]
+      #   The parser of this command's options.
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
@@ -36,7 +40,7 @@ module SeccompTools
         end
       end
 
-      # Handle options.
+      # Assembles the input file and writes the result in the requested format.
       # @return [void]
       def handle
         return unless super

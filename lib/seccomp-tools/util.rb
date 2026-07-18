@@ -59,7 +59,7 @@ module SeccompTools
     # @param [String] s
     #   Contents to wrapper.
     # @param [Symbol?] t
-    #   Specific which kind of color to use, valid symbols are defined in {Util.COLOR_CODE}.
+    #   Specific which kind of color to use, valid symbols are defined in {Util::COLOR_CODE}.
     # @return [String]
     #   Wrapper with color codes.
     def colorize(s, t: nil)

@@ -104,17 +104,21 @@ module SeccompTools
 
       # To dynamically fetch constants from files.
       # @param [Symbol] cons
-      #   Name of const.
-      # @return [Object]
-      #   Value of that +cons+.
+      #   Name of const, an upcased architecture name such as +:AMD64+.
+      # @return [{Symbol => Integer}]
+      #   The syscall table of that architecture, mapping name to number.
+      # @raise [NameError]
+      #   If no syscall table exists for +cons+.
       def const_missing(cons)
         load_const(cons) || super
       end
 
       # Load from file and define const value.
       # @param [Symbol] cons
-      #   Name of const.
-      # @return [Object]
+      #   Name of const, an upcased architecture name such as +:AMD64+.
+      # @return [{Symbol => Integer}?]
+      #   The syscall table of that architecture, or +nil+ if it has no file under
+      #   +consts/sys_nr/+.
       def load_const(cons)
         arch = cons.to_s.downcase
         filename = File.join(__dir__, 'consts', 'sys_nr', "#{arch}.rb")
@@ -124,6 +128,10 @@ module SeccompTools
       end
 
       # Helper for loading syscall prototypes from generated sys_arg.rb.
+      #
+      # @return [{Symbol => Array<String>}]
+      #   Syscall name to its argument names. Lookups of an +x32_+-prefixed name fall back to the
+      #   unprefixed one, and unknown names give +nil+.
       def load_args
         hash = instance_eval(File.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
         Hash.new do |_h, k|

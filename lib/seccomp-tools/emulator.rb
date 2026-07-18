@@ -3,17 +3,18 @@
 require 'seccomp-tools/const'
 
 module SeccompTools
-  # For emulating seccomp.
+  # Runs a seccomp filter against a hypothetical syscall to find out which action it returns.
   class Emulator
     # Instantiate a {Emulator} object.
     #
     # All parameters except +instructions+ are optional. A warning is shown when uninitialized data is accessed.
     # @param [Array<Instruction::Base>] instructions
-    # @param [Integer] sys_nr
+    #   The filter to be emulated, as returned by +SeccompTools::Disasm.to_bpf(raw, arch).map(&:inst)+.
+    # @param [Integer?] sys_nr
     #   Syscall number.
     # @param [Array<Integer>] args
     #   Syscall arguments
-    # @param [Integer] instruction_pointer
+    # @param [Integer?] instruction_pointer
     #   Program counter address when this syscall invoked.
     # @param [Symbol?] arch
     #   System architecture is used when this parameter is not provided.
@@ -28,7 +29,17 @@ module SeccompTools
     end
 
     # Run emulation!
+    #
+    # Executes the filter until it returns, then reports the final machine state.
+    # @yieldparam [{Symbol, Integer => Integer}] values
+    #   If a block is given, it is invoked before each instruction with the current machine state.
     # @return [{Symbol, Integer => Integer}]
+    #   The final state: +:ret+ is the action the filter returned, +:pc+ the line it returned from,
+    #   +:a+ and +:x+ the registers, and Integer keys the scratch memory slots.
+    # @example
+    #   insts = SeccompTools::Disasm.to_bpf(raw, :amd64).map(&:inst)
+    #   SeccompTools::Emulator.new(insts, sys_nr: 0).run[:ret]
+    #   #=> 2147418112 # SECCOMP_RET_ALLOW
     def run
       @values = { pc: 0, a: 0, x: 0 }
       loop do

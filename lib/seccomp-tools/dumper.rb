@@ -19,7 +19,7 @@ module SeccompTools
     # Yield seccomp bpf whenever find a +prctl(SET_SECCOMP)+ call.
     #
     # @param [Array<String>] args
-    #   The arguments for target execution file.
+    #   The command to be executed, i.e. the target execution file followed by its arguments.
     # @param [Integer] limit
     #   By default, +dump+ will only dump the first +SET_SECCOMP+ call.
     #   Set +limit+ to the number of calling +prctl(SET_SECCOMP)+ then the child process will be killed when number of
@@ -28,10 +28,11 @@ module SeccompTools
     #   Negative number for unlimited.
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
-    # @yieldparam [Symbol] arch
-    #   Architecture of the target process.
+    # @yieldparam [Symbol?] arch
+    #   Architecture of the target process, always +nil+ right now.
     # @return [Array<Object>, Array<String>]
-    #   Return the block returned. If block is not given, array of raw bytes will be returned.
+    #   One entry per dumped filter: the block's return values when a block is given, otherwise the
+    #   raw bytes. Empty on a non-Linux platform, where dumping is unsupported.
     # @example
     #   dump('ls', '-l', '-a')
     #   #=> []
@@ -46,7 +47,8 @@ module SeccompTools
       Handler.new(pid).handle(limit, &block)
     end
 
-    # Do the tracer things.
+    # Traces a forked child, single-stepping it through its syscalls and capturing the seccomp
+    # filters it installs.
     class Handler
       # Instantiate a {Handler} object.
       # @param [Integer] pid
@@ -67,7 +69,8 @@ module SeccompTools
       # @yieldparam [Symbol] arch
       #   Architecture. See {SeccompTools::Syscall::ABI} for supported architectures.
       # @return [Array<Object>, Array<String>]
-      #   Return the block returned. If block is not given, array of raw bytes will be returned.
+      #   One entry per dumped filter: the block's return values when a block is given, otherwise
+      #   the raw bytes.
       def handle(limit, &block)
         collect = []
         syscalls = {} # record last syscall
@@ -93,10 +96,15 @@ module SeccompTools
 
       private
 
+      # Waits until a traced child enters or leaves a syscall, then resumes it.
+      #
       # @yieldparam [Integer] pid
+      #   Id of the child that stopped.
+      # @yieldreturn [Boolean]
+      #   Whether tracing should continue.
       # @return [Boolean]
       #   +true+ for continue,
-      #   +false+ for break.
+      #   +false+ for break. Also +false+ once no children are left.
       def wait_syscall
         child, status = Process.wait2
         cont = true
@@ -113,11 +121,20 @@ module SeccompTools
         false
       end
 
+      # Reads the syscall the stopped child is currently invoking.
+      #
+      # @param [Integer] pid
+      #   Id of the stopped child.
       # @return [SeccompTools::Syscall]
       def syscall(pid)
         SeccompTools::Syscall.new(pid)
       end
 
+      # Is the process still running?
+      #
+      # @param [Integer] pid
+      #   Id of the process to be checked.
+      # @return [Boolean]
       def alive?(pid)
         Process.getpgid(pid)
         true

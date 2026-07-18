@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 module SeccompTools
-  # Base error class.
+  # Base class of all errors raised by this library.
+  #
+  # Rescue this class to catch every assembler error at once.
   class Error < StandardError
   end
 

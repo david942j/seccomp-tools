@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 module SeccompTools
-  # Define utility methods.
+  # Utility methods shared across the library: architecture detection and terminal colorizing.
   module Util
     module_function
 
     # Get currently supported architectures.
+    #
+    # Derived from the syscall tables shipped under +consts/sys_nr/+.
     # @return [Array<Symbol>]
-    #   Architectures.
+    #   Architecture names, sorted.
     def supported_archs
       @supported_archs ||= Dir.glob(File.join(__dir__, 'consts', 'sys_nr', '*.rb'))
                               .map { |f| File.basename(f, '.rb').to_sym }
@@ -16,6 +18,7 @@ module SeccompTools
 
     # Detect system architecture.
     # @return [Symbol]
+    #   One of {supported_archs}, or +:unknown+ if the host CPU is not supported.
     def system_arch
       case RbConfig::CONFIG['host_cpu']
       when /x86_64/ then :amd64
@@ -27,12 +30,14 @@ module SeccompTools
     end
 
     # Enable colorize.
+    #
+    # Colors are still only emitted when the output is a tty, see {colorize_enabled?}.
     # @return [void]
     def enable_color!
       @disable_color = false
     end
 
-    # Disable colorize.
+    # Disable colorize, {colorize} becomes a no-op regardless of the output being a tty.
     # @return [void]
     def disable_color!
       @disable_color = true
@@ -40,6 +45,7 @@ module SeccompTools
 
     # Is colorize enabled?
     # @return [Boolean]
+    #   +true+ only if colors have not been disabled by {disable_color!} and +$stdout+ is a tty.
     def colorize_enabled?
       !@disable_color && $stdout.tty?
     end
@@ -55,13 +61,15 @@ module SeccompTools
       gray: "\e[2m",
       error: "\e[38;5;196m" # heavy red
     }.freeze
-    # Wrapper color codes.
-    # @param [String] s
-    #   Contents to wrapper.
+    # Wrap contents with terminal color codes.
+    #
+    # Returns +s+ unchanged when {colorize_enabled?} is +false+.
+    # @param [#to_s] s
+    #   Contents to be wrapped.
     # @param [Symbol?] t
-    #   Specific which kind of color to use, valid symbols are defined in {Util::COLOR_CODE}.
+    #   Which kind of color to use, valid symbols are the keys of {Util::COLOR_CODE}.
     # @return [String]
-    #   Wrapper with color codes.
+    #   +s+ wrapped with color codes.
     def colorize(s, t: nil)
       s = s.to_s
       return s unless colorize_enabled?
@@ -74,10 +82,13 @@ module SeccompTools
     # Get content of filename under directory templates/.
     #
     # @param [String] filename
-    #   The filename.
+    #   Basename of a file under +lib/seccomp-tools/templates/+.
     #
     # @return [String]
     #   Content of the file.
+    #
+    # @raise [Errno::ENOENT]
+    #   If no such template exists.
     def template(filename)
       File.binread(File.join(__dir__, 'templates', filename))
     end

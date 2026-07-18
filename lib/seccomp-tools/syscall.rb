@@ -18,20 +18,26 @@ module SeccompTools
       s390x: { number: 24, args: [32, 40, 48, 56, 64, 72], ret: 32, SYS_prctl: 172, SYS_seccomp: 348 }
     }.freeze
 
-    # @return [Integer] Process id.
+    # @return [Integer] Id of the traced process.
     attr_reader :pid
-    # @return [{Symbol => Integer, Array<Integer>}] See {ABI}.
+    # @return [{Symbol => Integer, Array<Integer>}]
+    #   The {ABI} entry of this syscall's architecture.
     attr_reader :abi
     # @return [Integer] Syscall number.
     attr_reader :number
-    # @return [Integer] Syscall arguments.
+    # @return [Array<Integer>] Syscall arguments, in register order.
     attr_reader :args
     # @return [Integer] Syscall return value.
     attr_reader :ret
 
     # Instantiate a {Syscall} object.
-    # @param [String] pid
-    #   Process-id.
+    #
+    # Reads the syscall number, arguments and return value of +pid+ through ptrace, so the process
+    # must already be stopped and attached.
+    # @param [Integer] pid
+    #   Id of the traced process.
+    # @raise [ArgumentError]
+    #   If the architecture of +pid+ is not one of {ABI}'s keys.
     def initialize(pid)
       @pid = pid
       raise ArgumentError, "Only supports #{ABI.keys.join(', ')}" if ABI[arch].nil?
@@ -54,7 +60,11 @@ module SeccompTools
     end
 
     # Dump bpf byte from +args[2]+.
+    #
+    # Only meaningful when {#set_seccomp?} is +true+, i.e. +args[2]+ points to a
+    # +struct sock_fprog+ in the traced process.
     # @return [String]
+    #   The raw BPF bytes of the filter being installed.
     def dump_bpf
       addr = args[2]
       len = Ptrace.peekdata(pid, addr, 0) & 0xffff # len is unsigned short
@@ -62,8 +72,9 @@ module SeccompTools
       Array.new(len) { |i| Ptrace.peekdata(pid, filter + (i * 8), 0) }.pack('Q*')
     end
 
-    # @return [Symbol]
-    #   Architecture of this syscall.
+    # Architecture of this syscall, determined by the ELF machine type of +/proc/pid/exe+.
+    # @return [Symbol?]
+    #   One of +:i386+, +:amd64+, +:aarch64+, +:s390x+, or +nil+ if the machine type is unrecognized.
     def arch
       @arch ||= File.open("/proc/#{pid}/exe", 'rb') do |f|
         f.pos = 18

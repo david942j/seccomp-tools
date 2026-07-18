@@ -7,7 +7,10 @@ require 'seccomp-tools/const'
 require 'seccomp-tools/instruction/instruction'
 
 module SeccompTools
-  # Define the +struct sock_filter+, while more powerful.
+  # One BPF instruction, i.e. a +struct sock_filter+.
+  #
+  # Beyond the four fields of the C struct, a {BPF} also carries the architecture it belongs to and
+  # its line number, which together allow it to be disassembled into readable assembly.
   class BPF
     # @return [Integer] Line number.
     attr_reader :line
@@ -21,12 +24,13 @@ module SeccompTools
     attr_reader :k
     # @return [Symbol] Architecture.
     attr_reader :arch
-    # @return [Set<Context>] Possible contexts before this instruction.
+    # @return [Set<SeccompTools::Disasm::Context>] Possible contexts before this instruction.
     attr_accessor :contexts
 
     # Instantiate a {BPF} object.
-    # @param [String] raw
-    #   One +struct sock_filter+ in bytes, should be 8 bytes long.
+    # @param [String, {Symbol => Integer}] raw
+    #   One +struct sock_filter+, either as 8 raw bytes or as a hash of the +:code+, +:jt+, +:jf+
+    #   and +:k+ fields.
     # @param [Symbol] arch
     #   Architecture, for showing constant names in decompile.
     # @param [Integer] line
@@ -56,8 +60,11 @@ module SeccompTools
 
     # Pretty display the disassemble result.
     # @param [{Symbol => Boolean}] options
-    #   Set display settings.
+    #   Display settings, merged into the current ones. Supports +:code+, whether to show the raw
+    #   +code+, +jt+, +jf+ and +k+ fields, and +:arg_infer+, whether to annotate the line with the
+    #   inferred syscall argument.
     # @return [String]
+    #   One line of disassembly, without a trailing newline.
     def disasm(**options)
       @disasm_setting.merge!(options)
       if show_code?
@@ -70,11 +77,13 @@ module SeccompTools
     end
 
     # Whether needs to dump code, jt, jf, k.
+    # @return [Boolean]
     def show_code?
       @disasm_setting[:code]
     end
 
     # Whether needs to infer the syscall argument names.
+    # @return [Boolean]
     def show_arg_infer?
       @disasm_setting[:arg_infer]
     end
@@ -88,8 +97,8 @@ module SeccompTools
     end
 
     # Command according to +code+.
-    # @return [Symbol]
-    #   See {Const::BPF::COMMAND} for list of commands.
+    # @return [Symbol?]
+    #   See {Const::BPF::COMMAND} for the list of commands, +nil+ if +code+ is invalid.
     def command
       Const::BPF::COMMAND.invert[code & 7]
     end
@@ -101,11 +110,12 @@ module SeccompTools
       inst.decompile
     end
 
-    # @param [Context] context
+    # Yields every branch that may be taken after executing this instruction.
+    # @param [SeccompTools::Disasm::Context] context
     #   Current context.
     # @yieldparam [Integer] pc
     #   Program counter after this instruction.
-    # @yieldparam [Context] ctx
+    # @yieldparam [SeccompTools::Disasm::Context] ctx
     #   Context after this instruction.
     # @return [void]
     def branch(context, &)

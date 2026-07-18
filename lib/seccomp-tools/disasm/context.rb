@@ -14,21 +14,29 @@ module SeccompTools
       #
       # Records the type and value.
       class Value
-        attr_reader :val # @return [Integer]
+        # @return [Integer?]
+        #   The value itself when +rel+ is +:imm+, otherwise the index into +data[]+ or +mem[]+.
+        #   +nil+ when nothing is known.
+        attr_reader :val
 
         # @param [:imm, :data, :mem] rel
+        #   What +val+ refers to: an immediate value, an index of +data[]+, or an index of +mem[]+.
         # @param [Integer?] val
+        #   The value or index, +nil+ when unknown.
         def initialize(rel: :imm, val: nil)
           @rel = rel
           @val = val
         end
 
+        # Is this a +data[]+ access?
         # @return [Boolean]
         def data?
           @rel == :data
         end
 
+        # Is this a known immediate value?
         # @return [Boolean]
+        #   +true+ only if this is an immediate *and* its value is known.
         def imm?
           @rel == :imm && @val.is_a?(Integer)
         end
@@ -42,7 +50,9 @@ module SeccompTools
         # Defines +eql?+.
         #
         # @param [Context::Value] other
+        #   The value to be compared with.
         # @return [Boolean]
+        #   +true+ only if both the reference kind and the value are equal.
         def eql?(other)
           @val == other.val && @rel == other.instance_variable_get(:@rel)
         end
@@ -70,8 +80,13 @@ module SeccompTools
 
       # Is used for the ld/ldx instructions.
       #
-      # @param [#downcase, :a, :x] reg
-      #   Register to be set
+      # @param [String, Symbol] reg
+      #   Register to be set, one of +'A', 'a', :a, 'X', 'x', :x+.
+      # @param [:imm, :data, :mem, nil] rel
+      #   What +val+ refers to. When +:mem+, the value stored in that memory slot is copied into
+      #   the register.
+      # @param [Integer?] val
+      #   The value or index being loaded.
       # @return [void]
       def load(reg, rel: nil, val: nil)
         reg = reg.downcase.to_sym
@@ -86,10 +101,12 @@ module SeccompTools
       #
       # @param [Integer] idx
       #   Index of +mem+ array.
-      # @param [#downcase, :a, :x] reg
-      #   Register.
+      # @param [String, Symbol] reg
+      #   Register to be stored, one of +'A', 'a', :a, 'X', 'x', :x+.
       #
       # @return [void]
+      # @raise [RangeError]
+      #   If +idx+ is outside the 16 slots of the scratch memory.
       def store(idx, reg)
         raise RangeError, "Expect 0 <= idx < 16, got #{idx}." unless idx.between?(0, 15)
 
@@ -98,10 +115,13 @@ module SeccompTools
 
       # Hints context that current value of register A equals to +val+.
       #
+      # Only has an effect when A was loaded from +data[]+, in which case the corresponding entry
+      # of {#known_data} is narrowed to +val+.
+      #
       # @param [Integer, :x] val
       #   An immediate value or the symbol x.
       # @return [self]
-      #   Returns the object itself.
+      #   The context itself, so calls can be chained.
       def eql!(val)
         tap do
           # only cares when A is fetched from data
@@ -137,6 +157,7 @@ module SeccompTools
 
       # For conveniently get instance variable.
       # @param [String, Symbol, Integer] key
+      #   A register name such as +'A'+ or +:x+, or an Integer to index the scratch memory.
       # @return [Context::Value]
       def [](key)
         return values[key] if key.is_a?(Integer) # mem
@@ -145,9 +166,9 @@ module SeccompTools
       end
 
       # For conveniently set an instance variable.
-      # @param [#downcase, :a, :x] reg
+      # @param [String, Symbol] reg
       #   Can be +'A', 'a', :a, 'X', 'x', :x+.
-      # @param [Value] val
+      # @param [Context::Value] val
       #   Value to set.
       # @return [void]
       def []=(reg, val)

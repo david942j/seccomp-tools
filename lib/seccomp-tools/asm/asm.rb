@@ -8,13 +8,18 @@ module SeccompTools
   module Asm
     module_function
 
-    # Assembler of seccomp bpf.
+    # Compiles seccomp assembly into raw BPF bytes.
     # @param [String] str
+    #   The assembly source to be compiled.
     # @param [String] filename
     #   Only used for error messages.
     # @param [Symbol?] arch
+    #   Target architecture, must be one of {SeccompTools::Util.supported_archs}.
+    #   Defaults to {SeccompTools::Util.system_arch} when +nil+.
     # @return [String]
     #   Raw BPF bytes.
+    # @raise [SeccompTools::Error]
+    #   If +str+ is not valid seccomp assembly.
     # @example
     #   SeccompTools::Asm.asm(<<-EOS)
     #     # lines start with '#' are comments

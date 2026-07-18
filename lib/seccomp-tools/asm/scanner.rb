@@ -11,8 +11,10 @@ module SeccompTools
     #
     # Maintains columns and rows to have informative error messages.
     #
-    # Internally used by {SeccompAsmParser}.
+    # Internally used by the seccomp asm parser.
     class Scanner
+      # @return [{Symbol => Integer}]
+      #   Syscall name to number, for the architecture this scanner was created with.
       attr_reader :syscalls
 
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
@@ -40,9 +42,14 @@ module SeccompTools
       # Supported architectures
       ARCHES = SeccompTools::Syscall::ABI.keys.map(&:to_s)
 
+      # Instantiates a {Scanner} object.
+      #
       # @param [String] str
+      #   The assembly source to be scanned.
       # @param [Symbol] arch
+      #   Target architecture, decides which syscall names are recognized.
       # @param [String?] filename
+      #   Only used for error messages, defaults to +<inline>+.
       # @example
       #   Scanner.new('return ALLOW', :amd64)
       def initialize(str, arch, filename: nil)
@@ -57,7 +64,9 @@ module SeccompTools
 
       # Scans the whole string and raises errors when there are unrecognized tokens.
       # @return [self]
+      #   The scanner itself, so calls can be chained.
       # @raise [UnrecognizedTokenError]
+      #   If any token could not be recognized. The message points at every such token.
       def validate!
         errors = validate
         return self if errors.empty?
@@ -68,11 +77,17 @@ module SeccompTools
       # Same as {#validate!} but returns the array of errors instead of raising an exception.
       #
       # @return [Array<Token>]
+      #   The +:unknown+ tokens, empty when the source is valid.
       def validate
         scan.select { |t| t.sym == :unknown }
       end
 
+      # Scans the whole string into tokens.
+      #
+      # The result is memoized, so repeated calls are free.
       # @return [Array<Token>]
+      #   All tokens in source order. Unrecognized text becomes +:unknown+ tokens rather than
+      #   raising, see {#validate!}.
       def scan
         return @tokens if defined?(@tokens)
 
@@ -138,9 +153,22 @@ module SeccompTools
       # Let tab on terminal be 4 spaces wide.
       TAB_WIDTH = 4
 
+      # Formats an error message that points at a token in the source.
+      #
       # @param [Token] tok
+      #   The token the message refers to.
       # @param [String] msg
+      #   The message to be shown next to the source location.
       # @return [String]
+      #   The location and message, the offending source line, and a row of carets underlining
+      #   the token.
+      # @example
+      #   scanner.format_error(tok, 'unknown token "foo"')
+      #   #=> <<-EOS
+      #   #   <inline>:1:1 unknown token "foo"
+      #   #   foo
+      #   #   ^^^
+      #   # EOS
       def format_error(tok, msg)
         @lines = @str.lines unless defined?(@lines)
         line = @lines[tok.line]

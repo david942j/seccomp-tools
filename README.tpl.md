@@ -1,3 +1,7 @@
+[![Downloads](https://img.shields.io/gem/dt/seccomp-tools)](https://rubygems.org/gems/seccomp-tools)
+
+
+[![Gem Version](https://badge.fury.io/rb/seccomp-tools.svg)](https://badge.fury.io/rb/seccomp-tools)
 [![Build Status](https://github.com/david942j/seccomp-tools/workflows/build/badge.svg)](https://github.com/david942j/seccomp-tools/actions)
 [![Maintainability](https://qlty.sh/gh/david942j/projects/seccomp-tools/maintainability.svg)](https://qlty.sh/gh/david942j/projects/seccomp-tools)
 [![Code Coverage](https://qlty.sh/gh/david942j/projects/seccomp-tools/coverage.svg)](https://qlty.sh/gh/david942j/projects/seccomp-tools)

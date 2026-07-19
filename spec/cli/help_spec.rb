@@ -97,10 +97,17 @@ EOS
     expect { described_class.work(%w[explain --help]) }.to output(<<EOS).to_stdout
 explain - Summarize a seccomp filter as a per-action policy.
 
-Usage: seccomp-tools explain [options] BPF_FILE
+Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
                                      Default: amd64
+    -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
+                                     Use this to pass arguments or pipe things to the execution file.
+    -l, --limit LIMIT                Explain only the first LIMIT installed filters.
+                                     Only meaningful when the input is an executable or --pid. Default: 1
+    -p, --pid PID                    Explain the seccomp filters installed on an existing process.
+                                     You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+    -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
 EOS
     RbConfig::CONFIG['host_cpu'] = org
   end

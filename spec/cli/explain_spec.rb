@@ -1,7 +1,11 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
+require 'tempfile'
+
+require 'seccomp-tools/cli/cli'
 require 'seccomp-tools/cli/explain'
+require 'seccomp-tools/dumper'
 require 'seccomp-tools/util'
 
 describe SeccompTools::CLI::Explain do
@@ -51,5 +55,44 @@ EOS
   it 'prints one section per architecture' do
     expect { described_class.new([data('mixed_arch.bpf'), '-a', 'amd64']).handle }
       .to output(/Architecture: amd64.*Other architectures:/m).to_stdout
+  end
+
+  context 'dumping from an executable' do
+    before { stub_const('SeccompTools::Dumper::SUPPORTED', true) }
+
+    it 'auto-detects an ELF file and explains the dumped filter' do
+      elf = Tempfile.new(['exe', ''])
+      elf.write("\x7fELF#{"\x00" * 60}")
+      elf.close
+      bpf = File.binread(data('libseccomp.bpf'))
+      expect(SeccompTools::Dumper).to receive(:dump).and_wrap_original do |_m, *_args, **_opt, &blk|
+        [blk.call(bpf, :amd64)]
+      end
+      expect { described_class.new([elf.path]).handle }.to output(/Architecture: amd64\n\n  ALLOW:/).to_stdout
+    ensure
+      elf.unlink
+    end
+
+    it 'treats -c input as a command to run' do
+      expect(SeccompTools::Dumper).to receive(:dump).with('/bin/sh', '-c', './x', anything) { [] }
+      expect { described_class.new(['-c', './x']).handle }.to output(/No seccomp filter/).to_stdout
+    end
+  end
+
+  context 'dumping from a process' do
+    before { stub_const('SeccompTools::Dumper::SUPPORTED', true) }
+
+    it 'dumps the filters of an existing pid' do
+      bpf = File.binread(data('twctf-2016-diary.bpf'))
+      expect(SeccompTools::Dumper).to receive(:dump_by_pid).with(1234, 1) do |*, &blk|
+        [blk.call(bpf, :amd64)]
+      end
+      expect { described_class.new(['-p', '1234']).handle }.to output(/Seccomp policy for pid 1234/).to_stdout
+    end
+  end
+
+  it 'reports when dumping is unsupported' do
+    stub_const('SeccompTools::Dumper::SUPPORTED', false)
+    expect { described_class.new(['-p', '1']).handle }.to output(/only available on Linux/).to_stdout
   end
 end

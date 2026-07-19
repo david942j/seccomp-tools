@@ -65,6 +65,20 @@ describe SeccompTools::Dumper do
       it { expect(described_class.dump('ls >/dev/null')).to be_empty }
     end
 
+    context 'timeout' do
+      it 'kills the process when timeout is reached' do
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        expect(described_class.dump('sleep', '1d', timeout: 1)).to be_empty
+        expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).to be < 10
+      end
+
+      it 'returns the filters dumped before the timeout' do
+        # pipe from sleep so the binary blocks on stdin until the timeout fires
+        output = described_class.dump("sleep 1d | #{bin_of('two_filters')}", limit: -1, timeout: 5)
+        expect(output.size).to be 2
+      end
+    end
+
     context 'no such binary' do
       it do
         allow(SeccompTools::Logger).to receive(:error)

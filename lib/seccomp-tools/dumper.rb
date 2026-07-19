@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'os'
+require 'timeout'
 
 require 'seccomp-tools/logger'
 require 'seccomp-tools/ptrace' if OS.linux?
@@ -26,6 +27,9 @@ module SeccompTools
     #   calling +prctl+ reaches +limit+.
     #
     #   Negative number for unlimited.
+    # @param [Float?] timeout
+    #   Number of seconds to wait for the target process. When the timeout is reached, the target
+    #   process is killed and the filters dumped so far are returned. +nil+ for no timeout.
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
     # @yieldparam [Symbol?] arch
@@ -38,13 +42,11 @@ module SeccompTools
     #   #=> []
     #   dump('spec/binary/twctf-2016-diary') { |c| c[0, 10] }
     #   #=> [" \x00\x00\x00\x00\x00\x00\x00\x15\x00"]
-    # @todo
-    #   +timeout+ option.
-    def dump(*args, limit: 1, &block)
+    def dump(*args, limit: 1, timeout: nil, &block)
       return [] unless SUPPORTED
 
       pid = fork { handle_child(*args) }
-      Handler.new(pid).handle(limit, &block)
+      Handler.new(pid).handle(limit, timeout: timeout, &block)
     end
 
     # Traces a forked child, single-stepping it through its syscalls and capturing the seccomp
@@ -54,6 +56,7 @@ module SeccompTools
       # @param [Integer] pid
       #   The process id after fork.
       def initialize(pid)
+        @pids = [pid]
         Process.waitpid(pid)
         opt = Ptrace::O_TRACESYSGOOD | Ptrace::O_TRACECLONE | Ptrace::O_TRACEFORK | Ptrace::O_TRACEVFORK
         Ptrace.setoptions(pid, 0, opt)
@@ -64,6 +67,8 @@ module SeccompTools
       #
       # @param [Integer] limit
       #   Child will be killed when number of calling +prctl(SET_SECCOMP)+ reaches +limit+.
+      # @param [Float?] timeout
+      #   Kill the child processes when +timeout+ seconds have elapsed. +nil+ for no timeout.
       # @yieldparam [String] bpf
       #   Seccomp bpf in raw bytes.
       # @yieldparam [Symbol] arch
@@ -71,25 +76,31 @@ module SeccompTools
       # @return [Array<Object>, Array<String>]
       #   One entry per dumped filter: the block's return values when a block is given, otherwise
       #   the raw bytes.
-      def handle(limit, &block)
+      def handle(limit, timeout: nil, &block)
         collect = []
         syscalls = {} # record last syscall
-        loop while wait_syscall do |child|
-          if syscalls[child].nil? # invoke syscall
-            syscalls[child] = syscall(child)
-            next true
+        begin
+          Timeout.timeout(timeout) do
+            loop while wait_syscall do |child|
+              if syscalls[child].nil? # invoke syscall
+                syscalls[child] = syscall(child)
+                next true
+              end
+              # syscall finished
+              sys = syscalls[child]
+              syscalls[child] = nil
+              if sys.set_seccomp? && syscall(child).ret.zero? # consider successful call only
+                bpf = sys.dump_bpf
+                collect << (block.nil? ? bpf : yield(bpf, sys.arch))
+                limit -= 1
+              end
+              !limit.zero?
+            end
           end
-          # syscall finished
-          sys = syscalls[child]
-          syscalls[child] = nil
-          if sys.set_seccomp? && syscall(child).ret.zero? # consider successful call only
-            bpf = sys.dump_bpf
-            collect << (block.nil? ? bpf : yield(bpf, sys.arch))
-            limit -= 1
-          end
-          !limit.zero?
+        rescue Timeout::Error
+          # keep the filters dumped so far; fall through to kill the children
         end
-        syscalls.each_key { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
+        @pids.each { |cpid| Process.kill('KILL', cpid) if alive?(cpid) }
         Process.waitall
         collect
       end
@@ -107,6 +118,7 @@ module SeccompTools
       #   +false+ for break. Also +false+ once no children are left.
       def wait_syscall
         child, status = Process.wait2
+        @pids << child unless @pids.include?(child)
         cont = true
         # TODO: Test if clone / vfork works
         if [Ptrace::EVENT_CLONE, Ptrace::EVENT_FORK, Ptrace::EVENT_VFORK].include?(status.to_i >> 16)

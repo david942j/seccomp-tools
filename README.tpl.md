@@ -126,6 +126,7 @@ SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)
 - [x] x86
 - [x] arm64 (@saagarjha)
 - [x] s390x (@iii-i)
+- [x] riscv64
 
 Pull Requests of adding more architectures support are welcome!
 

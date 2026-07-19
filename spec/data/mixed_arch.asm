@@ -18,7 +18,13 @@ if (A == 0) goto allow
 if (A == 1) goto allow
 if (A == 2) goto allow else goto dead
 
-s390x: if (A != ARCH_S390X) goto dead
+s390x: if (A != ARCH_S390X) goto riscv64
+A = sys_number
+if (A == 0) goto allow
+if (A == 1) goto allow
+if (A == 2) goto allow else goto dead
+
+riscv64: if (A != ARCH_RISCV64) goto dead
 A = sys_number
 if (A == 0) goto allow
 if (A == 1) goto allow

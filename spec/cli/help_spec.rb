@@ -58,7 +58,7 @@ disasm - Disassemble seccomp bpf.
 Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
     -a, --arch ARCH                  Specify architecture.
-                                     Supported architectures are <aarch64|amd64|i386|s390x>.
+                                     Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
                                      Default: amd64
         --[no-]bpf                   Display BPF bytes (code, jt, etc.).
                                      Default: true
@@ -81,7 +81,7 @@ emu - Emulate seccomp rules.
 
 Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
     -a, --arch ARCH                  Specify architecture.
-                                     Supported architectures are <aarch64|amd64|i386|s390x>.
+                                     Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
                                      Default: amd64
     -q, --[no-]quiet                 Run quietly, only show emulation result.
     -i, --ip=VAL                     Set instruction pointer.

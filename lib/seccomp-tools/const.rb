@@ -159,6 +159,7 @@ module SeccompTools
         amd64: 'ARCH_X86_64',
         i386: 'ARCH_I386',
         aarch64: 'ARCH_AARCH64',
+        riscv64: 'ARCH_RISCV64',
         s390x: 'ARCH_S390X'
       }.freeze
 
@@ -167,6 +168,7 @@ module SeccompTools
         'ARCH_X86_64' => 0xc000003e,
         'ARCH_I386' => 0x40000003,
         'ARCH_AARCH64' => 0xc00000b7,
+        'ARCH_RISCV64' => 0xc00000f3,
         'ARCH_S390X' => 0x80000016
       }.freeze
     end
@@ -178,6 +180,7 @@ module SeccompTools
         i386: '<',
         amd64: '<',
         aarch64: '<',
+        riscv64: '<',
         s390x: '>'
       }.freeze
     end

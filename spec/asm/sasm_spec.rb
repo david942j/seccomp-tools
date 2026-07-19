@@ -346,10 +346,12 @@ describe SeccompTools::Asm::SeccompAsmParser do
       scanner = scan.new(<<-EOS, :amd64).validate!
       A = read
       A = aarch64.read
+      A = riscv64.riscv_hwprobe
       EOS
       expect(described_class.new(scanner).parse).to eq [
         statement.new(:assign, [a, const_val.new(0)], []),
-        statement.new(:assign, [a, const_val.new(63)], [])
+        statement.new(:assign, [a, const_val.new(63)], []),
+        statement.new(:assign, [a, const_val.new(258)], [])
       ]
     end
 

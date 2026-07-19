@@ -76,13 +76,13 @@ module SeccompTools
       end
     end
 
-    # Whether needs to dump code, jt, jf, k.
+    # Whether the raw +code+, +jt+, +jf+, +k+ fields need to be dumped.
     # @return [Boolean]
     def show_code?
       @disasm_setting[:code]
     end
 
-    # Whether needs to infer the syscall argument names.
+    # Whether the syscall argument names need to be inferred.
     # @return [Boolean]
     def show_arg_infer?
       @disasm_setting[:arg_infer]

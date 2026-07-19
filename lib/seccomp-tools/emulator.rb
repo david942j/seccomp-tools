@@ -15,9 +15,9 @@ module SeccompTools
     # @param [Array<Integer>] args
     #   Syscall arguments
     # @param [Integer?] instruction_pointer
-    #   Program counter address when this syscall invoked.
+    #   Program counter address when this syscall is invoked.
     # @param [Symbol?] arch
-    #   System architecture is used when this parameter is not provided.
+    #   Defaults to the system architecture when not provided.
     #
     #   See {SeccompTools::Util.supported_archs} for list of supported architectures.
     def initialize(instructions, sys_nr: nil, args: [], instruction_pointer: nil, arch: nil)

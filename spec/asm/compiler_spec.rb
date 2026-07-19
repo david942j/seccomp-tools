@@ -139,7 +139,7 @@ loop:
 
     it 'raises on undefined label' do
       compiler = described_class.new(<<-EOS, nil, :amd64)
-# a comment for good measures
+# a comment for good measure
 A = sys_number
 
 A == open  ? alow : next # oops misspelled a label

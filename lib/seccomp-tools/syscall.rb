@@ -51,7 +51,7 @@ module SeccompTools
     # Is this a +seccomp(SECCOMP_MODE_FILTER, addr)+/+prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, addr)+ syscall?
     #
     # @return [Boolean]
-    #   +true+ for is a seccomp installation syscall.
+    #   +true+ if this is a seccomp installation syscall.
     def set_seccomp?
       # TODO: handle SECCOMP_MODE_SET_STRICT / SECCOMP_MODE_STRICT
       return true if number == abi[:SYS_seccomp] && args[0] == Const::BPF::SECCOMP_SET_MODE_FILTER

@@ -71,7 +71,7 @@ module SeccompTools
       def src_str
         return 'X' if src == :x
 
-        # if A in all contexts are same
+        # if A is the same in all contexts
         a = contexts.map(&:a).uniq
         return k.to_s if a.size != 1
 

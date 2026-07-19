@@ -155,7 +155,7 @@ module SeccompTools
         values[:x]
       end
 
-      # For conveniently get instance variable.
+      # For conveniently getting an instance variable.
       # @param [String, Symbol, Integer] key
       #   A register name such as +'A'+ or +:x+, or an Integer to index the scratch memory.
       # @return [Context::Value]
@@ -165,7 +165,7 @@ module SeccompTools
         values[key.downcase.to_sym]
       end
 
-      # For conveniently set an instance variable.
+      # For conveniently setting an instance variable.
       # @param [String, Symbol] reg
       #   Can be +'A', 'a', :a, 'X', 'x', :x+.
       # @param [Context::Value] val

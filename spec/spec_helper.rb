@@ -63,7 +63,7 @@ module Helpers
   end
 
   # Sets EUID as 'nobody' and yields the block.
-  # If the current user is not root then the block will be yield without switching users.
+  # If the current user is not root then the block will be yielded without switching users.
   #
   # @return [Object] Returns what the block returned.
   def as_nobody
@@ -84,9 +84,9 @@ module Helpers
     File.join(__dir__, 'binary', bin)
   end
 
-  # Almost same as Open3.popen2 but doesn't set a separate thread to wait the child.
+  # Almost the same as Open3.popen2 but doesn't set a separate thread to wait for the child.
   #
-  # The third yield parameter is the process ID but not a thread object.
+  # The third yield parameter is the process ID rather than a thread object.
   #
   # @yieldparam [IO] stdin
   # @yieldparam [IO] stdout

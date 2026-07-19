@@ -48,9 +48,9 @@ ptrace_peekuser(VALUE _mod, VALUE pid, VALUE off, VALUE _data, VALUE bits) {
     uint32_t val32;
     uint64_t val64;
   } val;
-  // Dynamically allocate a buffer to store registers-well, at least enough
+  // Dynamically allocate a buffer to store registers - well, at least enough
   // registers to reach the offset we want. Normally we'd want to use
-  // user_pt_regs or similar, but it's difficult to find it available in the
+  // user_pt_regs or similar, but it's difficult to find it available in
   // the same header across different versions of Linux or libcs, or even with
   // the same *name*, so this is the compromise.
   size_t size = offset + width;

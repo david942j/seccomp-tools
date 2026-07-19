@@ -11,7 +11,7 @@ module SeccompTools
   class UnrecognizedTokenError < Error
   end
 
-  # Raised when a referred label is defined no where on compiling seccomp assembly.
+  # Raised when a referenced label is defined nowhere on compiling seccomp assembly.
   class UndefinedLabelError < Error
   end
 

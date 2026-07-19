@@ -63,6 +63,12 @@ EOS
     expect(c1.size).to be 8
   end
 
+  it 'timeout' do
+    start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    expect { described_class.new(['-c', 'sleep 1d', '-t', '1']).handle }.not_to output.to_stdout
+    expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).to be < 2
+  end
+
   it 'close stdin' do
     skip_unless_amd64
     out = SeccompTools::Disasm.disasm(@bpf)

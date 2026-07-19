@@ -91,6 +91,22 @@ describe SeccompTools::Dumper do
     end
   end
 
+  describe 'timeout' do
+    it 'kills the process when timeout is reached' do
+      start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(described_class.dump('sleep', '1d', timeout: 0.1)).to be_empty
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).to be < 1
+    end
+
+    it 'returns the filters dumped before the timeout' do
+      skip_unless_amd64
+
+      # pipe from sleep so the binary blocks on stdin until the timeout fires
+      output = described_class.dump("sleep 1d | #{bin_of('two_filters')}", limit: -1, timeout: 1)
+      expect(output.size).to be 2
+    end
+  end
+
   describe 'by pid' do
     context 'two filters' do
       let(:bin) { bin_of('two_filters') }

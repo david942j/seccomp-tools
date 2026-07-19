@@ -42,6 +42,10 @@ Usage: seccomp-tools dump [exec] [options]
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
     -p, --pid PID                    Dump installed seccomp filters of the existing process.
                                      You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.
+    -t, --timeout SEC                Timeout for the execution, in seconds.
+                                     The target process will be killed when the timeout expires.
+                                     This option is ignored when --pid is given.
+                                     Default: no timeout
 EOS
   end
 

@@ -23,6 +23,7 @@ Some features might be CTF-specific, but also useful for analyzing seccomp of re
   - Colorful!
 * Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
+* Explain - Summarizes a filter as a per-action policy (which syscalls are allowed/killed, and when).
 * Supports multi-architecture.
 
 ## Installation
@@ -107,6 +108,16 @@ Emulates seccomp given `sys_nr`, `arg0`, `arg1`, etc.
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools emu --help)
 SHELL_OUTPUT_OF(seccomp-tools emu spec/data/libseccomp.bpf write 0x3)
+```
+
+### Explain
+
+Summarizes a whole filter as a per-action policy: which syscalls end in `ALLOW`, `KILL`, `ERRNO`, etc.,
+and under what argument constraints. The input can be a dumped BPF file, an executable (its seccomp is
+dumped first, like `dump`), or a running process via `--pid`.
+```bash
+SHELL_OUTPUT_OF(seccomp-tools explain --help)
+SHELL_OUTPUT_OF(seccomp-tools explain spec/data/libseccomp.bpf -a amd64)
 ```
 
 ## Screenshots

@@ -15,6 +15,8 @@ describe SeccompTools::Util do
     expect(described_class.system_arch).to be :i386
     RbConfig::CONFIG['host_cpu'] = 'aarch64'
     expect(described_class.system_arch).to be :aarch64
+    RbConfig::CONFIG['host_cpu'] = 'riscv64'
+    expect(described_class.system_arch).to be :riscv64
     RbConfig::CONFIG['host_cpu'] = 's390x'
     expect(described_class.system_arch).to be :s390x
     RbConfig::CONFIG['host_cpu'] = 'fake'

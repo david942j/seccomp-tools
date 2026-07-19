@@ -96,6 +96,7 @@ meow
         ARCH_X86_64
         ARCH_I386
         ARCH_AARCH64
+        ARCH_RISCV64
         ARCH_S390X
       EOS
       expect(s.scan.count { |t| t.sym == :ARCH_VAL }).to be SeccompTools::Const::Audit::ARCH.size

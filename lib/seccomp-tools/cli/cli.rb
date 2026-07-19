@@ -4,6 +4,7 @@ require 'seccomp-tools/cli/asm'
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/cli/emu'
+require 'seccomp-tools/cli/explain'
 require 'seccomp-tools/version'
 
 module SeccompTools
@@ -14,7 +15,8 @@ module SeccompTools
       'asm' => SeccompTools::CLI::Asm,
       'disasm' => SeccompTools::CLI::Disasm,
       'dump' => SeccompTools::CLI::Dump,
-      'emu' => SeccompTools::CLI::Emu
+      'emu' => SeccompTools::CLI::Emu,
+      'explain' => SeccompTools::CLI::Explain
     }.freeze
 
     # Main usage message.

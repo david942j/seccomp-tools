@@ -13,6 +13,7 @@ List of commands:
 	disasm	Disassemble seccomp bpf.
 	dump	Automatically dump seccomp bpf from execution file(s).
 	emu	Emulate seccomp rules.
+	explain	Summarize a seccomp filter as a per-action policy.
 
 See 'seccomp-tools <command> --help' to read about a specific subcommand.
     EOS
@@ -86,6 +87,20 @@ Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
                                      Default: amd64
     -q, --[no-]quiet                 Run quietly, only show emulation result.
     -i, --ip=VAL                     Set instruction pointer.
+EOS
+    RbConfig::CONFIG['host_cpu'] = org
+  end
+
+  it 'help explain' do
+    org = RbConfig::CONFIG['host_cpu']
+    RbConfig::CONFIG['host_cpu'] = 'x86_64'
+    expect { described_class.work(%w[explain --help]) }.to output(<<EOS).to_stdout
+explain - Summarize a seccomp filter as a per-action policy.
+
+Usage: seccomp-tools explain [options] BPF_FILE
+    -a, --arch ARCH                  Specify architecture.
+                                     Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+                                     Default: amd64
 EOS
     RbConfig::CONFIG['host_cpu'] = org
   end

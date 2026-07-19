@@ -64,7 +64,6 @@ EOS
   end
 
   it 'timeout' do
-    skip_unless_amd64
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     expect { described_class.new(['-c', 'sleep 1d', '-t', '1']).handle }.not_to output.to_stdout
     expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).to be < 2

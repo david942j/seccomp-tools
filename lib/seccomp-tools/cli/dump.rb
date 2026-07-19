@@ -25,6 +25,7 @@ module SeccompTools
         option[:format] = :disasm
         option[:limit] = 1
         option[:pid] = nil
+        option[:timeout] = nil
       end
 
       # Define option parser.
@@ -63,6 +64,13 @@ module SeccompTools
                  Integer) do |p|
             option[:pid] = p
           end
+
+          opt.on('-t', '--timeout SEC', 'Timeout for the execution, in seconds.',
+                 'The target process will be killed when the timeout expires.',
+                 'This option is ignored when --pid is given.',
+                 'Default: no timeout', Float) do |t|
+                   option[:timeout] = t
+                 end
         end
       end
 
@@ -83,7 +91,8 @@ module SeccompTools
         end
         if option[:pid].nil?
           option[:command] = argv.shift unless argv.empty?
-          SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit], &block)
+          SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit],
+                                                                       timeout: option[:timeout], &block)
         else
           begin
             SeccompTools::Dumper.dump_by_pid(option[:pid], option[:limit], &block)

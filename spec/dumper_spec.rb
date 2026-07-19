@@ -42,6 +42,25 @@ describe SeccompTools::Dumper do
       end
     end
 
+    context 'strict mode' do
+      before do
+        # equivalent filter synthesized for SECCOMP_MODE_STRICT, see Syscall.strict_bpf
+        @strict_bpf = " \x00\x00\x00\x00\x00\x00\x00\x15\x00\x04\x00\x00\x00\x00\x00\x15\x00\x03\x00\x01\x00\x00\x00\x15\x00\x02\x00<\x00\x00\x00\x15\x00\x01\x00\x0F\x00\x00\x00\x06\x00\x00\x00\x00\x00\x00\x00\x06\x00\x00\x00\x00\x00\xFF\x7F" # rubocop:disable Layout/LineLength
+      end
+
+      it 'prctl' do
+        output = described_class.dump(bin_of('strict_prctl'))
+        expect(output.size).to be 1
+        expect(output.first).to eq @strict_bpf
+      end
+
+      it 'seccomp' do
+        output = described_class.dump(bin_of('strict_seccomp'))
+        expect(output.size).to be 1
+        expect(output.first).to eq @strict_bpf
+      end
+    end
+
     context 'no seccomp' do
       it { expect(described_class.dump('ls >/dev/null')).to be_empty }
     end

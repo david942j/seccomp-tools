@@ -187,6 +187,29 @@ describe SeccompTools::Disasm do
     EOS
   end
 
+  it 'riscv64' do
+    bpf = "\x20\x00\x00\x00\x04\x00\x00\x00" \
+          "\x15\x00\x00\x05\xf3\x00\x00\xc0" \
+          "\x20\x00\x00\x00\x00\x00\x00\x00" \
+          "\x15\x00\x02\x00\x02\x01\x00\x00" \
+          "\x15\x00\x01\x00\x03\x01\x00\x00" \
+          "\x06\x00\x00\x00\x00\x00\x00\x80" \
+          "\x06\x00\x00\x00\x00\x00\xff\x7f" \
+          "\x06\x00\x00\x00\x00\x00\x00\x00"
+    expect(described_class.disasm(bpf, arch: :riscv64)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000004  A = arch
+ 0001: 0x15 0x00 0x05 0xc00000f3  if (A != ARCH_RISCV64) goto 0007
+ 0002: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0003: 0x15 0x02 0x00 0x00000102  if (A == riscv_hwprobe) goto 0006
+ 0004: 0x15 0x01 0x00 0x00000103  if (A == riscv_flush_icache) goto 0006
+ 0005: 0x06 0x00 0x00 0x80000000  return KILL_PROCESS
+ 0006: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+ 0007: 0x06 0x00 0x00 0x00000000  return KILL
+    EOS
+  end
+
   it 'x32 syscall and args' do
     bpf = File.binread(File.join(__dir__, '..', 'data', 'x32.bpf'))
     expect(described_class.disasm(bpf, arch: :amd64)).to eq <<-EOS

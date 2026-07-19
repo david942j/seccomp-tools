@@ -1,3 +1,4 @@
+# encoding: ascii-8bit
 # frozen_string_literal: true
 
 require 'ostruct'
@@ -99,6 +100,29 @@ describe SeccompTools::Emulator do
 
     it 'kill' do
       expect(described_class.new(@insts, sys_nr: 221, arch: :aarch64).run[:ret]).to be 0x80000000
+    end
+  end
+
+  context 'riscv64' do
+    before do
+      raw = "\x20\x00\x00\x00\x04\x00\x00\x00" \
+            "\x15\x00\x00\x05\xf3\x00\x00\xc0" \
+            "\x20\x00\x00\x00\x00\x00\x00\x00" \
+            "\x15\x00\x02\x00\x02\x01\x00\x00" \
+            "\x15\x00\x01\x00\x03\x01\x00\x00" \
+            "\x06\x00\x00\x00\x00\x00\x00\x80" \
+            "\x06\x00\x00\x00\x00\x00\xff\x7f" \
+            "\x06\x00\x00\x00\x00\x00\x00\x00"
+      @insts = SeccompTools::Disasm.to_bpf(raw, :riscv64).map(&:inst)
+    end
+
+    it 'allow' do
+      expect(described_class.new(@insts, sys_nr: 258, arch: :riscv64).run[:ret]).to be 0x7fff0000
+    end
+
+    it 'kill' do
+      expect(described_class.new(@insts, sys_nr: 63, arch: :riscv64).run[:ret]).to be 0x80000000
+      expect(described_class.new(@insts, sys_nr: 258, arch: :amd64).run[:ret]).to be 0
     end
   end
 end

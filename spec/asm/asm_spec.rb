@@ -83,6 +83,13 @@ describe SeccompTools::Asm do
  0001: 0x20 0x00 0x00 0x00000000  A = sys_number
  0002: 0x15 0x01 0x00 0x00000003  if (A == read) goto 0004
     EOS
+
+    raw = described_class.asm(rule, arch: :riscv64)
+    expect(SeccompTools::Disasm.disasm(raw, arch: :riscv64)).to include <<-EOS
+ 0000: 0x00 0x00 0x00 0x000000dd  A = 221
+ 0001: 0x20 0x00 0x00 0x00000000  A = sys_number
+ 0002: 0x15 0x01 0x00 0x0000003f  if (A == read) goto 0004
+    EOS
   end
 
   it 'returns' do

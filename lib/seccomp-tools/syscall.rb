@@ -48,24 +48,69 @@ module SeccompTools
       @ret = peek(abi[:ret])
     end
 
-    # Is this a +seccomp(SECCOMP_MODE_FILTER, addr)+/+prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, addr)+ syscall?
+    # Is this a seccomp installation syscall?
     #
+    # Both +SECCOMP_MODE_FILTER+ and +SECCOMP_MODE_STRICT+ installations are recognized, invoked
+    # through either +seccomp+ or +prctl(PR_SET_SECCOMP, ...)+.
     # @return [Boolean]
     #   +true+ if this is a seccomp installation syscall.
     def set_seccomp?
-      # TODO: handle SECCOMP_MODE_SET_STRICT / SECCOMP_MODE_STRICT
+      filter_mode? || strict_mode?
+    end
+
+    # Is this a +seccomp(SECCOMP_SET_MODE_FILTER, ..)+/+prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, ..)+ syscall?
+    #
+    # @return [Boolean]
+    def filter_mode?
       return true if number == abi[:SYS_seccomp] && args[0] == Const::BPF::SECCOMP_SET_MODE_FILTER
 
       number == abi[:SYS_prctl] && args[0] == Const::BPF::PR_SET_SECCOMP && args[1] == Const::BPF::SECCOMP_MODE_FILTER
     end
 
-    # Dump bpf byte from +args[2]+.
+    # Is this a +seccomp(SECCOMP_SET_MODE_STRICT, ..)+/+prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT)+ syscall?
     #
-    # Only meaningful when {#set_seccomp?} is +true+, i.e. +args[2]+ points to a
-    # +struct sock_fprog+ in the traced process.
+    # @return [Boolean]
+    def strict_mode?
+      return true if number == abi[:SYS_seccomp] && args[0] == Const::BPF::SECCOMP_SET_MODE_STRICT
+
+      number == abi[:SYS_prctl] && args[0] == Const::BPF::PR_SET_SECCOMP && args[1] == Const::BPF::SECCOMP_MODE_STRICT
+    end
+
+    # Constructs a BPF program equivalent to what +SECCOMP_MODE_STRICT+ enforces: only read, write,
+    # exit, and sigreturn are allowed, while any other syscall kills the thread.
+    #
+    # @param [Symbol] arch
+    #   Target architecture, one of {ABI}'s keys.
+    # @return [String]
+    #   Raw BPF bytes.
+    def self.strict_bpf(arch)
+      # Required lazily because the assembler's scanner refers to {ABI} at load time.
+      require 'seccomp-tools/asm/asm'
+
+      # The kernel checks sigreturn on architectures that have it and rt_sigreturn on the others.
+      sigreturn = Const::Syscall.const_get(arch.to_s.upcase)[:sigreturn] ? :sigreturn : :rt_sigreturn
+      Asm.asm(<<-EOS, arch: arch)
+        A = sys_number
+        A == read ? ok : next
+        A == write ? ok : next
+        A == exit ? ok : next
+        A == #{sigreturn} ? ok : next
+        return KILL
+        ok:
+        return ALLOW
+      EOS
+    end
+
+    # Dumps the BPF of the filter being installed.
+    #
+    # Only meaningful when {#set_seccomp?} is +true+. In filter mode +args[2]+ points to a
+    # +struct sock_fprog+ in the traced process, whose BPF bytes are read out. Strict mode installs
+    # no BPF, so an equivalent filter built by {.strict_bpf} is returned instead.
     # @return [String]
     #   The raw BPF bytes of the filter being installed.
     def dump_bpf
+      return self.class.strict_bpf(arch) if strict_mode?
+
       addr = args[2]
       len = Ptrace.peekdata(pid, addr, 0) & 0xffff # len is unsigned short
       filter = Ptrace.peekdata(pid, addr + (bits / 8), 0) & ((1 << bits) - 1)

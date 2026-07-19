@@ -11,8 +11,14 @@ module SeccompTools
       # option set seccomp
       PR_SET_SECCOMP = 22
 
+      # strict mode
+      SECCOMP_MODE_STRICT = 1
+
       # filter mode
       SECCOMP_MODE_FILTER = 2
+
+      # For syscall +seccomp+
+      SECCOMP_SET_MODE_STRICT = 0
 
       # For syscall +seccomp+
       SECCOMP_SET_MODE_FILTER = 1

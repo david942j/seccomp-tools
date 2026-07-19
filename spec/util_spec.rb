@@ -4,7 +4,7 @@ require 'seccomp-tools/util'
 
 describe SeccompTools::Util do
   it 'supported_archs' do
-    expect(described_class.supported_archs).to eq %i(aarch64 amd64 i386 s390x)
+    expect(described_class.supported_archs).to eq %i(aarch64 amd64 i386 riscv64 s390x)
   end
 
   it 'system arch' do

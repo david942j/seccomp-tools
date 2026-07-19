@@ -86,7 +86,7 @@ module SeccompTools
         lsh: 0x60,
         rsh: 0x70,
         neg: 0x80,
-        # mod: 0x90, # not support
+        # mod: 0x90, # not supported
         xor: 0xa0
       }.freeze
 
@@ -165,9 +165,9 @@ module SeccompTools
       }.freeze
     end
 
-    # Endianess constants.
+    # Endianness constants.
     module Endian
-      # Defining default endianess of architectures.
+      # Defining default endianness of architectures.
       ENDIAN = {
         i386: '<',
         amd64: '<',

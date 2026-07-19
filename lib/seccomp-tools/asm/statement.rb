@@ -20,7 +20,7 @@ module SeccompTools
       # @param [:alu, :assign, :if, :ret] type
       #   Kind of this statement.
       # @param [Object] data
-      #   The data for describing this statement. Type of +data+ is variant according to the value of +type+.
+      #   The data for describing this statement. Type of +data+ varies according to the value of +type+.
       # @param [Array<Token>] symbols
       #   Label tokens that refer to this statement.
       def initialize(type, data, symbols)

@@ -110,7 +110,7 @@ module SeccompTools
 
             Util.colorize(line, t: :gray)
           end
-          # Too much remain, omit them.
+          # Too many lines remain; omit them.
           rem = disasm.size - idx - 1
           break output { Util.colorize("... (omitting #{rem} lines)\n", t: :gray) } if rem > 3 && idx > result[:pc] + 4
         end

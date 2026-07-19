@@ -22,10 +22,10 @@ module SeccompTools
     #   If +str+ is not valid seccomp assembly.
     # @example
     #   SeccompTools::Asm.asm(<<-EOS)
-    #     # lines start with '#' are comments
+    #     # lines starting with '#' are comments
     #     A = sys_number                # here's a comment, too
-    #     A >= 0x40000000 ? dead : next # 'next' is a keyword, denote the next instruction
-    #     A == read ? ok : next         # custom defined label 'dead' and 'ok'
+    #     A >= 0x40000000 ? dead : next # 'next' is a keyword, denoting the next instruction
+    #     A == read ? ok : next         # custom-defined labels 'dead' and 'ok'
     #     A == 1 ? ok : next            # SYS_write = 1 on amd64
     #     return ERRNO(1)
     #     dead:

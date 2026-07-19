@@ -10,13 +10,13 @@ module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
   module Dumper
     # Whether the dumper is supported.
-    # Dumper works based on ptrace, so we need the platform be Linux.
+    # Dumper works based on ptrace, so we need the platform to be Linux.
     SUPPORTED = OS.linux?
 
     module_function
 
     # Main bpf dump function.
-    # Yield seccomp bpf whenever find a +prctl(SET_SECCOMP)+ call.
+    # Yields seccomp bpf whenever a +prctl(SET_SECCOMP)+ call is found.
     #
     # @param [Array<String>] args
     #   The command to be executed, i.e. the target execution file followed by its arguments.
@@ -169,7 +169,7 @@ module SeccompTools
     # @yieldparam [Symbol] arch
     #   Architecture of the target process (always nil right now).
     # @return [Array<Object>, Array<String>]
-    #   Return the block returned. If block is not given, array of raw bytes will be returned.
+    #   Returns what the block returned. If a block is not given, an array of raw bytes will be returned.
     # @raise [Errno::ESRCH]
     #   Raises when the target process does not exist.
     # @raise [Errno::EPERM]

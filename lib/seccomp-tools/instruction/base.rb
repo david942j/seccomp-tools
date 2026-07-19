@@ -48,7 +48,7 @@ module SeccompTools
       def branch(_context); raise NotImplementedError
       end
 
-      # Return tokens stand for this instruction.
+      # Returns tokens that represent this instruction.
       # @return [Array<Symbol, Integer>]
       #   The instruction as a tuple, the exact shape depends on the instruction class.
       # @raise [NotImplementedError]

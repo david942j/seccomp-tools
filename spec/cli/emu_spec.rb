@@ -56,4 +56,21 @@ return KILL_PROCESS at line 0000
       EOS
     end
   end
+
+  it 'instruction pointer' do
+    Tempfile.create(['seccomp-tools-', '.bpf']) do |f|
+      # A = instruction_pointer; return ALLOW if A == 0x1337, KILL otherwise
+      f.write("\x20\x00\x00\x00\x08\x00\x00\x00" \
+              "\x15\x00\x00\x01\x37\x13\x00\x00" \
+              "\x06\x00\x00\x00\x00\x00\xff\x7f" \
+              "\x06\x00\x00\x00\x00\x00\x00\x00")
+      f.close
+      expect { described_class.new([f, '-a', 'amd64', '-q', '--ip', '0x1337']).handle }.to output(<<-EOS).to_stdout
+return ALLOW at line 0002
+      EOS
+      expect { described_class.new([f, '-a', 'amd64', '-q', '-i', '48879']).handle }.to output(<<-EOS).to_stdout
+return KILL at line 0003
+      EOS
+    end
+  end
 end

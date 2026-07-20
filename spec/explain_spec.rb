@@ -14,6 +14,10 @@ describe SeccompTools::Explain do
     described_class.new(insts, arch:, **opt).summarize.to_s
   end
 
+  def explain_asm(src, **opt)
+    explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64, **opt)
+  end
+
   def fixture(name)
     File.binread(File.join(__dir__, 'data', name))
   end
@@ -67,8 +71,7 @@ EOS
     end
 
     it 'renders data-to-data and immediate-rooted arithmetic (see spec/data/complex.asm)' do
-      raw = SeccompTools::Asm.asm(File.read(File.join(__dir__, 'data', 'complex.asm')), arch: :amd64)
-      expect(explain(raw, :amd64)).to eq(<<EOS)
+      expect(explain_asm(File.read(File.join(__dir__, 'data', 'complex.asm')))).to eq(<<EOS)
 
 Architecture: amd64
 
@@ -92,8 +95,7 @@ EOS
     end
 
     it 'parenthesizes conditions by operator precedence (see spec/data/operator_precedence.asm)' do
-      raw = SeccompTools::Asm.asm(File.read(File.join(__dir__, 'data', 'operator_precedence.asm')), arch: :amd64)
-      out = explain(raw, :amd64)
+      out = explain_asm(File.read(File.join(__dir__, 'data', 'operator_precedence.asm')))
       # == binds tighter than the bitwise ops, and << looser than +, so:
       expect(out).to include('read when count == ((fd | 0x1) & 0xff)') # nested bitwise, both wrapped
       expect(out).to include('write when count >> 4 == (buf << 2) + 0x8') # only << wrapped
@@ -133,7 +135,7 @@ EOS
         deny:
         return KILL
       ASM
-      out = explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)
+      out = explain_asm(src)
       expect(out).to include('write when buf == -fd')       # unary negation
       expect(out).to include('read when buf == fd / 0x2')   # division (/ binds tighter than ==)
     end
@@ -153,7 +155,7 @@ EOS
         allow:
         return ALLOW
       ASM
-      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+      expect(explain_asm(src)).to eq(<<EOS)
 
 Architecture: amd64
 
@@ -167,19 +169,22 @@ EOS
     end
 
     it 'never silently drops an argument check that does not pin a syscall' do
-      # A = args[0]; A &= 0xffff; if (A == 5) return ALLOW else return KILL
-      raw = "\x20\x00\x00\x00\x10\x00\x00\x00" \
-            "\x54\x00\x00\x00\xff\xff\x00\x00" \
-            "\x15\x00\x00\x01\x05\x00\x00\x00" \
-            "\x06\x00\x00\x00\x00\x00\xff\x7f" \
-            "\x06\x00\x00\x00\x00\x00\x00\x00"
-      expect(explain(raw, :amd64)).to include('any syscall when (args[0] & 0xffff) == 0x5')
+      src = <<~ASM
+        A = args[0]
+        A &= 0xffff
+        A == 0x5 ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('any syscall when (args[0] & 0xffff) == 0x5')
     end
   end
 
   context 'degenerate filters' do
     it 'reports a single unconditional return as the default action' do
-      expect(explain("\x06\x00\x00\x00\x00\x00\xff\x7f", :amd64)).to eq(<<EOS)
+      expect(explain_asm('return ALLOW')).to eq(<<EOS)
 
 Architecture: amd64
 
@@ -191,19 +196,22 @@ EOS
     it 'drops unreachable paths whose constraints contradict each other' do
       # A jump forks both ways, so the walk can reach ALLOW through `sys == 1 && sys == 2`, which
       # never happens at runtime and must not be reported.
-      raw = "\x20\x00\x00\x00\x00\x00\x00\x00" \
-            "\x15\x00\x01\x00\x01\x00\x00\x00" \
-            "\x15\x01\x00\x00\x02\x00\x00\x00" \
-            "\x06\x00\x00\x00\x00\x00\x00\x00" \
-            "\x06\x00\x00\x00\x00\x00\xff\x7f"
-      out = explain(raw, :amd64)
+      src = <<~ASM
+        A = sys_number
+        A == 0x1 ? next : kill_it
+        A == 0x2 ? allow : kill_it
+        kill_it:
+        return KILL
+        allow:
+        return ALLOW
+      ASM
+      out = explain_asm(src)
       expect(out).not_to include('ALLOW')
       expect(out).not_to include('write') # syscall 1, from the impossible path
     end
 
     it 'surfaces a data-dependent return value as UNKNOWN' do
-      # return A
-      expect(explain("\x16\x00\x00\x00\x00\x00\x00\x00", :amd64)).to include('UNKNOWN:')
+      expect(explain_asm('return A')).to include('UNKNOWN:')
     end
   end
 
@@ -223,7 +231,7 @@ EOS
         kill_it:
         return KILL
       ASM
-      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+      expect(explain_asm(src)).to eq(<<EOS)
 
 Architecture: 0x14 (unknown)
 
@@ -263,7 +271,7 @@ EOS
         kill_it:
         return KILL
       ASM
-      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+      expect(explain_asm(src)).to eq(<<EOS)
 
 Architecture: amd64
 

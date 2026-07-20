@@ -99,6 +99,10 @@ EOS
       expect(out).to include('write when count >> 4 == (buf << 2) + 0x8') # only << wrapped
       expect(out).to include('openat when (flags & 0xf) < 0x5')          # < binds tighter than &
       expect(out).to include('close when (fd & 0x101) != 0')             # jset bit test
+      # different bitwise operators are parenthesized (^ binds tighter than |, easy to misread)...
+      expect(out).to include('lseek when whence == ((fd ^ 0xff) | 0x1)')
+      # ...but a same-operator chain is left flat
+      expect(out).to include('poll when timeout == (ufds ^ 0xff ^ 0x1)')
     end
 
     it 'renders negation and division' do

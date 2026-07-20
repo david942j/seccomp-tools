@@ -25,6 +25,10 @@ module SeccompTools
       }.freeze
       # Unary negation binds tighter than any binary operator.
       UNARY_PREC = 13
+      # The bitwise operators, whose relative precedence is famously easy to misread. When two
+      # *different* ones are nested (e.g. +a ^ b | c+) the inner one is parenthesized even though C
+      # precedence would not require it; a same-operator chain (+a ^ b ^ c+) is left alone.
+      BITWISE = %i[& ^ |].freeze
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -275,31 +279,46 @@ module SeccompTools
       end
 
       def render_constraint(constraint, sys)
-        return "#{render_binop(:&, constraint.expr, constraint.rhs, sys, PREC[:!=])} != 0" if constraint.op == :set
-        return "#{render_binop(:&, constraint.expr, constraint.rhs, sys, PREC[:==])} == 0" if constraint.op == :unset
+        return "(#{render_binop(:&, constraint.expr, constraint.rhs, sys)}) != 0" if constraint.op == :set
+        return "(#{render_binop(:&, constraint.expr, constraint.rhs, sys)}) == 0" if constraint.op == :unset
 
         prec = PREC[constraint.op]
-        "#{render_expr(constraint.expr, sys, prec)} #{op_str(constraint.op)} #{render_expr(constraint.rhs, sys, prec)}"
+        "#{operand(constraint.expr, constraint.op, prec, sys)} " \
+          "#{op_str(constraint.op)} #{operand(constraint.rhs, constraint.op, prec, sys)}"
       end
 
-      def render_expr(expr, sys, min_prec = 0)
+      # Renders an expression without any outer parentheses; each caller wraps it via {#operand}.
+      def render_expr(expr, sys)
         return '<opaque>' if expr.opaque?
         return "0x#{expr.val.to_s(16)}" if expr.imm?
         return data_name(expr.offset, sys) if expr.plain_data?
-        return "-#{render_expr(expr.lhs, sys, UNARY_PREC)}" if expr.kind == :unop
+        return "-#{operand(expr.lhs, :neg, UNARY_PREC, sys)}" if expr.kind == :unop
 
-        render_binop(expr.op, expr.lhs, expr.rhs, sys, min_prec)
+        render_binop(expr.op, expr.lhs, expr.rhs, sys)
       end
 
-      # Renders +lhs op rhs+, wrapping in parentheses when +op+ binds looser than the surrounding
-      # context (+min_prec+). The left operand keeps the same precedence (operators are
-      # left-associative); the right operand needs one higher, so an equal-precedence right subtree is
-      # still parenthesized.
-      def render_binop(op, lhs, rhs, sys, min_prec)
+      # Renders +lhs op rhs+. Operators are left-associative, so the left operand shares +op+'s
+      # precedence while the right needs one higher (an equal-precedence right subtree is wrapped).
+      def render_binop(op, lhs, rhs, sys)
         prec = PREC[op]
-        right = rhs.imm? && %i[<< >>].include?(op) ? rhs.val.to_s : render_expr(rhs, sys, prec + 1)
-        inner = "#{render_expr(lhs, sys, prec)} #{op} #{right}"
-        prec < min_prec ? "(#{inner})" : inner
+        left = operand(lhs, op, prec, sys)
+        right = rhs.imm? && %i[<< >>].include?(op) ? rhs.val.to_s : operand(rhs, op, prec + 1, sys)
+        "#{left} #{op} #{right}"
+      end
+
+      # Renders +child+ as an operand of +parent_op+, parenthesizing it when precedence requires it
+      # (+child+ binds looser than +min_prec+) or when it nests a different bitwise operator (see
+      # {BITWISE}). Same-operator chains and non-bitwise mixes are left to precedence alone.
+      def operand(child, parent_op, min_prec, sys)
+        s = render_expr(child, sys)
+        return s unless child.kind == :binop
+
+        PREC[child.op] < min_prec || mixed_bitwise?(parent_op, child.op) ? "(#{s})" : s
+      end
+
+      # Are +parent_op+ and +child_op+ two *different* bitwise operators?
+      def mixed_bitwise?(parent_op, child_op)
+        parent_op != child_op && BITWISE.include?(parent_op) && BITWISE.include?(child_op)
       end
 
       def op_str(op)

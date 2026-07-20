@@ -1,7 +1,8 @@
 # Exercises operator-precedence rendering in `explain`. Each branch combines
 # bitwise, shift and arithmetic operations so the summarized condition must be
 # parenthesized exactly where C precedence would otherwise change its meaning
-# (e.g. `==` binds tighter than `&`, and `<<` looser than `+`).
+# (e.g. `==` binds tighter than `&`, and `<<` looser than `+`), and where two
+# different bitwise operators mix (`a ^ b | c`) even though C would not require it.
 # Assemble with: seccomp-tools asm spec/data/operator_precedence.asm -a amd64
 
 A = arch
@@ -12,6 +13,8 @@ A == read   ? nested_bitwise : next
 A == write  ? shift_vs_add   : next
 A == openat ? relational     : next
 A == close  ? bit_test       : next
+A == lseek  ? mixed_bitwise  : next
+A == poll   ? bitwise_chain  : next
 return KILL
 
 nested_bitwise:
@@ -43,6 +46,25 @@ bit_test:
   # (fd & 0x101) != 0                -- a jset bit test
   A = args[0]        # fd
   if (A & 0x101) goto allow else goto errno_it
+
+mixed_bitwise:
+  # ((fd ^ 0xff) | 0x1) == count     -- ^ binds tighter than |, but that is easy to
+  #                                     misread, so the inner ^ is parenthesized
+  A = args[0]        # fd
+  A ^= 0xff
+  A |= 0x1
+  X = A
+  A = args[2]        # count
+  A == X ? allow : errno_it
+
+bitwise_chain:
+  # (fd ^ 0xff ^ 0x1) == count       -- a same-operator chain needs no inner parens
+  A = args[0]        # fd
+  A ^= 0xff
+  A ^= 0x1
+  X = A
+  A = args[2]        # count
+  A == X ? allow : errno_it
 
 allow:
   return ALLOW

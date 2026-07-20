@@ -97,17 +97,6 @@ module SeccompTools
         dump_seccomp(command: option[:command], pid: option[:pid], limit: option[:limit], timeout: option[:timeout],
                      &block)
       end
-
-      private
-
-      # Warns about positional arguments that are left unused, e.g. an [EXEC] given together with
-      # +-c+, or anything after +--pid+. Dumping still proceeds.
-      # @return [void]
-      def warn_ignored_arguments
-        return if argv.empty?
-
-        Logger.warn("ignoring unused argument#{'s' if argv.size > 1}: #{argv.join(' ')}")
-      end
     end
   end
 end

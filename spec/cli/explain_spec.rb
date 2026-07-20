@@ -57,6 +57,23 @@ EOS
       .to output(/Architecture: amd64.*Other architectures:/m).to_stdout
   end
 
+  it 'warns about extra positional arguments but still explains the file' do
+    expect { described_class.new([data('libseccomp.bpf'), '-a', 'amd64', 'junk']).handle }
+      .to output(/\A\[WARN\] ignoring unused argument: junk\nSeccomp policy for/).to_stdout
+  end
+
+  it 'prefers -c over a positional argument and warns about the unused one' do
+    stub_const('SeccompTools::Dumper::SUPPORTED', true)
+    command = nil
+    allow(SeccompTools::Dumper).to receive(:dump) do |*args, **|
+      command = args[2]
+      []
+    end
+    expect { described_class.new(['-c', './run', 'file.bpf']).handle }
+      .to output(/\[WARN\] ignoring unused argument: file\.bpf/).to_stdout
+    expect(command).to eq './run'
+  end
+
   context 'dumping from an executable' do
     before { stub_const('SeccompTools::Dumper::SUPPORTED', true) }
 

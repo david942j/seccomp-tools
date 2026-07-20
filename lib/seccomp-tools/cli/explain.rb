@@ -85,11 +85,11 @@ module SeccompTools
       # nothing to do (help shown, or an error was logged).
       # @return [Array<Array(String, Symbol, String?)>, nil]
       def collect_filters
+        # -c/--sh-exec and --pid take precedence over a positional BPF file or executable.
+        option[:ifile] = argv.shift if option[:command].nil? && option[:pid].nil?
+        warn_ignored_arguments
         return dump_filters(command: nil, pid: option[:pid], source: "pid #{option[:pid]}") if option[:pid]
-
-        option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:command].nil? && option[:ifile].nil?
-
         return [[input, option[:arch], source_name]] unless option[:command] || executable?
 
         command = option[:command] || option[:ifile]

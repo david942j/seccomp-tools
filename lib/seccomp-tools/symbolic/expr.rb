@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 module SeccompTools
+  # Generic symbolic execution of classic BPF, with no seccomp knowledge. Where +SeccompTools::Emulator+
+  # runs a program once with concrete inputs, the {Executor} here keeps the inputs unknown and walks
+  # *every* path, reporting each reachable +return+ together with the conditions that lead to it. The
+  # values it manipulates are the {Expr}, {Constraint}, and {State} types; see {Executor} for the
+  # full picture.
   module Symbolic
     # A value the executor only knows *symbolically* — that is, without picking concrete inputs.
     #

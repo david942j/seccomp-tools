@@ -240,7 +240,38 @@ module SeccompTools
       # --- constraint rendering ---------------------------------------------------------------
 
       def render_and(constraints, sys)
-        constraints.map { |c| render_constraint(c, sys) }.join(' && ')
+        eqs = constraints.each_with_object({}) do |c, h|
+          h[c.expr.offset] = c.rhs.val if c.expr.plain_data? && c.op == :== && c.rhs.imm?
+        end
+        merged = {}
+        constraints.filter_map do |c|
+          pair = full_arg_equality(c, eqs)
+          if pair
+            lo, value = pair
+            next if merged[lo]
+
+            merged[lo] = true
+            "#{data_name(lo, sys)} == 0x#{value.to_s(16)}"
+          else
+            render_constraint(c, sys)
+          end
+        end.join(' && ')
+      end
+
+      # A 64-bit argument is two 32-bit words in +seccomp_data+, and filters check them separately.
+      # When +c+ pins one half by +==+ and the other half is also pinned, returns
+      # +[low_word_offset, combined_64bit_value]+ so the pair can be shown as one +arg == value+;
+      # otherwise +nil+.
+      def full_arg_equality(c, eqs)
+        return unless c.expr.plain_data? && c.op == :== && c.rhs.imm?
+
+        offset = c.expr.offset
+        return unless offset.between?(16, 16 + (8 * 6) - 1)
+
+        lo = offset - ((offset - 16) % 8) # the low word of this argument
+        return unless eqs.key?(lo) && eqs.key?(lo + 4)
+
+        [lo, (eqs[lo + 4] << 32) | eqs[lo]]
       end
 
       def render_constraint(constraint, sys)

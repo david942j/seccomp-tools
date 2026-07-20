@@ -61,8 +61,9 @@ EOS
   context 'argument constraints' do
     it 'renders the checked arguments as conditions' do
       out = explain(fixture('gctf-2019-quals-caas.bpf'), :amd64)
-      expect(out).to include('clone when clone_flags >> 32 == 0x0 && clone_flags == 0x10900')
-      expect(out).to include('socket when family >> 32 == 0x0 && family == 0x2 && type >> 32 == 0x0 && type == 0x1')
+      # the 64-bit arg words are reassembled: `clone_flags >> 32 == 0 && clone_flags == K` -> one line
+      expect(out).to include('clone when clone_flags == 0x10900')
+      expect(out).to include('socket when family == 0x2 && type == 0x1 && protocol == 0x0')
     end
 
     it 'renders data-to-data and immediate-rooted arithmetic (see spec/data/complex.asm)' do
@@ -194,9 +195,9 @@ Architecture: amd64
 
   ALLOW:
     close, munmap, brk, exit, exit_group
-    open when filename >> 32 == 0x0 && filename == 0x31337 && flags >> 32 == 0x0 && flags == 0x0
-    mmap when prot >> 32 == 0x0 && prot == 0x2
-    execve when filename >> 32 == 0x7ffe && filename == 0xa12f7d0e
+    open when filename == 0x31337 && flags == 0x0
+    mmap when prot == 0x2
+    execve when filename == 0x7ffea12f7d0e
 
   KILL:
     sys_number >= 0x40000000  (x32 ABI)

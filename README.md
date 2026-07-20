@@ -439,9 +439,9 @@ $ seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64
 #
 #   ALLOW:
 #     close, munmap, brk, exit, exit_group
-#     open when filename >> 32 == 0x0 && filename == 0x31337 && flags >> 32 == 0x0 && flags == 0x0
-#     mmap when prot >> 32 == 0x0 && prot == 0x2
-#     execve when filename >> 32 == 0x7ffe && filename == 0xa12f7d0e
+#     open when filename == 0x31337 && flags == 0x0
+#     mmap when prot == 0x2
+#     execve when filename == 0x7ffea12f7d0e
 #
 #   KILL:
 #     sys_number >= 0x40000000  (x32 ABI)

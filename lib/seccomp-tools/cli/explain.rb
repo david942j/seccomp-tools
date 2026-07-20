@@ -83,17 +83,36 @@ module SeccompTools
 
       # Resolves the input into an array of +[raw_bpf, arch, source]+ tuples, or +nil+ when there is
       # nothing to do (help shown, or an error was logged).
+      #
+      # The input is one of three kinds:
+      # * a running process, when +--pid+ is given;
+      # * a raw BPF file (or stdin), when the positional argument is not an executable;
+      # * a command to run and trace - either +-c+, or a positional executable.
       # @return [Array<Array(String, Symbol, String?)>, nil]
       def collect_filters
         # -c/--sh-exec and --pid take precedence over a positional BPF file or executable.
         option[:ifile] = argv.shift if option[:command].nil? && option[:pid].nil?
         warn_ignored_arguments
+
         return dump_filters(command: nil, pid: option[:pid], source: "pid #{option[:pid]}") if option[:pid]
-        return CLI.show(parser.help) if option[:command].nil? && option[:ifile].nil?
-        return [[input, option[:arch], source_name]] unless option[:command] || executable?
+        return CLI.show(parser.help) if no_input?
+        return [[input, option[:arch], source_name]] if raw_bpf_file?
 
         command = option[:command] || option[:ifile]
         dump_filters(command:, pid: nil, source: command)
+      end
+
+      # Was no filter source given on the command line?
+      # @return [Boolean]
+      def no_input?
+        option[:command].nil? && option[:ifile].nil?
+      end
+
+      # Should the input be read directly as a raw BPF blob, rather than run as a command? True when
+      # no +-c+ was given and the positional argument is not an executable (a plain file or stdin).
+      # @return [Boolean]
+      def raw_bpf_file?
+        option[:command].nil? && !executable?
       end
 
       # Dumps filters from a command or pid and labels each with +source+.

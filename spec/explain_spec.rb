@@ -313,6 +313,13 @@ EOS
     end
   end
 
+  context 'color' do
+    it 'colorizes syscall names like the other commands do' do
+      allow(SeccompTools::Util).to receive(:colorize_enabled?).and_return(true)
+      expect(explain(fixture('twctf-2016-diary.bpf'), :amd64)).to include("\e[38;5;120mopen\e[0m")
+    end
+  end
+
   context 'truncation' do
     it 'warns when the walk was cut short' do
       summary = described_class::Summary.new([], arch: :amd64, truncated: true)

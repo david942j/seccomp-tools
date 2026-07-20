@@ -138,7 +138,7 @@ module SeccompTools
       def add_named(buckets, arch_sym, leaves, default)
         leaves.group_by { |l| eq(l.path, SYS) }.sort_by(&:first).each do |nr, group|
           sys = syscall_name(arch_sym, nr)
-          name = sys ? sys.to_s : "0x#{nr.to_s(16)}"
+          name = Util.colorize(sys ? sys.to_s : "0x#{nr.to_s(16)}", t: :syscall)
           group.group_by { |l| label_of(l.ret) }.each do |label, ls|
             next if label == default # falls through to the default action
 

@@ -409,7 +409,7 @@ $ seccomp-tools explain spec/data/libseccomp.bpf -a amd64
 #     write, close, dup, exit
 #
 #   ERRNO(5):
-#     <default> (any syscall not listed above)
+#     <default> (any other syscall)
 #
 #   KILL:
 #     sys_number >= 0x40000000  (x32 ABI)

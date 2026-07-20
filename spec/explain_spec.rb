@@ -27,7 +27,7 @@ Architecture: amd64
     write, close, dup, exit
 
   ERRNO(5):
-    <default> (any syscall not listed above)
+    <default> (any other syscall)
 
   KILL:
     sys_number >= 0x40000000  (x32 ABI)
@@ -49,7 +49,7 @@ EOS
 Architecture: amd64
 
   ALLOW:
-    <default> (any syscall not listed above)
+    <default> (any other syscall)
 
   KILL:
     open, clone, fork, vfork, execve, creat, openat, execveat
@@ -82,7 +82,7 @@ EOS
 Architecture: amd64
 
   ALLOW:
-    <default> (any syscall not listed above)
+    <default> (any syscall)
 EOS
     end
 

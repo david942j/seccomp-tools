@@ -146,7 +146,11 @@ module SeccompTools
       def add_default(buckets, default)
         return unless default
 
-        add(buckets, default, action_sym(default), '<default> (any syscall not listed above)', simple: false)
+        # "other" only makes sense when some syscall was singled out; otherwise the default is the
+        # whole policy.
+        has_rules = buckets.any? { |_, b| b[:simple].any? || b[:complex].any? }
+        text = has_rules ? '<default> (any other syscall)' : '<default> (any syscall)'
+        add(buckets, default, action_sym(default), text, simple: false)
       end
 
       # The catch-all action: the verdict of a leaf that matches no syscall, no range, no arguments.

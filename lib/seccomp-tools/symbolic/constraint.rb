@@ -33,14 +33,9 @@ module SeccompTools
       # @return [Boolean]
       def holds?(value)
         case op
-        when :== then value == rhs.val
-        when :!= then value != rhs.val
-        when :> then value > rhs.val
-        when :>= then value >= rhs.val
-        when :< then value < rhs.val
-        when :<= then value <= rhs.val
         when :set then !value.nobits?(rhs.val)
         when :unset then value.nobits?(rhs.val)
+        else value.public_send(op, rhs.val) # the comparisons are all Integer methods
         end
       end
 

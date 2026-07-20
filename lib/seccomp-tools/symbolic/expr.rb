@@ -143,15 +143,12 @@ module SeccompTools
       end
 
       # Folds a binary ALU operation on two constants, wrapping to 32 bits (classic BPF is 32-bit).
+      # Every {REPRESENTABLE} operator is a Ruby +Integer+ method, so it applies directly.
       # @return [Integer]
       def self.fold(lhs, op, rhs)
         return 0 if op == :/ && rhs.zero? # a real BPF program is rejected at load for div-by-zero
 
-        case op
-        when :<< then lhs << rhs
-        when :>> then lhs >> rhs
-        else lhs.public_send(op, rhs)
-        end & 0xffffffff
+        lhs.public_send(op, rhs) & 0xffffffff
       end
 
       private

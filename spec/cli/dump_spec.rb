@@ -82,4 +82,34 @@ EOS
 [ERROR] Dump is only available on Linux.
     EOS
   end
+
+  context 'argument handling' do
+    def stub_dump_capturing_command
+      command = nil
+      allow(SeccompTools::Dumper).to receive(:dump) do |*args, **|
+        command = args[2]
+        []
+      end
+      -> { command }
+    end
+
+    it 'prefers -c over a positional exec and warns about the unused one' do
+      command = stub_dump_capturing_command
+      expect { described_class.new(['-c', 'true', './extra']).handle }
+        .to output("[WARN] ignoring unused argument: ./extra\n").to_stdout
+      expect(command.call).to eq 'true'
+    end
+
+    it 'uses a lone positional exec without warning' do
+      command = stub_dump_capturing_command
+      expect { described_class.new(['./bin']).handle }.not_to output.to_stdout
+      expect(command.call).to eq './bin'
+    end
+
+    it 'warns about positional arguments left after --pid' do
+      allow(SeccompTools::Dumper).to receive(:dump_by_pid).and_return([])
+      expect { described_class.new(['-p', '123', './extra']).handle }
+        .to output("[WARN] ignoring unused argument: ./extra\n").to_stdout
+    end
+  end
 end

@@ -29,6 +29,8 @@ module SeccompTools
       # alone (so +a & b == c+ becomes +(a & b) == c+ but +a >> b == c+ stays put), never by the
       # extra readability rule in {#clarity_wrap?}.
       COMPARISON = %i[== != < <= > >=].freeze
+      # Byte offsets of the six 64-bit syscall arguments, each split into a low and high 32-bit word.
+      ARG_WORDS = (16...(16 + (8 * 6)))
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -51,7 +53,7 @@ module SeccompTools
         out << "Seccomp policy for #{@source}\n" if @source
         out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
         sections.each { |arch_sym, leaves| out << "\n" << render_section(arch_sym, leaves) }
-        if arch_checked?
+        if arch_values.any?
           label = default_label(other_leaves)
           out << "\nOther architectures: #{label}\n" if label
         end
@@ -68,39 +70,37 @@ module SeccompTools
         vals.map { |v| [arch_symbol(v) || @arch, @leaves.select { |l| arch_ok?(l.path, v) }] }
       end
 
+      # The distinct architecture values (+AUDIT_ARCH_*+) the filter explicitly branches on.
       def arch_values
-        @leaves.flat_map do |l|
-          l.path.select { |c| c.expr.plain_data? && c.expr.offset == ARCH && c.op == :== && c.rhs.imm? }
-                .map { |c| c.rhs.val }
-        end.uniq
-      end
-
-      def arch_checked?
-        !arch_values.empty?
+        @leaves.filter_map { |l| eq(l.path, ARCH) }.uniq
       end
 
       # Leaves reachable when +arch+ is none of the explicitly-checked values.
       def other_leaves
-        @leaves.reject do |l|
-          l.path.any? { |c| c.expr.plain_data? && c.expr.offset == ARCH && c.op == :== }
-        end
+        @leaves.reject { |l| eq(l.path, ARCH) }
       end
 
+      # Is +path+ consistent with the architecture being +val+?
       def arch_ok?(path, val)
         path.all? do |c|
-          next true unless c.expr.plain_data? && c.expr.offset == ARCH && c.rhs.imm?
+          next true unless word?(c, ARCH) && c.rhs.imm?
 
           c.holds?(val)
         end
       end
 
-      # Renders one architecture section.
+      # Renders one architecture section. Every leaf falls into exactly one bucket source: it pins a
+      # syscall number, restricts a range of numbers, checks arguments only, or is the catch-all.
       def render_section(arch_sym, leaves)
         default = default_label(leaves)
+        named, rest = leaves.partition { |l| eq(l.path, SYS) }
+        ranged, rest = rest.partition { |l| lower_bound(l.path) }
+        conditional, = rest.partition { |l| !residual(l.path).empty? }
+
         buckets = {}
-        add_named(buckets, arch_sym, leaves, default)
-        add_ranges(buckets, leaves)
-        add_conditional(buckets, leaves, default)
+        add_named(buckets, arch_sym, named, default)
+        add_ranges(buckets, ranged)
+        add_conditional(buckets, conditional, default)
         add_default(buckets, default)
 
         out = "Architecture: #{Util.colorize(arch_sym, t: :arch)}\n"
@@ -112,22 +112,23 @@ module SeccompTools
 
       # Explicitly matched syscalls (+A == nr+), grouped by number then verdict.
       def add_named(buckets, arch_sym, leaves, default)
-        leaves.select { |l| eq(l.path, SYS) }.group_by { |l| eq(l.path, SYS) }.sort_by(&:first).each do |nr, group|
+        leaves.group_by { |l| eq(l.path, SYS) }.sort_by(&:first).each do |nr, group|
           sys = syscall_name(arch_sym, nr)
           name = sys ? sys.to_s : "0x#{nr.to_s(16)}"
           group.group_by { |l| label_of(l.ret) }.each do |label, ls|
             next if label == default # falls through to the default action
 
             conds = ls.map { |l| render_and(residual(l.path), sys) }
-            entry = conds.include?('') ? name : "#{name} when #{conds.uniq.join(' or ')}"
-            add(buckets, label, sym_of(ls.first.ret), entry, simple: conds.include?(''))
+            plain = conds.include?('') # some path reaches this verdict with no extra condition
+            entry = plain ? name : "#{name} when #{conds.uniq.join(' or ')}"
+            add(buckets, label, sym_of(ls.first.ret), entry, simple: plain)
           end
         end
       end
 
       # Fall-through rules that restrict a range of syscall numbers, e.g. the x32 ABI guard.
       def add_ranges(buckets, leaves)
-        leaves.select { |l| eq(l.path, SYS).nil? && lower_bound(l.path) }.each do |l|
+        leaves.each do |l|
           op, val = lower_bound(l.path)
           subject = "sys_number #{op_str(op)} 0x#{val.to_s(16)}"
           subject << '  (x32 ABI)' if x32?(op, val)
@@ -138,7 +139,7 @@ module SeccompTools
       # Fall-through rules that inspect arguments (or a transformed syscall number) without pinning a
       # specific syscall. Kept so such checks are never silently dropped.
       def add_conditional(buckets, leaves, default)
-        leaves.select { |l| eq(l.path, SYS).nil? && lower_bound(l.path).nil? && !residual(l.path).empty? }.each do |l|
+        leaves.each do |l|
           label = label_of(l.ret)
           next if label == default
 
@@ -200,21 +201,30 @@ module SeccompTools
 
       # --- path-condition queries -------------------------------------------------------------
 
+      # Does +c+ constrain the plain data word at +offset+?
+      def word?(c, offset)
+        c.expr.plain_data? && c.expr.offset == offset
+      end
+
+      # The first constraint comparing the word at +offset+ to a constant with one of +ops+, or nil.
+      def fact(path, offset, *ops)
+        path.find { |c| word?(c, offset) && ops.include?(c.op) && c.rhs.imm? }
+      end
+
       # The value of the single +data[offset] == k+ fact on +path+, if any.
       def eq(path, offset)
-        c = path.find { |x| x.expr.plain_data? && x.expr.offset == offset && x.op == :== && x.rhs.imm? }
-        c&.rhs&.val
+        fact(path, offset, :==)&.rhs&.val
       end
 
       # A +[op, value]+ lower bound on the syscall number, if any.
       def lower_bound(path)
-        c = path.find { |x| x.expr.plain_data? && x.expr.offset == SYS && %i[> >=].include?(x.op) && x.rhs.imm? }
+        c = fact(path, SYS, :>, :>=)
         c && [c.op, c.rhs.val]
       end
 
       # Constraints that are neither the syscall-number nor the architecture check.
       def residual(path)
-        path.reject { |c| c.expr.plain_data? && [SYS, ARCH].include?(c.expr.offset) }
+        path.reject { |c| word?(c, SYS) || word?(c, ARCH) }
       end
 
       def x32?(op, val)
@@ -267,12 +277,9 @@ module SeccompTools
       # +[low_word_offset, combined_64bit_value]+ so the pair can be shown as one +arg == value+;
       # otherwise +nil+.
       def full_arg_equality(c, eqs)
-        return unless c.expr.plain_data? && c.op == :== && c.rhs.imm?
+        return unless c.op == :== && c.rhs.imm? && c.expr.plain_data? && ARG_WORDS.include?(c.expr.offset)
 
-        offset = c.expr.offset
-        return unless offset.between?(16, 16 + (8 * 6) - 1)
-
-        lo = offset - ((offset - 16) % 8) # the low word of this argument
+        lo = c.expr.offset - ((c.expr.offset - ARG_WORDS.begin) % 8) # the low word of this argument
         return unless eqs.key?(lo) && eqs.key?(lo + 4)
 
         [lo, (eqs[lo + 4] << 32) | eqs[lo]]
@@ -345,10 +352,10 @@ module SeccompTools
       end
 
       def arg_data_name(offset, sys)
-        return "data[#{offset}]" unless offset >= 16 && offset < 16 + (8 * 6)
+        return "data[#{offset}]" unless ARG_WORDS.include?(offset)
 
-        idx = (offset - 16) / 8
-        hi = (offset - 16) % 8 == 4
+        idx = (offset - ARG_WORDS.begin) / 8
+        hi = (offset - ARG_WORDS.begin) % 8 == 4
         names = sys && Const::SYS_ARG[sys]
         base = Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
         hi ? "#{base} >> 32" : base

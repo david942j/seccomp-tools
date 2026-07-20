@@ -52,22 +52,38 @@ module SeccompTools
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
         out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
-        sections.each { |arch_sym, leaves| out << "\n" << render_section(arch_sym, leaves) }
-        if arch_values.any?
-          label = default_label(other_leaves)
-          out << "\nOther architectures: #{label}\n" if label
-        end
+        sections.each { |title, arch_sym, leaves| out << "\n" << render_section(title, arch_sym, leaves) }
+        out << render_other_arches
         out
       end
 
       private
 
-      # @return [Array<[Symbol, Array<Symbolic::Executor::Leaf>]>]
+      # One entry per architecture section: the section title, the architecture whose syscall names
+      # apply (+nil+ when the checked value is not one seccomp-tools knows), and the leaves.
+      # @return [Array<[String, Symbol?, Array<Symbolic::Executor::Leaf>]>]
       def sections
         vals = arch_values
-        return [[@arch, @leaves]] if vals.empty?
+        return [[@arch, @arch, @leaves]] if vals.empty?
 
-        vals.map { |v| [arch_symbol(v) || @arch, @leaves.select { |l| arch_ok?(l.path, v) }] }
+        vals.map do |v|
+          sym = arch_symbol(v)
+          [sym || format('0x%x (unknown)', v), sym, @leaves.select { |l| arch_ok?(l.path, v) }]
+        end
+      end
+
+      # Renders what happens on the architectures the filter does not explicitly check for. Usually
+      # those paths just fall to one action and a one-liner suffices; when they carry rules of their
+      # own, a full section is rendered so the rules are not silently dropped.
+      def render_other_arches
+        return '' if arch_values.empty?
+
+        leaves = other_leaves
+        default = default_label(leaves)
+        return '' unless default
+        return "\nOther architectures: #{default}\n" if rule_buckets(nil, leaves, default).empty?
+
+        "\n#{render_section('<any other>', nil, leaves)}"
       end
 
       # The distinct architecture values (+AUDIT_ARCH_*+) the filter explicitly branches on.
@@ -89,10 +105,24 @@ module SeccompTools
         end
       end
 
-      # Renders one architecture section. Every leaf falls into exactly one bucket source: it pins a
-      # syscall number, restricts a range of numbers, checks arguments only, or is the catch-all.
-      def render_section(arch_sym, leaves)
+      # Renders one architecture section. +arch_sym+ is used to name syscalls and arguments; +nil+
+      # (architecture unknown) leaves them numeric.
+      def render_section(title, arch_sym, leaves)
         default = default_label(leaves)
+        buckets = rule_buckets(arch_sym, leaves, default)
+        add_default(buckets, default)
+
+        out = "Architecture: #{Util.colorize(title, t: :arch)}\n"
+        return out << "\n  (no return reached; filter runs off the end)\n" if buckets.empty?
+
+        sorted_buckets(buckets).each { |label, b| out << render_bucket(label, b) }
+        out
+      end
+
+      # Buckets the non-default rules of a section by action label. Every leaf falls into exactly
+      # one bucket source: it pins a syscall number, restricts a range of numbers, checks arguments
+      # only, or is the catch-all (rendered by {#add_default}).
+      def rule_buckets(arch_sym, leaves, default)
         named, rest = leaves.partition { |l| eq(l.path, SYS) }
         ranged, rest = rest.partition { |l| lower_bound(l.path) }
         conditional, = rest.partition { |l| !residual(l.path).empty? }
@@ -101,13 +131,7 @@ module SeccompTools
         add_named(buckets, arch_sym, named, default)
         add_ranges(buckets, ranged)
         add_conditional(buckets, conditional, default)
-        add_default(buckets, default)
-
-        out = "Architecture: #{Util.colorize(arch_sym, t: :arch)}\n"
-        return out << "\n  (no return reached; filter runs off the end)\n" if buckets.empty?
-
-        sorted_buckets(buckets).each { |label, b| out << render_bucket(label, b) }
-        out
+        buckets
       end
 
       # Explicitly matched syscalls (+A == nr+), grouped by number then verdict.
@@ -126,13 +150,19 @@ module SeccompTools
         end
       end
 
-      # Fall-through rules that restrict a range of syscall numbers, e.g. the x32 ABI guard.
+      # Fall-through rules that restrict a range of syscall numbers, e.g. the x32 ABI guard,
+      # together with whatever else those paths check. A range whose action is the default is still
+      # shown when unconditional (the explicit guard is worth surfacing), and its conditional
+      # variants are shown too so no check is silently dropped.
       def add_ranges(buckets, leaves)
-        leaves.each do |l|
-          op, val = lower_bound(l.path)
-          subject = "sys_number #{op_str(op)} 0x#{val.to_s(16)}"
-          subject << '  (x32 ABI)' if x32?(op, val)
-          add(buckets, label_of(l.ret), sym_of(l.ret), subject, simple: false)
+        leaves.group_by { |l| lower_bound(l.path) }.each do |(op, val), group|
+          range = "sys_number #{op_str(op)} 0x#{val.to_s(16)}"
+          group.group_by { |l| label_of(l.ret) }.each do |label, ls|
+            conds = ls.map { |l| render_and(residual(l.path), nil) }.uniq
+            entry = conds.include?('') ? range.dup : "#{range} when #{conds.join(' or ')}"
+            entry << '  (x32 ABI)' if x32?(op, val)
+            add(buckets, label, sym_of(ls.first.ret), entry, simple: false)
+          end
         end
       end
 
@@ -152,8 +182,7 @@ module SeccompTools
 
         # "other" only makes sense when some syscall was singled out; otherwise the default is the
         # whole policy.
-        has_rules = buckets.any? { |_, b| b[:simple].any? || b[:complex].any? }
-        text = has_rules ? '<default> (any other syscall)' : '<default> (any syscall)'
+        text = buckets.empty? ? '<default> (any syscall)' : '<default> (any other syscall)'
         add(buckets, default, action_sym(default), text, simple: false)
       end
 
@@ -362,7 +391,7 @@ module SeccompTools
       end
 
       def syscall_name(arch_sym, nr)
-        Const::Syscall.const_get(arch_sym.upcase).invert[nr]
+        arch_sym && Const::Syscall.const_get(arch_sym.upcase).invert[nr]
       rescue NameError
         nil
       end

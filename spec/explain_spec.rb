@@ -138,6 +138,34 @@ EOS
       expect(out).to include('read when buf == fd / 0x2')   # division (/ binds tighter than ==)
     end
 
+    it 'keeps the conditions on a rule that restricts a syscall range' do
+      # ERRNO(7) needs BOTH the range and the argument check; neither side may be dropped, and the
+      # ALLOW side of the same range must show its (negated) condition instead of contradicting the
+      # ERRNO line.
+      src = <<~ASM
+        A = sys_number
+        A >= 0x40000000 ? chk : allow
+        chk:
+        A = args[0]
+        A == 0x3 ? err : allow
+        err:
+        return ERRNO(7)
+        allow:
+        return ALLOW
+      ASM
+      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+
+Architecture: amd64
+
+  ALLOW:
+    sys_number >= 0x40000000 when args[0] != 0x3  (x32 ABI)
+    <default> (any other syscall)
+
+  ERRNO(7):
+    sys_number >= 0x40000000 when args[0] == 0x3  (x32 ABI)
+EOS
+    end
+
     it 'never silently drops an argument check that does not pin a syscall' do
       # A = args[0]; A &= 0xffff; if (A == 5) return ALLOW else return KILL
       raw = "\x20\x00\x00\x00\x10\x00\x00\x00" \
@@ -179,12 +207,80 @@ EOS
     end
   end
 
+  context 'unrecognized architecture value' do
+    it 'labels the section with the raw value instead of pretending it is the declared arch' do
+      # 0x14 is AUDIT_ARCH_PPC, which seccomp-tools has no syscall table for. The section must not
+      # be mislabeled as amd64 (amd64 actually falls through to KILL here), and the pinned syscall
+      # stays numeric since its name cannot be known.
+      src = <<~ASM
+        A = arch
+        A == 0x14 ? chk : kill_it
+        chk:
+        A = sys_number
+        A == 0x3 ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+
+Architecture: 0x14 (unknown)
+
+  ALLOW:
+    0x3
+
+  KILL:
+    <default> (any other syscall)
+
+Other architectures: KILL
+EOS
+    end
+  end
+
   context 'multi-architecture filter' do
     it 'prints one section per architecture plus the other-arch fall-through' do
       out = explain(fixture('mixed_arch.bpf'), :amd64)
       expect(out.scan(/^Architecture: /).size).to be > 1
       expect(out).to include('Architecture: amd64')
       expect(out).to include('Other architectures: KILL')
+    end
+
+    it 'renders a full section when other architectures have rules of their own' do
+      # Non-amd64 architectures allow syscall 0 and kill the rest; flattening that to
+      # "Other architectures: KILL" would silently hide the allow rule.
+      src = <<~ASM
+        A = arch
+        A == ARCH_X86_64 ? amd64_rules : other_arch
+        other_arch:
+        A = sys_number
+        A == 0x0 ? allow : kill_it
+        amd64_rules:
+        A = sys_number
+        A == write ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)).to eq(<<EOS)
+
+Architecture: amd64
+
+  ALLOW:
+    write
+
+  KILL:
+    <default> (any other syscall)
+
+Architecture: <any other>
+
+  ALLOW:
+    0x0
+
+  KILL:
+    <default> (any other syscall)
+EOS
     end
 
     it 'summarizes the 0CTF/TCTF 2023 "Nothing is True" filter' do

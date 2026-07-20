@@ -79,7 +79,7 @@ EOS
   it 'dumper unsupported' do
     stub_const('SeccompTools::Dumper::SUPPORTED', false)
     expect { described_class.new([]).handle }.to output(<<-EOS).to_stdout
-[ERROR] Dump is only available on Linux.
+[ERROR] Dumping a filter from an executable or process is only available on Linux.
     EOS
   end
 

@@ -4,7 +4,6 @@ require 'seccomp-tools/cli/base'
 require 'seccomp-tools/cli/dumpable'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
-require 'seccomp-tools/logger'
 
 module SeccompTools
   module CLI
@@ -81,7 +80,7 @@ module SeccompTools
       # Only available on Linux, logs an error and returns otherwise.
       # @return [void]
       def handle
-        return Logger.error('Dump is only available on Linux.') unless Dumper::SUPPORTED
+        return unless dumping_supported?
         return unless super
 
         block = lambda do |bpf, arch|

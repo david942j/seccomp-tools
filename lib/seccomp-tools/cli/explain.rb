@@ -100,7 +100,7 @@ module SeccompTools
       # @return [Array<Array(String, Symbol, String?)>, nil]
       #   The filter tuples, or +nil+ when dumping is unsupported or nothing was installed.
       def dump_filters(command:, pid:, source:)
-        return unsupported unless SeccompTools::Dumper::SUPPORTED
+        return unless dumping_supported?
 
         filters = dump_seccomp(command:, pid:, limit: option[:limit], timeout: option[:timeout]) do |bpf, arch|
           [bpf, arch || option[:arch], source]
@@ -127,11 +127,6 @@ module SeccompTools
       # @return [String?]
       def source_name
         option[:ifile] == '-' ? nil : option[:ifile]
-      end
-
-      def unsupported
-        Logger.error('Dumping a filter from an executable or process is only available on Linux.')
-        nil
       end
     end
   end

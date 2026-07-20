@@ -34,6 +34,16 @@ module SeccompTools
         SeccompTools::Dumper.dump('/bin/sh', '-c', command, limit:, timeout:, &)
       end
 
+      # Whether tracer-based dumping is available on this platform (Linux only). Logs an error when
+      # it is not, so callers can guard with +return unless dumping_supported?+.
+      # @return [Boolean]
+      def dumping_supported?
+        return true if SeccompTools::Dumper::SUPPORTED
+
+        Logger.error('Dumping a filter from an executable or process is only available on Linux.')
+        false
+      end
+
       private
 
       # Traces +pid+, translating a permission error into the standard hint.

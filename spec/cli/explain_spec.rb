@@ -37,6 +37,7 @@ EOS
   it 'reads a filter from stdin' do
     allow($stdin).to receive(:read).and_return(File.binread(data('twctf-2016-diary.bpf')))
     expect { described_class.new(['-', '-a', 'amd64']).handle }.to output(<<EOS).to_stdout
+Seccomp policy for <STDIN>
 
 Architecture: amd64
 

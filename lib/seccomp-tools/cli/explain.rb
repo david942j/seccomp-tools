@@ -142,10 +142,10 @@ module SeccompTools
         Util.elf?(option[:ifile])
       end
 
-      # The label shown in the policy header, +nil+ when reading from stdin.
-      # @return [String?]
+      # The label shown in the policy header; +<STDIN>+ when reading from stdin.
+      # @return [String]
       def source_name
-        option[:ifile] == '-' ? nil : option[:ifile]
+        option[:ifile] == '-' ? '<STDIN>' : option[:ifile]
       end
     end
   end

@@ -34,6 +34,13 @@ describe SeccompTools::Symbolic::Expr do
       expect(described_class.imm(0xffffffff).apply(:+, described_class.imm(2)).val).to be 1
     end
 
+    it 'short-circuits shifts of 32+ bits to zero without building a huge integer' do
+      # The kernel rejects such shifts at load; 0 is what masking the shifted-out value gives.
+      expect(described_class.imm(1).apply(:<<, described_class.imm(0xffffffff)).val).to be 0
+      expect(described_class.imm(1).apply(:<<, described_class.imm(32)).val).to be 0
+      expect(described_class.imm(0xffffffff).apply(:>>, described_class.imm(32)).val).to be 0
+    end
+
     it 'treats division by zero as zero' do
       expect(described_class.imm(6).apply(:/, described_class.imm(0)).val).to be 0
       expect(described_class.imm(6).apply(:/, described_class.imm(2)).val).to be 3

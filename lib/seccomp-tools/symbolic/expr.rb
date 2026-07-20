@@ -29,9 +29,10 @@ module SeccompTools
       attr_reader :val
       # @return [Integer?] The byte offset into the input data buffer, when +kind+ is +:data+.
       attr_reader :offset
-      # @return [Symbol?] The operator, when +kind+ is +:binop+.
+      # @return [Symbol?] The operator, when +kind+ is +:binop+ or +:unop+.
       attr_reader :op
-      # @return [Expr?] The left and right operands, when +kind+ is +:binop+.
+      # @return [Expr?] The left and right operands, when +kind+ is +:binop+; a +:unop+ keeps its
+      #   only operand in +lhs+.
       attr_reader :lhs, :rhs
 
       # A known constant.
@@ -72,7 +73,7 @@ module SeccompTools
         new(:opaque)
       end
 
-      # @param [:imm, :data, :binop, :opaque] kind
+      # @param [:imm, :data, :binop, :unop, :opaque] kind
       # @param [Hash] fields
       #   The kind-specific fields: +:val+, +:offset+, +:op+, +:lhs+, +:rhs+.
       def initialize(kind, **fields)
@@ -147,6 +148,9 @@ module SeccompTools
       # @return [Integer]
       def self.fold(lhs, op, rhs)
         return 0 if op == :/ && rhs.zero? # a real BPF program is rejected at load for div-by-zero
+        # ... and for shifts of 32+ bits; short-circuit them to their masked result (everything
+        # shifted out) instead of building a needlessly huge integer.
+        return 0 if %i[<< >>].include?(op) && rhs >= 32
 
         lhs.public_send(op, rhs) & 0xffffffff
       end

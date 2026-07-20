@@ -2,6 +2,7 @@
 
 require 'optparse'
 
+require 'seccomp-tools/logger'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -96,6 +97,16 @@ module SeccompTools
       #   Usage information.
       def usage
         self.class.const_get(:USAGE)
+      end
+
+      # Warns about positional arguments left over in {#argv} after the command has taken what it
+      # needs, e.g. an exec given together with +-c+, or anything after +--pid+. The command still
+      # proceeds.
+      # @return [void]
+      def warn_ignored_arguments
+        return if argv.empty?
+
+        Logger.warn("ignoring unused argument#{'s' if argv.size > 1}: #{argv.join(' ')}")
       end
 
       # Registers the common +--arch+ option on +opt+.

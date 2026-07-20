@@ -39,7 +39,12 @@ module SeccompTools
     #   @param [String] msg
     #     The message to be logged.
     #   @return [true]
-    %i[error].each do |sym|
+    # @!method warn(msg)
+    #   Logs +msg+ at the +warn+ severity.
+    #   @param [String] msg
+    #     The message to be logged.
+    #   @return [true]
+    %i[error warn].each do |sym|
       define_method(sym) do |msg|
         logger.__send__(sym, msg)
       end

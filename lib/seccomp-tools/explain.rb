@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/explain/summary'
-require 'seccomp-tools/symbolic/symbolic'
+require 'seccomp-tools/symbolic/executor'
 
 module SeccompTools
   # Analyzes a whole seccomp filter across all execution paths and summarizes it as a per-action

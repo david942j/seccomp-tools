@@ -248,11 +248,14 @@ module SeccompTools
         return "0x#{expr.val.to_s(16)}" if expr.imm?
 
         base = data_name(expr.offset, sys)
-        expr.transforms.reduce(base) { |acc, (op, val)| "#{acc} #{op} #{operand_str(op, val)}" }
+        expr.transforms.reduce(base) { |acc, (op, operand)| "#{acc} #{op} #{operand_str(op, operand, sys)}" }
       end
 
-      def operand_str(op, val)
-        %i[<< >>].include?(op) ? val.to_s : "0x#{val.to_s(16)}"
+      def operand_str(op, operand, sys)
+        return operand.val.to_s if operand.imm? && %i[<< >>].include?(op) # shift amount, in decimal
+        return "0x#{operand.val.to_s(16)}" if operand.imm?
+
+        render_expr(operand, sys) # a data word, or a further transform of one
       end
 
       def op_str(op)

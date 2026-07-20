@@ -64,6 +64,13 @@ EOS
       expect(out).to include('socket when family >> 32 == 0x0 && family == 0x2 && type >> 32 == 0x0 && type == 0x1')
     end
 
+    it 'renders a data-to-data computation rather than giving up' do
+      # write when (count & fd) & 0xfff == buf | 0x123 -- args combined with each other (a filter
+      # shape the kernel accepts). The left side used to render as <opaque>.
+      out = explain(fixture('data-to-data.bpf'), :amd64)
+      expect(out).to include('write when count & fd & 0xfff == buf | 0x123')
+    end
+
     it 'never silently drops an argument check that does not pin a syscall' do
       # A = args[0]; A &= 0xffff; if (A == 5) return ALLOW else return KILL
       raw = "\x20\x00\x00\x00\x10\x00\x00\x00" \

@@ -30,8 +30,10 @@ module SeccompTools
       attr_reader :val
       # @return [Integer?] The byte offset into the input data buffer, when +kind+ is +:data+.
       attr_reader :offset
-      # @return [Array<[Symbol, Integer]>] Ordered ALU transforms applied to a +:data+ word, each an
-      #   +[operator, constant]+ pair such as +[:&, 0xffff]+.
+      # @return [Array<[Symbol, Expr]>] Ordered ALU transforms applied to a +:data+ word, each an
+      #   +[operator, operand]+ pair whose operand is another {Expr} - usually a constant
+      #   (+[:&, Expr.imm(0xffff)]+), but it may be another data word (+[:&, Expr.data(16)]+) when the
+      #   filter combines two buffer words.
       attr_reader :transforms
 
       # A known constant.
@@ -86,8 +88,9 @@ module SeccompTools
       end
 
       # Applies an ALU operation, returning the resulting {Expr}. Two constants fold into a new
-      # constant; an operation on a data word records a transform when it is {REPRESENTABLE};
-      # anything else (e.g. +neg+, or an operand that is itself unknown) becomes {.opaque}.
+      # constant; a {REPRESENTABLE} operation on a data word records a transform (the operand may be
+      # another constant or another data word); anything else (e.g. +neg+, or an operand that is
+      # itself unknown) becomes {.opaque}.
       # @param [Symbol] op
       #   A Ruby operator symbol as produced by +Instruction::ALU#symbolize+, or +:neg+.
       # @param [Expr] operand
@@ -96,16 +99,17 @@ module SeccompTools
       def apply(op, operand)
         return Expr.opaque if op == :neg
         return Expr.imm(self.class.fold(val, op, operand.val)) if imm? && operand.imm?
-        return with_transform(op, operand.val) if data? && operand.imm? && REPRESENTABLE.include?(op)
+        return with_transform(op, operand) if data? && !operand.opaque? && REPRESENTABLE.include?(op)
 
         Expr.opaque
       end
 
       # A value that uniquely identifies this expression, for hashing and equality (so the executor
-      # can recognise two states as identical).
+      # can recognise two states as identical). Operands are reduced to their own keys so the result
+      # is a plain nested value.
       # @return [Array]
       def key
-        [kind, val, offset, transforms]
+        [kind, val, offset, transforms&.map { |op, operand| [op, operand.key] }]
       end
 
       # @param [Expr] other

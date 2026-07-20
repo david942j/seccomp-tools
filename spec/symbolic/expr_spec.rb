@@ -42,14 +42,20 @@ describe SeccompTools::Symbolic::Expr do
       expect(described_class.imm(6).apply(:/, described_class.imm(2)).val).to be 3
     end
 
-    it 'records a representable transform on a data word' do
+    it 'records a representable transform against a constant' do
       e = described_class.data(16).apply(:&, described_class.imm(0xffff))
       expect(e.data?).to be true
       expect(e.plain_data?).to be false
-      expect(e.transforms).to eq [[:&, 0xffff]]
+      expect(e.transforms).to eq [[:&, described_class.imm(0xffff)]]
     end
 
-    it 'becomes opaque for neg, for non-immediate operands, and for unrepresentable ops' do
+    it 'records a transform against another data word' do
+      e = described_class.data(32).apply(:&, described_class.data(16))
+      expect(e.data?).to be true
+      expect(e.transforms).to eq [[:&, described_class.data(16)]]
+    end
+
+    it 'becomes opaque for neg, for an opaque operand, an immediate base, and unrepresentable ops' do
       expect(described_class.data(16).apply(:neg, nil).opaque?).to be true
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
       expect(described_class.imm(6).apply(:+, described_class.data(0)).opaque?).to be true

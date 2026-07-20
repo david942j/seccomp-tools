@@ -66,8 +66,6 @@ module SeccompTools
         return unless super
 
         filters = collect_filters
-        return if filters.nil?
-
         if filters.size > 1
           Logger.warn("#{filters.size} filters are installed; they stack, so a syscall must pass every one " \
                       '(most restrictive wins). Each is explained separately below.')
@@ -81,21 +79,25 @@ module SeccompTools
 
       private
 
-      # Resolves the input into an array of +[raw_bpf, arch, source]+ tuples, or +nil+ when there is
-      # nothing to do (help shown, or an error was logged).
+      # Resolves the input into an array of +[raw_bpf, arch, source]+ tuples, empty when there is
+      # nothing to explain (help shown, or an error was logged).
       #
       # The input is one of three kinds:
       # * a running process, when +--pid+ is given;
       # * a raw BPF file (or stdin), when the positional argument is not an executable;
       # * a command to run and trace - either +-c+, or a positional executable.
-      # @return [Array<Array(String, Symbol, String?)>, nil]
+      # @return [Array<Array(String, Symbol, String?)>]
       def collect_filters
         # -c/--sh-exec and --pid take precedence over a positional BPF file or executable.
         option[:ifile] = argv.shift if option[:command].nil? && option[:pid].nil?
         warn_ignored_arguments
 
         return dump_filters(command: nil, pid: option[:pid], source: "pid #{option[:pid]}") if option[:pid]
-        return CLI.show(parser.help) if no_input?
+
+        if no_input?
+          CLI.show(parser.help)
+          return []
+        end
         return [[input, option[:arch], source_name]] if raw_bpf_file?
 
         command = option[:command] || option[:ifile]
@@ -116,22 +118,16 @@ module SeccompTools
       end
 
       # Dumps filters from a command or pid and labels each with +source+.
-      # @return [Array<Array(String, Symbol, String?)>, nil]
-      #   The filter tuples, or +nil+ when dumping is unsupported or nothing was installed.
+      # @return [Array<Array(String, Symbol, String?)>]
+      #   The filter tuples, empty when dumping is unsupported or nothing was installed.
       def dump_filters(command:, pid:, source:)
-        return unless dumping_supported?
+        return [] unless dumping_supported?
 
         filters = dump_seccomp(command:, pid:, limit: option[:limit], timeout: option[:timeout]) do |bpf, arch|
           [bpf, arch || option[:arch], source]
         end
-        filters.empty? ? none_installed : filters
-      end
-
-      # Logs that nothing was installed and returns +nil+ so {#handle} prints nothing.
-      # @return [nil]
-      def none_installed
-        Logger.warn('No seccomp filter was installed.')
-        nil
+        Logger.warn('No seccomp filter was installed.') if filters.empty?
+        filters
       end
 
       # Is the positional input an ELF executable (rather than a raw BPF blob)?

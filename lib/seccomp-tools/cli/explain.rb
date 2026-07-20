@@ -67,6 +67,10 @@ module SeccompTools
         filters = collect_filters
         return if filters.nil?
 
+        if filters.size > 1
+          Logger.warn("#{filters.size} filters are installed; they stack, so a syscall must pass every one " \
+                      '(most restrictive wins). Each is explained separately below.')
+        end
         filters.each_with_index do |(raw, arch, source), idx|
           label = filters.size > 1 ? "#{source} (filter ##{idx})" : source
           insts = SeccompTools::Disasm.to_bpf(raw, arch).map(&:inst)

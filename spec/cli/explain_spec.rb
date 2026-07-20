@@ -77,6 +77,16 @@ EOS
       expect(SeccompTools::Dumper).to receive(:dump).with('/bin/sh', '-c', './x', anything) { [] }
       expect { described_class.new(['-c', './x']).handle }.to output(/No seccomp filter/).to_stdout
     end
+
+    it 'warns and labels each filter when more than one is installed' do
+      f0 = File.binread(data('twctf-2016-diary.bpf'))
+      f1 = File.binread(data('libseccomp.bpf'))
+      allow(SeccompTools::Dumper).to receive(:dump) do |*, **, &blk|
+        [f0, f1].map { |bpf| blk.call(bpf, :amd64) }
+      end
+      expect { described_class.new(['-c', './x', '-a', 'amd64', '-l', '2']).handle }
+        .to output(/2 filters are installed; they stack.*\(filter #0\).*\(filter #1\)/m).to_stdout
+    end
   end
 
   context 'dumping from a process' do

@@ -25,10 +25,10 @@ module SeccompTools
       }.freeze
       # Unary negation binds tighter than any binary operator.
       UNARY_PREC = 13
-      # The bitwise operators, whose relative precedence is famously easy to misread. When two
-      # *different* ones are nested (e.g. +a ^ b | c+) the inner one is parenthesized even though C
-      # precedence would not require it; a same-operator chain (+a ^ b ^ c+) is left alone.
-      BITWISE = %i[& ^ |].freeze
+      # The comparison operators. When one is the parent, operands are parenthesized by precedence
+      # alone (so +a & b == c+ becomes +(a & b) == c+ but +a >> b == c+ stays put), never by the
+      # extra readability rule in {#clarity_wrap?}.
+      COMPARISON = %i[== != < <= > >=].freeze
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -307,18 +307,27 @@ module SeccompTools
       end
 
       # Renders +child+ as an operand of +parent_op+, parenthesizing it when precedence requires it
-      # (+child+ binds looser than +min_prec+) or when it nests a different bitwise operator (see
-      # {BITWISE}). Same-operator chains and non-bitwise mixes are left to precedence alone.
+      # (+child+ binds looser than +min_prec+) or when {#clarity_wrap?} judges the grouping too easy
+      # to misread.
       def operand(child, parent_op, min_prec, sys)
         s = render_expr(child, sys)
         return s unless child.kind == :binop
 
-        PREC[child.op] < min_prec || mixed_bitwise?(parent_op, child.op) ? "(#{s})" : s
+        PREC[child.op] < min_prec || clarity_wrap?(parent_op, child.op) ? "(#{s})" : s
       end
 
-      # Are +parent_op+ and +child_op+ two *different* bitwise operators?
-      def mixed_bitwise?(parent_op, child_op)
-        parent_op != child_op && BITWISE.include?(parent_op) && BITWISE.include?(child_op)
+      # Should a +child_op+ nested under +parent_op+ be parenthesized purely for readability (beyond
+      # what precedence requires)? Yes when they sit at *different* precedence levels — mixing
+      # families like +a & (b + c)+ or +(a + b) << c+ is easy to misjudge. The exceptions, where the
+      # grouping is universally understood, are: any comparison parent (+a & b == c+ is already made
+      # unambiguous by wrapping the looser +&+), a same-level pair (+a + b - c+, +a ^ b ^ c+), and
+      # multiplication/division directly inside addition/subtraction (+a + b * c+).
+      def clarity_wrap?(parent_op, child_op)
+        return false if COMPARISON.include?(parent_op)
+        return false if PREC[parent_op] == PREC[child_op]
+        return false if PREC[child_op] == PREC[:*] && PREC[parent_op] == PREC[:+]
+
+        true
       end
 
       def op_str(op)

@@ -103,6 +103,11 @@ EOS
       expect(out).to include('lseek when whence == ((fd ^ 0xff) | 0x1)')
       # ...but a same-operator chain is left flat
       expect(out).to include('poll when timeout == (ufds ^ 0xff ^ 0x1)')
+      # mixing operator families is wrapped (arithmetic inside bitwise, and inside shift)...
+      expect(out).to include('fstat when (fd & (args[2] + 0x1)) == 0x5')
+      expect(out).to include('dup2 when (oldfd + newfd) << 2 == 0x100')
+      # ...but multiply-inside-add is universally understood, so it stays flat
+      expect(out).to include('getpid when args[0] + args[1] * 0x8 == 0x40')
     end
 
     it 'renders negation and division' do

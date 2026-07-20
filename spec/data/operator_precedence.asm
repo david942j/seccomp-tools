@@ -15,6 +15,9 @@ A == openat ? relational     : next
 A == close  ? bit_test       : next
 A == lseek  ? mixed_bitwise  : next
 A == poll   ? bitwise_chain  : next
+A == fstat  ? arith_in_bitwise : next
+A == dup2   ? arith_in_shift   : next
+A == getpid ? mul_in_add       : next
 return KILL
 
 nested_bitwise:
@@ -65,6 +68,33 @@ bitwise_chain:
   X = A
   A = args[2]        # count
   A == X ? allow : errno_it
+
+arith_in_bitwise:
+  # (arg0 & (arg2 + 0x1)) == 0x5     -- arithmetic inside bitwise: different families, wrap
+  A = args[2]
+  A += 0x1
+  X = A
+  A = args[0]
+  A &= X
+  A == 0x5 ? allow : errno_it
+
+arith_in_shift:
+  # ((arg0 + arg1) << 0x2) == 0x100  -- arithmetic inside shift: different families, wrap
+  A = args[1]
+  X = A
+  A = args[0]
+  A += X
+  A <<= 0x2
+  A == 0x100 ? allow : errno_it
+
+mul_in_add:
+  # (arg0 + arg1 * 0x8) == 0x40      -- multiply inside add: universally understood, no wrap
+  A = args[1]
+  A *= 0x8
+  X = A
+  A = args[0]
+  A += X
+  A == 0x40 ? allow : errno_it
 
 allow:
   return ALLOW

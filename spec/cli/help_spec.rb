@@ -51,8 +51,6 @@ EOS
   end
 
   it 'help disasm' do
-    org = RbConfig::CONFIG['host_cpu']
-    RbConfig::CONFIG['host_cpu'] = 'x86_64'
     expect { described_class.work(%w[disasm --help]) }.to output(<<EOS).to_stdout
 disasm - Disassemble seccomp bpf.
 
@@ -60,7 +58,8 @@ Usage: seccomp-tools disasm BPF_FILE [options]
     -o, --output FILE                Output result into FILE instead of stdout.
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
-                                     Default: amd64
+                                     Default: auto-detected from the host machine.
+                                     Set it when the filter targets an architecture other than the host.
         --[no-]bpf                   Display BPF bytes (code, jt, etc.).
                                      Default: true
         --[no-]arg-infer             Display syscall arguments with parameter names when possible.
@@ -71,23 +70,20 @@ Usage: seccomp-tools disasm BPF_FILE [options]
                                      This flag implies "--no-bpf --no-arg-infer".
                                      Default: false
 EOS
-    RbConfig::CONFIG['host_cpu'] = org
   end
 
   it 'help emu' do
-    org = RbConfig::CONFIG['host_cpu']
-    RbConfig::CONFIG['host_cpu'] = 'x86_64'
     expect { described_class.work(%w[emu --help]) }.to output(<<EOS).to_stdout
 emu - Emulate seccomp rules.
 
 Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
-                                     Default: amd64
+                                     Default: auto-detected from the host machine.
+                                     Set it when the filter targets an architecture other than the host.
     -q, --[no-]quiet                 Run quietly, only show emulation result.
     -i, --ip=VAL                     Set instruction pointer.
 EOS
-    RbConfig::CONFIG['host_cpu'] = org
   end
 
   it 'invalid' do

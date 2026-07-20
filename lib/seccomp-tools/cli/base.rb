@@ -113,12 +113,15 @@ module SeccompTools
       #
       # @param [OptionParser] opt
       #   The parser to add the option to.
+      # @param [Array<String>] extra_desc
+      #   Extra description lines appended after the default ones, for command-specific guidance.
       # @return [void]
-      def option_arch(opt)
+      def option_arch(opt, *extra_desc)
         supported = Util.supported_archs
         opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
                "Supported architectures are <#{supported.join('|')}>.",
-               "Default: #{Util.system_arch}") do |a|
+               'Default: auto-detected from the host machine.',
+               'Set it when the filter targets an architecture other than the host.', *extra_desc) do |a|
           option[:arch] = a
         end
       end

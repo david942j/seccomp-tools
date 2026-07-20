@@ -86,6 +86,19 @@ Architecture: amd64
 EOS
     end
 
+    it 'drops unreachable paths whose constraints contradict each other' do
+      # A jump forks both ways, so the walk can reach ALLOW through `sys == 1 && sys == 2`, which
+      # never happens at runtime and must not be reported.
+      raw = "\x20\x00\x00\x00\x00\x00\x00\x00" \
+            "\x15\x00\x01\x00\x01\x00\x00\x00" \
+            "\x15\x01\x00\x00\x02\x00\x00\x00" \
+            "\x06\x00\x00\x00\x00\x00\x00\x00" \
+            "\x06\x00\x00\x00\x00\x00\xff\x7f"
+      out = explain(raw, :amd64)
+      expect(out).not_to include('ALLOW')
+      expect(out).not_to include('write') # syscall 1, from the impossible path
+    end
+
     it 'surfaces a data-dependent return value as UNKNOWN' do
       # return A
       expect(explain("\x16\x00\x00\x00\x00\x00\x00\x00", :amd64)).to include('UNKNOWN:')

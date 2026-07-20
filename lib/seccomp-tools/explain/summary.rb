@@ -23,7 +23,7 @@ module SeccompTools
       # @param [Boolean] truncated
       #   Whether the walk hit {Explain::STEP_CAP}.
       def initialize(leaves, arch:, source: nil, truncated: false)
-        @leaves = leaves
+        @leaves = leaves.select { |l| feasible?(l.path) }
         @arch = arch
         @source = source
         @truncated = truncated
@@ -196,6 +196,46 @@ module SeccompTools
       end
 
       # --- path-condition queries -------------------------------------------------------------
+
+      # Is +path+ satisfiable? A conditional jump forks both ways regardless of feasibility, so a
+      # walk can reach a return through contradictory facts (e.g. +sys == 0xffffffff && sys == 3+).
+      # Such a path never happens at runtime, so its leaf must be dropped. Only concrete facts on
+      # plain data words are checked; transformed or opaque values are assumed satisfiable.
+      # @param [Array<Constraint>] path
+      # @return [Boolean]
+      def feasible?(path)
+        path.select { |c| c.expr.plain_data? && c.rhs.imm? }
+            .group_by { |c| c.expr.offset }
+            .all? { |_offset, cs| cell_feasible?(cs) }
+      end
+
+      # Are the constraints on a single data word jointly satisfiable?
+      def cell_feasible?(constraints)
+        eqs = constraints.select { |c| c.op == :== }.map { |c| c.rhs.val }.uniq
+        return false if eqs.size > 1 # two different required values
+        return constraints.all? { |c| holds?(eqs.first, c.op, c.rhs.val) } unless eqs.empty?
+
+        lo = 0
+        hi = 0xffffffff
+        constraints.each do |c|
+          case c.op
+          when :> then lo = [lo, c.rhs.val + 1].max
+          when :>= then lo = [lo, c.rhs.val].max
+          when :< then hi = [hi, c.rhs.val - 1].min
+          when :<= then hi = [hi, c.rhs.val].min
+          end
+        end
+        lo <= hi
+      end
+
+      # Does the concrete value +val+ satisfy +val <op> rhs+?
+      def holds?(val, op, rhs)
+        case op
+        when :set then !val.nobits?(rhs)
+        when :unset then val.nobits?(rhs)
+        else op_holds?(val, op, rhs)
+        end
+      end
 
       # The value of the single +data[offset] == k+ fact on +path+, if any.
       def eq(path, offset)

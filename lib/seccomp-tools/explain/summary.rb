@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/symbolic/constraint'
 require 'seccomp-tools/util'
 
 module SeccompTools
   class Explain
-    # Turns the raw {Explain::Leaf}s collected by the walk into a human-readable policy, grouped by
-    # architecture and then by action (+ALLOW+, +KILL+, +ERRNO(n)+, ...).
+    # Turns the raw {Symbolic::Executor::Leaf}s collected by the walk into a human-readable policy,
+    # grouped by architecture and then by action (+ALLOW+, +KILL+, +ERRNO(n)+, ...).
     class Summary
       # Byte offset of the syscall number within +struct seccomp_data+.
       SYS = 0
@@ -15,15 +16,15 @@ module SeccompTools
       # Buckets are printed in this order; unlisted actions sort last.
       ORDER = %i[ALLOW USER_NOTIF LOG TRACE TRAP ERRNO KILL KILL_PROCESS UNKNOWN].freeze
 
-      # @param [Array<Explain::Leaf>] leaves
+      # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
       #   The filter's declared architecture, used when the filter itself does not branch on +arch+.
       # @param [String?] source
       #   Label shown in the header.
       # @param [Boolean] truncated
-      #   Whether the walk hit {Explain::STEP_CAP}.
+      #   Whether the walk hit {Symbolic::Executor::STEP_CAP}.
       def initialize(leaves, arch:, source: nil, truncated: false)
-        @leaves = leaves.select { |l| feasible?(l.path) }
+        @leaves = leaves
         @arch = arch
         @source = source
         @truncated = truncated
@@ -45,7 +46,7 @@ module SeccompTools
 
       private
 
-      # @return [Array<[Symbol, Array<Explain::Leaf>]>]
+      # @return [Array<[Symbol, Array<Symbolic::Executor::Leaf>]>]
       def sections
         vals = arch_values
         return [[@arch, @leaves]] if vals.empty?
@@ -75,19 +76,7 @@ module SeccompTools
         path.all? do |c|
           next true unless c.expr.plain_data? && c.expr.offset == ARCH && c.rhs.imm?
 
-          op_holds?(val, c.op, c.rhs.val)
-        end
-      end
-
-      def op_holds?(lhs, op, rhs)
-        case op
-        when :== then lhs == rhs
-        when :!= then lhs != rhs
-        when :> then lhs > rhs
-        when :>= then lhs >= rhs
-        when :< then lhs < rhs
-        when :<= then lhs <= rhs
-        else true
+          c.holds?(val)
         end
       end
 
@@ -196,46 +185,6 @@ module SeccompTools
       end
 
       # --- path-condition queries -------------------------------------------------------------
-
-      # Is +path+ satisfiable? A conditional jump forks both ways regardless of feasibility, so a
-      # walk can reach a return through contradictory facts (e.g. +sys == 0xffffffff && sys == 3+).
-      # Such a path never happens at runtime, so its leaf must be dropped. Only concrete facts on
-      # plain data words are checked; transformed or opaque values are assumed satisfiable.
-      # @param [Array<Constraint>] path
-      # @return [Boolean]
-      def feasible?(path)
-        path.select { |c| c.expr.plain_data? && c.rhs.imm? }
-            .group_by { |c| c.expr.offset }
-            .all? { |_offset, cs| cell_feasible?(cs) }
-      end
-
-      # Are the constraints on a single data word jointly satisfiable?
-      def cell_feasible?(constraints)
-        eqs = constraints.select { |c| c.op == :== }.map { |c| c.rhs.val }.uniq
-        return false if eqs.size > 1 # two different required values
-        return constraints.all? { |c| holds?(eqs.first, c.op, c.rhs.val) } unless eqs.empty?
-
-        lo = 0
-        hi = 0xffffffff
-        constraints.each do |c|
-          case c.op
-          when :> then lo = [lo, c.rhs.val + 1].max
-          when :>= then lo = [lo, c.rhs.val].max
-          when :< then hi = [hi, c.rhs.val - 1].min
-          when :<= then hi = [hi, c.rhs.val].min
-          end
-        end
-        lo <= hi
-      end
-
-      # Does the concrete value +val+ satisfy +val <op> rhs+?
-      def holds?(val, op, rhs)
-        case op
-        when :set then !val.nobits?(rhs)
-        when :unset then val.nobits?(rhs)
-        else op_holds?(val, op, rhs)
-        end
-      end
 
       # The value of the single +data[offset] == k+ fact on +path+, if any.
       def eq(path, offset)

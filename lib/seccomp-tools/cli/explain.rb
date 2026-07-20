@@ -99,9 +99,19 @@ module SeccompTools
           CLI.show(parser.help)
           return []
         end
-        return [[input, option[:arch], source_name(option[:ifile])]] if raw_bpf_file?
+        return read_raw_bpf if raw_bpf_file?
 
         dump_filters(command:, pid: nil, source: command)
+      end
+
+      # Reads the positional file (or stdin) as a raw BPF blob, logging an error instead of
+      # crashing when it cannot be read.
+      # @return [Array<Array(String, Symbol, String?)>]
+      def read_raw_bpf
+        [[input, option[:arch], source_name(option[:ifile])]]
+      rescue SystemCallError => e
+        Logger.error(e.message)
+        []
       end
 
       # Should the input be read directly as a raw BPF blob, rather than run as a command? True when

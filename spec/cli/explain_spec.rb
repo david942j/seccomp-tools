@@ -49,6 +49,11 @@ Architecture: amd64
 EOS
   end
 
+  it 'logs an error instead of crashing when the input file cannot be read' do
+    expect { described_class.new(['/no/such/file', '-a', 'amd64']).handle }
+      .to output(%r{\A\[ERROR\] No such file or directory.*/no/such/file\n\z}).to_stdout
+  end
+
   it 'shows the help when no file is given' do
     expect { described_class.new([]).handle }.to output(/Usage: seccomp-tools explain/).to_stdout
   end

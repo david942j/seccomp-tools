@@ -15,7 +15,7 @@ module SeccompTools
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
       # Usage of this command.
       USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux." \
-              "\n\nUsage: seccomp-tools dump [exec] [options]".freeze
+              "\n\nUsage: seccomp-tools dump [EXEC] [options]".freeze
 
       # Instantiate a {Dump} object, dumping the first filter as disassembly by default.
       #
@@ -37,7 +37,7 @@ module SeccompTools
           opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh).',
                  'Use this option if want to pass arguments or do pipe things to the execution file.',
                  'e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.',
-                 'Takes precedence over the [exec] argument.') do |command|
+                 'Takes precedence over the [EXEC] argument.') do |command|
             option[:command] = command
           end
 
@@ -113,7 +113,7 @@ module SeccompTools
 
       private
 
-      # Warns about positional arguments that are left unused, e.g. an [exec] given together with
+      # Warns about positional arguments that are left unused, e.g. an [EXEC] given together with
       # +-c+, or anything after +--pid+. Dumping still proceeds.
       # @return [void]
       def warn_ignored_arguments

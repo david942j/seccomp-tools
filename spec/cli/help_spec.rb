@@ -27,11 +27,11 @@ See 'seccomp-tools <command> --help' to read about a specific subcommand.
 dump - Automatically dump seccomp bpf from execution file(s).
 NOTE : This function is only available on Linux.
 
-Usage: seccomp-tools dump [exec] [options]
+Usage: seccomp-tools dump [EXEC] [options]
     -c, --sh-exec <command>          Executes the given command (via sh).
                                      Use this option if want to pass arguments or do pipe things to the execution file.
                                      e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.
-                                     Takes precedence over the [exec] argument.
+                                     Takes precedence over the [EXEC] argument.
     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
                                      Default: disasm
     -l, --limit LIMIT                Limit the number of calling "prctl(PR_SET_SECCOMP)".

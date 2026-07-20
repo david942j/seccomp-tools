@@ -36,7 +36,7 @@ module SeccompTools
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
 
-          option_arch(opt)
+          option_arch(opt, 'With an executable or --pid the architecture is auto-detected instead.')
 
           opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh) and explains its seccomp.',
                  'Use this to pass arguments or pipe things to the execution file.') do |command|

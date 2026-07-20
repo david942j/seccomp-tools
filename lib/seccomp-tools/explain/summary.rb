@@ -246,16 +246,15 @@ module SeccompTools
       def render_expr(expr, sys)
         return '<opaque>' if expr.opaque?
         return "0x#{expr.val.to_s(16)}" if expr.imm?
+        return data_name(expr.offset, sys) if expr.plain_data?
 
-        base = data_name(expr.offset, sys)
-        expr.transforms.reduce(base) { |acc, (op, operand)| "#{acc} #{op} #{operand_str(op, operand, sys)}" }
+        "#{render_expr(expr.lhs, sys)} #{expr.op} #{operand_str(expr.op, expr.rhs, sys)}"
       end
 
       def operand_str(op, operand, sys)
         return operand.val.to_s if operand.imm? && %i[<< >>].include?(op) # shift amount, in decimal
-        return "0x#{operand.val.to_s(16)}" if operand.imm?
 
-        render_expr(operand, sys) # a data word, or a further transform of one
+        render_expr(operand, sys)
       end
 
       def op_str(op)

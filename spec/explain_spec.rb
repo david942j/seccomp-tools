@@ -1,6 +1,7 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
+require 'seccomp-tools/asm/asm'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/explain'
 require 'seccomp-tools/util'
@@ -64,11 +65,29 @@ EOS
       expect(out).to include('socket when family >> 32 == 0x0 && family == 0x2 && type >> 32 == 0x0 && type == 0x1')
     end
 
-    it 'renders a data-to-data computation rather than giving up' do
-      # write when (count & fd) & 0xfff == buf | 0x123 -- args combined with each other (a filter
-      # shape the kernel accepts). The left side used to render as <opaque>.
-      out = explain(fixture('data-to-data.bpf'), :amd64)
-      expect(out).to include('write when count & fd & 0xfff == buf | 0x123')
+    it 'renders data-to-data and immediate-rooted arithmetic (see spec/data/complex.asm)' do
+      raw = SeccompTools::Asm.asm(File.read(File.join(__dir__, 'data', 'complex.asm')), arch: :amd64)
+      expect(explain(raw, :amd64)).to eq(<<EOS)
+
+Architecture: amd64
+
+  ALLOW:
+    read
+    write when count & fd & 0xffff == buf | 0x10
+    openat when flags == 0x1337 & filename
+
+  TRACE:
+    <default> (any other syscall)
+
+  ERRNO(1):
+    write when count & fd & 0xffff != buf | 0x10
+    openat when flags != 0x1337 & filename
+
+  KILL:
+    sys_number >= 0x40000000  (x32 ABI)
+
+Other architectures: KILL
+EOS
     end
 
     it 'never silently drops an argument check that does not pin a syscall' do

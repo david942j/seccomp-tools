@@ -77,6 +77,23 @@ describe SeccompTools::Symbolic::Executor do
     expect(rets(leaves_of(insts))).to contain_exactly(0x7fff0000, 0)
   end
 
+  it 'records a data-to-data computation as a binop constraint' do
+    insts = [
+      inst(cmd(:ld, mode: :abs), k: 16),             # A = data[16]
+      inst(cmd(:misc, misc: :tax)),                  # X = data[16]
+      inst(cmd(:ld, mode: :abs), k: 24),             # A = data[24]
+      inst(cmd(:alu, op: :and, src: :x)),            # A = data[24] & data[16]
+      inst(cmd(:jmp, jmp: :jeq), jt: 0, jf: 1, k: 5), # A == 5 -> ALLOW
+      inst(cmd(:ret), k: 0x7fff0000),
+      inst(cmd(:ret), k: 0)
+    ]
+    leaves, = run(insts)
+    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.expr
+    expect(expr.kind).to be :binop
+    expect([expr.op, expr.lhs, expr.rhs])
+      .to eq [:&, SeccompTools::Symbolic::Expr.data(24), SeccompTools::Symbolic::Expr.data(16)]
+  end
+
   it 'treats a jump with equal targets as unconditional (no fact learned)' do
     insts = [
       inst(cmd(:ld, mode: :abs), k: 0),

@@ -9,32 +9,29 @@ module SeccompTools
   module Symbolic
     # A value the executor only knows *symbolically* — that is, without picking concrete inputs.
     #
-    # Every register and scratch slot in the {State} holds an {Expr}. It is one of three kinds:
+    # Every register and scratch slot in the {State} holds an {Expr}, which is one of:
     # * {.imm} - a known 32-bit constant, e.g. the result of +A = 5+.
-    # * {.data} - a word read from the input data buffer at some byte +offset+, possibly with a
-    #   chain of arithmetic applied to it (e.g. +data[16] & 0xffff+). The value itself is unknown;
-    #   we only remember where it came from and what was done to it.
-    # * {.opaque} - a value we cannot describe (e.g. the result of an unsupported operation, or
-    #   arithmetic between two unknown words). Nothing can be concluded about it.
-    #
-    # Keeping the provenance of {.data} values is what lets the caller later say things like
-    # "this branch is taken when +data[16] & 0xffff == 5+".
+    # * {.data} - a single word of the input data buffer, at some byte +offset+. Its value is
+    #   unknown; we only remember where it was read from.
+    # * {.binop} - an arithmetic combination of two sub-expressions, e.g. +data[16] & 0xffff+ or even
+    #   +data[16] & data[24]+ (two buffer words combined). This is what lets a caller later describe a
+    #   branch condition faithfully.
+    # * {.opaque} - a value we cannot describe (an unsupported operation, or one whose operand is
+    #   itself opaque). Nothing can be concluded about it.
     class Expr
-      # ALU operators that can be recorded as a transform on a {.data} expression (all reversible
-      # enough to describe symbolically). Other operators collapse the value to {.opaque}.
+      # ALU operators that {#apply} can represent as a {.binop}. Anything else becomes {.opaque}.
       REPRESENTABLE = %i[& | ^ << >> + - *].freeze
 
-      # @return [:imm, :data, :opaque] Which kind of expression this is.
+      # @return [:imm, :data, :binop, :opaque] Which kind of expression this is.
       attr_reader :kind
       # @return [Integer?] The constant, when +kind+ is +:imm+.
       attr_reader :val
       # @return [Integer?] The byte offset into the input data buffer, when +kind+ is +:data+.
       attr_reader :offset
-      # @return [Array<[Symbol, Expr]>] Ordered ALU transforms applied to a +:data+ word, each an
-      #   +[operator, operand]+ pair whose operand is another {Expr} - usually a constant
-      #   (+[:&, Expr.imm(0xffff)]+), but it may be another data word (+[:&, Expr.data(16)]+) when the
-      #   filter combines two buffer words.
-      attr_reader :transforms
+      # @return [Symbol?] The operator, when +kind+ is +:binop+.
+      attr_reader :op
+      # @return [Expr?] The left and right operands, when +kind+ is +:binop+.
+      attr_reader :lhs, :rhs
 
       # A known constant.
       # @param [Integer] val
@@ -43,12 +40,21 @@ module SeccompTools
         new(:imm, val: val & 0xffffffff)
       end
 
-      # A freshly-read word of the input data buffer, with no arithmetic applied yet.
+      # A single word of the input data buffer.
       # @param [Integer] offset
       #   Byte offset into the buffer.
       # @return [Expr]
       def self.data(offset)
-        new(:data, offset:, transforms: [])
+        new(:data, offset:)
+      end
+
+      # An arithmetic combination of two expressions.
+      # @param [Symbol] op
+      # @param [Expr] lhs
+      # @param [Expr] rhs
+      # @return [Expr]
+      def self.binop(op, lhs, rhs)
+        new(:binop, op:, lhs:, rhs:)
       end
 
       # A value that cannot be described symbolically.
@@ -57,12 +63,16 @@ module SeccompTools
         new(:opaque)
       end
 
-      # @param [:imm, :data, :opaque] kind
-      def initialize(kind, val: nil, offset: nil, transforms: nil)
+      # @param [:imm, :data, :binop, :opaque] kind
+      # @param [Hash] fields
+      #   The kind-specific fields: +:val+, +:offset+, +:op+, +:lhs+, +:rhs+.
+      def initialize(kind, **fields)
         @kind = kind
-        @val = val
-        @offset = offset
-        @transforms = transforms
+        @val = fields[:val]
+        @offset = fields[:offset]
+        @op = fields[:op]
+        @lhs = fields[:lhs]
+        @rhs = fields[:rhs]
       end
 
       # @return [Boolean]
@@ -70,8 +80,10 @@ module SeccompTools
         kind == :imm
       end
 
+      # Is this a bare data-buffer word (no arithmetic applied)? These are the values a caller can
+      # compare directly against a constant.
       # @return [Boolean]
-      def data?
+      def plain_data?
         kind == :data
       end
 
@@ -80,36 +92,28 @@ module SeccompTools
         kind == :opaque
       end
 
-      # Is this a data-buffer word with no arithmetic applied? These are the values a caller can
-      # compare directly against a constant.
-      # @return [Boolean]
-      def plain_data?
-        data? && transforms.empty?
-      end
-
       # Applies an ALU operation, returning the resulting {Expr}. Two constants fold into a new
-      # constant; a {REPRESENTABLE} operation on a data word records a transform (the operand may be
-      # another constant or another data word); anything else (e.g. +neg+, or an operand that is
-      # itself unknown) becomes {.opaque}.
+      # constant; a {REPRESENTABLE} operation on non-opaque operands becomes a {.binop}; anything else
+      # (e.g. +neg+, or an opaque operand) becomes {.opaque}.
       # @param [Symbol] op
       #   A Ruby operator symbol as produced by +Instruction::ALU#symbolize+, or +:neg+.
       # @param [Expr] operand
       #   The right operand.
       # @return [Expr]
       def apply(op, operand)
-        return Expr.opaque if op == :neg
+        return Expr.opaque if op == :neg || opaque? || operand.opaque?
         return Expr.imm(self.class.fold(val, op, operand.val)) if imm? && operand.imm?
-        return with_transform(op, operand) if data? && !operand.opaque? && REPRESENTABLE.include?(op)
+        return Expr.opaque unless REPRESENTABLE.include?(op)
 
-        Expr.opaque
+        Expr.binop(op, self, operand)
       end
 
       # A value that uniquely identifies this expression, for hashing and equality (so the executor
-      # can recognise two states as identical). Operands are reduced to their own keys so the result
-      # is a plain nested value.
+      # can recognise two states as identical). Sub-expressions are reduced to their own keys, so the
+      # result is a plain nested value.
       # @return [Array]
       def key
-        [kind, val, offset, transforms&.map { |op, operand| [op, operand.key] }]
+        kind == :binop ? [:binop, op, lhs.key, rhs.key] : [kind, val, offset]
       end
 
       # @param [Expr] other
@@ -134,12 +138,6 @@ module SeccompTools
         when :>> then lhs >> rhs
         else lhs.public_send(op, rhs)
         end & 0xffffffff
-      end
-
-      private
-
-      def with_transform(op, operand)
-        Expr.new(:data, offset:, transforms: transforms + [[op, operand]])
       end
     end
   end

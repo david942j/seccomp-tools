@@ -7,7 +7,6 @@ describe SeccompTools::Symbolic::Expr do
     it 'imm' do
       e = described_class.imm(0x1_0000_0005) # wraps to 32 bits
       expect(e.imm?).to be true
-      expect(e.data?).to be false
       expect(e.opaque?).to be false
       expect(e.plain_data?).to be false
       expect(e.val).to be 5
@@ -15,10 +14,8 @@ describe SeccompTools::Symbolic::Expr do
 
     it 'data' do
       e = described_class.data(16)
-      expect(e.data?).to be true
       expect(e.plain_data?).to be true
       expect(e.offset).to be 16
-      expect(e.transforms).to eq []
     end
 
     it 'opaque' do
@@ -27,7 +24,7 @@ describe SeccompTools::Symbolic::Expr do
   end
 
   describe '#apply' do
-    it 'folds two immediates' do
+    it 'folds two constants' do
       expect(described_class.imm(6).apply(:+, described_class.imm(7)).val).to be 13
     end
 
@@ -42,38 +39,52 @@ describe SeccompTools::Symbolic::Expr do
       expect(described_class.imm(6).apply(:/, described_class.imm(2)).val).to be 3
     end
 
-    it 'records a representable transform against a constant' do
+    it 'builds a binop for a data word combined with a constant' do
       e = described_class.data(16).apply(:&, described_class.imm(0xffff))
-      expect(e.data?).to be true
       expect(e.plain_data?).to be false
-      expect(e.transforms).to eq [[:&, described_class.imm(0xffff)]]
+      expect(e.kind).to be :binop
+      expect(e.op).to be :&
+      expect(e.lhs).to eq described_class.data(16)
+      expect(e.rhs).to eq described_class.imm(0xffff)
     end
 
-    it 'records a transform against another data word' do
-      e = described_class.data(32).apply(:&, described_class.data(16))
-      expect(e.data?).to be true
-      expect(e.transforms).to eq [[:&, described_class.data(16)]]
+    it 'builds a binop for two data words' do
+      e = described_class.data(32).apply(:|, described_class.data(16))
+      expect([e.kind, e.op, e.lhs, e.rhs])
+        .to eq [:binop, :|, described_class.data(32), described_class.data(16)]
     end
 
-    it 'becomes opaque for neg, for an opaque operand, an immediate base, and unrepresentable ops' do
+    it 'builds a binop rooted at a constant (immediate & data)' do
+      e = described_class.imm(0x1337).apply(:&, described_class.data(0))
+      expect([e.kind, e.op, e.lhs, e.rhs])
+        .to eq [:binop, :&, described_class.imm(0x1337), described_class.data(0)]
+    end
+
+    it 'becomes opaque for neg, an opaque operand, an opaque base, and unrepresentable ops' do
       expect(described_class.data(16).apply(:neg, nil).opaque?).to be true
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
-      expect(described_class.imm(6).apply(:+, described_class.data(0)).opaque?).to be true
+      expect(described_class.opaque.apply(:+, described_class.imm(1)).opaque?).to be true
       expect(described_class.data(16).apply(:/, described_class.imm(2)).opaque?).to be true
     end
   end
 
   describe 'equality and hashing' do
-    it 'compares by content' do
+    it 'compares by content, recursing into binops' do
       expect(described_class.data(16)).to eq described_class.data(16)
       expect(described_class.data(16)).not_to eq described_class.data(20)
       expect(described_class.imm(5)).not_to eq 5 # non-Expr
-      expect(described_class.imm(5).eql?(described_class.imm(5))).to be true
+      a = described_class.data(0).apply(:&, described_class.imm(1))
+      b = described_class.data(0).apply(:&, described_class.imm(1))
+      c = described_class.data(0).apply(:&, described_class.imm(2))
+      expect(a).to eq b
+      expect(a).not_to eq c
+      expect(a.eql?(b)).to be true
     end
 
     it 'hashes equal expressions alike' do
       expect(described_class.imm(5).hash).to eq described_class.imm(5).hash
-      expect({ described_class.data(16) => 1 }[described_class.data(16)]).to be 1
+      e = described_class.data(0).apply(:&, described_class.imm(1))
+      expect({ e => 1 }[described_class.data(0).apply(:&, described_class.imm(1))]).to be 1
     end
   end
 end

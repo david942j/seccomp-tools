@@ -108,7 +108,7 @@ module SeccompTools
       # no +-c+ was given and the positional argument is not an executable (a plain file or stdin).
       # @return [Boolean]
       def raw_bpf_file?
-        !option[:command] && !executable?
+        !option[:command] && !executable?(option[:ifile])
       end
 
       # Dumps filters from a command or pid and labels each with +source+.
@@ -124,11 +124,12 @@ module SeccompTools
         filters
       end
 
-      # Is the positional input an ELF executable (rather than a raw BPF blob or stdin)?
+      # Is +file+ an ELF executable to run, rather than a raw BPF blob or stdin to read?
+      # @param [String?] file
+      #   The path to check. +nil+ (no argument) and +-+ (stdin) are not executables.
       # @return [Boolean]
-      def executable?
-        ifile = option[:ifile]
-        ifile && ifile != '-' && Util.elf?(ifile)
+      def executable?(file)
+        file && file != '-' && Util.elf?(file)
       end
 
       # The label shown in the policy header; +<STDIN>+ when reading from stdin.

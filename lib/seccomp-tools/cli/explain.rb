@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require 'shellwords'
-
 require 'seccomp-tools/cli/base'
+require 'seccomp-tools/cli/dumpable'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 require 'seccomp-tools/explain'
@@ -13,6 +12,8 @@ module SeccompTools
   module CLI
     # Handle 'explain' command.
     class Explain < Base
+      include Dumpable
+
       # Summary of this command.
       SUMMARY = 'Summarize a seccomp filter as a per-action policy.'
       # Usage of this command.
@@ -84,42 +85,27 @@ module SeccompTools
       # nothing to do (help shown, or an error was logged).
       # @return [Array<Array(String, Symbol, String?)>, nil]
       def collect_filters
-        return dump_pid if option[:pid]
+        return dump_filters(command: nil, pid: option[:pid], source: "pid #{option[:pid]}") if option[:pid]
 
         option[:ifile] = argv.shift
         return CLI.show(parser.help) if option[:command].nil? && option[:ifile].nil?
 
-        option[:command] || executable? ? dump_exec : [[input, option[:arch], source_name]]
-      end
-
-      # Dumps the filters installed by running an executable.
-      def dump_exec
-        return unsupported unless SeccompTools::Dumper::SUPPORTED
+        return [[input, option[:arch], source_name]] unless option[:command] || executable?
 
         command = option[:command] || option[:ifile]
-        filters = SeccompTools::Dumper.dump('/bin/sh', '-c', command, limit: option[:limit],
-                                                                      timeout: option[:timeout]) do |bpf, arch|
-          [bpf, arch || option[:arch], command]
-        end
-        filters.empty? ? none_installed : filters
+        dump_filters(command:, pid: nil, source: command)
       end
 
-      # Dumps the filters installed on an existing process.
-      def dump_pid
+      # Dumps filters from a command or pid and labels each with +source+.
+      # @return [Array<Array(String, Symbol, String?)>, nil]
+      #   The filter tuples, or +nil+ when dumping is unsupported or nothing was installed.
+      def dump_filters(command:, pid:, source:)
         return unsupported unless SeccompTools::Dumper::SUPPORTED
 
-        filters = SeccompTools::Dumper.dump_by_pid(option[:pid], option[:limit]) do |bpf, arch|
-          [bpf, arch || option[:arch], "pid #{option[:pid]}"]
+        filters = dump_seccomp(command:, pid:, limit: option[:limit], timeout: option[:timeout]) do |bpf, arch|
+          [bpf, arch || option[:arch], source]
         end
         filters.empty? ? none_installed : filters
-      rescue Errno::EPERM, Errno::EACCES => e
-        Logger.error(<<~EOS)
-          #{e}
-          PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN
-          Try:
-              sudo env "PATH=$PATH" #{(%w[seccomp-tools] + ARGV).shelljoin}
-        EOS
-        exit(1)
       end
 
       # Logs that nothing was installed and returns +nil+ so {#handle} prints nothing.

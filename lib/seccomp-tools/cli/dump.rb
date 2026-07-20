@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-require 'shellwords'
-
 require 'seccomp-tools/cli/base'
+require 'seccomp-tools/cli/dumpable'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 require 'seccomp-tools/logger'
@@ -11,6 +10,8 @@ module SeccompTools
   module CLI
     # Handle 'dump' command.
     class Dump < Base
+      include Dumpable
+
       # Summary of this command.
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
       # Usage of this command.
@@ -93,22 +94,8 @@ module SeccompTools
         # -c/--sh-exec takes precedence; a positional exec is used only when -c is absent.
         option[:command] ||= argv.shift unless option[:pid]
         warn_ignored_arguments
-        if option[:pid].nil?
-          SeccompTools::Dumper.dump('/bin/sh', '-c', option[:command], limit: option[:limit],
-                                                                       timeout: option[:timeout], &block)
-        else
-          begin
-            SeccompTools::Dumper.dump_by_pid(option[:pid], option[:limit], &block)
-          rescue Errno::EPERM, Errno::EACCES => e
-            Logger.error(<<~EOS)
-            #{e}
-            PTRACE_SECCOMP_GET_FILTER requires CAP_SYS_ADMIN
-            Try:
-                sudo env "PATH=$PATH" #{(%w[seccomp-tools] + ARGV).shelljoin}
-            EOS
-            exit(1)
-          end
-        end
+        dump_seccomp(command: option[:command], pid: option[:pid], limit: option[:limit], timeout: option[:timeout],
+                     &block)
       end
 
       private

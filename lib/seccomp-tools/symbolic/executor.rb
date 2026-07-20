@@ -96,11 +96,19 @@ module SeccompTools
         when :ret then leaves << Leaf.new(st.path, args[0] == :a ? st.a : Expr.imm(args[0]), pc)
         when :ld then stack << [pc + 1, load(st, args[0], args[1])]
         when :st then stack << [pc + 1, store(st, args[0], args[1])]
-        when :alu then stack << [pc + 1, st.with(a: st.a.apply(args[0], args[1] == :x ? st.x : Expr.imm(args[1])))]
+        when :alu then stack << [pc + 1, st.with(a: st.a.apply(args[0], alu_operand(st, args[1])))]
         when :misc then stack << [pc + 1, args[0] == :txa ? st.with(a: st.x) : st.with(x: st.a)]
         when :jmp then stack << [pc + args[0] + 1, st]
         when :cmp then branch_cmp(pc, st, args, stack)
         end
+      end
+
+      # The right operand of an ALU instruction: the X register, an immediate, or +nil+ for the
+      # unary +neg+ (whose symbolized operand is +nil+).
+      def alu_operand(st, src)
+        return st.x if src == :x
+
+        src && Expr.imm(src)
       end
 
       # Loads an immediate, a scratch slot, or a data-buffer word into register A or X.

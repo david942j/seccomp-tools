@@ -100,6 +100,34 @@ EOS
       expect(out).to include('close when (fd & 0x101) != 0')             # jset bit test
     end
 
+    it 'renders negation and division' do
+      src = <<~ASM
+        A = sys_number
+        A == write ? chk_neg : next
+        A == read  ? chk_div : next
+        return KILL
+        chk_neg:
+        A = args[0]
+        A = -A
+        X = A
+        A = args[1]
+        A == X ? allow : deny
+        chk_div:
+        A = args[0]
+        A /= 0x2
+        X = A
+        A = args[1]
+        A == X ? allow : deny
+        allow:
+        return ALLOW
+        deny:
+        return KILL
+      ASM
+      out = explain(SeccompTools::Asm.asm(src, arch: :amd64), :amd64)
+      expect(out).to include('write when buf == -fd')       # unary negation
+      expect(out).to include('read when buf == fd / 0x2')   # division (/ binds tighter than ==)
+    end
+
     it 'never silently drops an argument check that does not pin a syscall' do
       # A = args[0]; A &= 0xffff; if (A == 5) return ALLOW else return KILL
       raw = "\x20\x00\x00\x00\x10\x00\x00\x00" \

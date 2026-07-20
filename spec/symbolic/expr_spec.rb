@@ -60,11 +60,22 @@ describe SeccompTools::Symbolic::Expr do
         .to eq [:binop, :&, described_class.imm(0x1337), described_class.data(0)]
     end
 
-    it 'becomes opaque for neg, an opaque operand, an opaque base, and unrepresentable ops' do
-      expect(described_class.data(16).apply(:neg, nil).opaque?).to be true
+    it 'builds a binop for division' do
+      e = described_class.data(0).apply(:/, described_class.imm(2))
+      expect([e.kind, e.op, e.lhs, e.rhs]).to eq [:binop, :/, described_class.data(0), described_class.imm(2)]
+    end
+
+    it 'negates via a unary node, folding a constant' do
+      expect(described_class.imm(5).apply(:neg, nil).val).to be 0xfffffffb # -5, two's complement
+      neg = described_class.data(0).apply(:neg, nil)
+      expect([neg.kind, neg.op, neg.lhs]).to eq [:unop, :neg, described_class.data(0)]
+      expect(described_class.opaque.apply(:neg, nil).opaque?).to be true
+    end
+
+    it 'becomes opaque for an opaque operand, an opaque base, and unrepresentable ops' do
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
       expect(described_class.opaque.apply(:+, described_class.imm(1)).opaque?).to be true
-      expect(described_class.data(16).apply(:/, described_class.imm(2)).opaque?).to be true
+      expect(described_class.data(16).apply(:%, described_class.imm(2)).opaque?).to be true
     end
   end
 
@@ -79,6 +90,7 @@ describe SeccompTools::Symbolic::Expr do
       expect(a).to eq b
       expect(a).not_to eq c
       expect(a.eql?(b)).to be true
+      expect(described_class.data(0).apply(:neg, nil)).to eq described_class.data(0).apply(:neg, nil)
     end
 
     it 'hashes equal expressions alike' do

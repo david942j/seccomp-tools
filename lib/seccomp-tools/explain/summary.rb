@@ -19,10 +19,12 @@ module SeccompTools
       # exactly where it would otherwise be misread — notably that +==+ binds tighter than the
       # bitwise operators, so +a & b == c+ must be shown as +(a & b) == c+.
       PREC = {
-        :* => 12, :+ => 11, :- => 11, :<< => 10, :>> => 10,
+        :* => 12, :/ => 12, :+ => 11, :- => 11, :<< => 10, :>> => 10,
         :< => 9, :<= => 9, :> => 9, :>= => 9, :== => 8, :!= => 8,
         :& => 7, :^ => 6, :| => 5
       }.freeze
+      # Unary negation binds tighter than any binary operator.
+      UNARY_PREC = 13
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -253,6 +255,7 @@ module SeccompTools
         return '<opaque>' if expr.opaque?
         return "0x#{expr.val.to_s(16)}" if expr.imm?
         return data_name(expr.offset, sys) if expr.plain_data?
+        return "-#{render_expr(expr.lhs, sys, UNARY_PREC)}" if expr.kind == :unop
 
         render_binop(expr.op, expr.lhs, expr.rhs, sys, min_prec)
       end

@@ -94,6 +94,19 @@ describe SeccompTools::Symbolic::Executor do
       .to eq [:&, SeccompTools::Symbolic::Expr.data(24), SeccompTools::Symbolic::Expr.data(16)]
   end
 
+  it 'handles unary negation without crashing on its nil operand' do
+    insts = [
+      inst(cmd(:ld, mode: :abs), k: 16),             # A = data[16]
+      inst(cmd(:alu, op: :neg)),                     # A = -A
+      inst(cmd(:jmp, jmp: :jeq), jt: 0, jf: 1, k: 5), # -A == 5 -> ALLOW
+      inst(cmd(:ret), k: 0x7fff0000),
+      inst(cmd(:ret), k: 0)
+    ]
+    leaves, = run(insts)
+    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.expr
+    expect([expr.kind, expr.op, expr.lhs]).to eq [:unop, :neg, SeccompTools::Symbolic::Expr.data(16)]
+  end
+
   it 'treats a jump with equal targets as unconditional (no fact learned)' do
     insts = [
       inst(cmd(:ld, mode: :abs), k: 0),

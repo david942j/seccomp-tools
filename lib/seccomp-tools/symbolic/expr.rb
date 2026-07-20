@@ -16,13 +16,14 @@ module SeccompTools
     # * {.binop} - an arithmetic combination of two sub-expressions, e.g. +data[16] & 0xffff+ or even
     #   +data[16] & data[24]+ (two buffer words combined). This is what lets a caller later describe a
     #   branch condition faithfully.
+    # * {.unop} - a unary operation on a sub-expression; the only one BPF has is negation (+-A+).
     # * {.opaque} - a value we cannot describe (an unsupported operation, or one whose operand is
     #   itself opaque). Nothing can be concluded about it.
     class Expr
       # ALU operators that {#apply} can represent as a {.binop}. Anything else becomes {.opaque}.
-      REPRESENTABLE = %i[& | ^ << >> + - *].freeze
+      REPRESENTABLE = %i[& | ^ << >> + - * /].freeze
 
-      # @return [:imm, :data, :binop, :opaque] Which kind of expression this is.
+      # @return [:imm, :data, :binop, :unop, :opaque] Which kind of expression this is.
       attr_reader :kind
       # @return [Integer?] The constant, when +kind+ is +:imm+.
       attr_reader :val
@@ -55,6 +56,14 @@ module SeccompTools
       # @return [Expr]
       def self.binop(op, lhs, rhs)
         new(:binop, op:, lhs:, rhs:)
+      end
+
+      # A unary operation on one expression (its operand is kept in +lhs+).
+      # @param [Symbol] op
+      # @param [Expr] operand
+      # @return [Expr]
+      def self.unop(op, operand)
+        new(:unop, op:, lhs: operand)
       end
 
       # A value that cannot be described symbolically.
@@ -92,16 +101,17 @@ module SeccompTools
         kind == :opaque
       end
 
-      # Applies an ALU operation, returning the resulting {Expr}. Two constants fold into a new
-      # constant; a {REPRESENTABLE} operation on non-opaque operands becomes a {.binop}; anything else
-      # (e.g. +neg+, or an opaque operand) becomes {.opaque}.
+      # Applies an ALU operation, returning the resulting {Expr}. +neg+ is unary (its operand is
+      # ignored). Two constants fold into a new constant; a {REPRESENTABLE} operation on non-opaque
+      # operands becomes a {.binop}; anything else (an opaque operand) becomes {.opaque}.
       # @param [Symbol] op
       #   A Ruby operator symbol as produced by +Instruction::ALU#symbolize+, or +:neg+.
-      # @param [Expr] operand
-      #   The right operand.
+      # @param [Expr, nil] operand
+      #   The right operand (+nil+ for the unary +neg+).
       # @return [Expr]
       def apply(op, operand)
-        return Expr.opaque if op == :neg || opaque? || operand.opaque?
+        return apply_neg if op == :neg
+        return Expr.opaque if opaque? || operand.opaque?
         return Expr.imm(self.class.fold(val, op, operand.val)) if imm? && operand.imm?
         return Expr.opaque unless REPRESENTABLE.include?(op)
 
@@ -113,7 +123,11 @@ module SeccompTools
       # result is a plain nested value.
       # @return [Array]
       def key
-        kind == :binop ? [:binop, op, lhs.key, rhs.key] : [kind, val, offset]
+        case kind
+        when :binop then [:binop, op, lhs.key, rhs.key]
+        when :unop then [:unop, op, lhs.key]
+        else [kind, val, offset]
+        end
       end
 
       # @param [Expr] other
@@ -138,6 +152,17 @@ module SeccompTools
         when :>> then lhs >> rhs
         else lhs.public_send(op, rhs)
         end & 0xffffffff
+      end
+
+      private
+
+      # The unary negation +A = -A+ (two's complement, 32-bit).
+      # @return [Expr]
+      def apply_neg
+        return Expr.opaque if opaque?
+        return Expr.imm(self.class.fold(0, :-, val)) if imm?
+
+        Expr.unop(:neg, self)
       end
     end
   end

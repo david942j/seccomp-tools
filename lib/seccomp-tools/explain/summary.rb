@@ -15,6 +15,14 @@ module SeccompTools
       ARCH = 4
       # Buckets are printed in this order; unlisted actions sort last.
       ORDER = %i[ALLOW USER_NOTIF LOG TRACE TRAP ERRNO KILL KILL_PROCESS UNKNOWN].freeze
+      # C-like operator precedence (higher binds tighter), used to parenthesize a rendered condition
+      # exactly where it would otherwise be misread — notably that +==+ binds tighter than the
+      # bitwise operators, so +a & b == c+ must be shown as +(a & b) == c+.
+      PREC = {
+        :* => 12, :+ => 11, :- => 11, :<< => 10, :>> => 10,
+        :< => 9, :<= => 9, :> => 9, :>= => 9, :== => 8, :!= => 8,
+        :& => 7, :^ => 6, :| => 5
+      }.freeze
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -234,27 +242,30 @@ module SeccompTools
       end
 
       def render_constraint(constraint, sys)
-        lhs = render_expr(constraint.expr, sys)
-        rhs = render_expr(constraint.rhs, sys)
-        case constraint.op
-        when :set then "#{lhs} & #{rhs} != 0"
-        when :unset then "#{lhs} & #{rhs} == 0"
-        else "#{lhs} #{op_str(constraint.op)} #{rhs}"
-        end
+        return "#{render_binop(:&, constraint.expr, constraint.rhs, sys, PREC[:!=])} != 0" if constraint.op == :set
+        return "#{render_binop(:&, constraint.expr, constraint.rhs, sys, PREC[:==])} == 0" if constraint.op == :unset
+
+        prec = PREC[constraint.op]
+        "#{render_expr(constraint.expr, sys, prec)} #{op_str(constraint.op)} #{render_expr(constraint.rhs, sys, prec)}"
       end
 
-      def render_expr(expr, sys)
+      def render_expr(expr, sys, min_prec = 0)
         return '<opaque>' if expr.opaque?
         return "0x#{expr.val.to_s(16)}" if expr.imm?
         return data_name(expr.offset, sys) if expr.plain_data?
 
-        "#{render_expr(expr.lhs, sys)} #{expr.op} #{operand_str(expr.op, expr.rhs, sys)}"
+        render_binop(expr.op, expr.lhs, expr.rhs, sys, min_prec)
       end
 
-      def operand_str(op, operand, sys)
-        return operand.val.to_s if operand.imm? && %i[<< >>].include?(op) # shift amount, in decimal
-
-        render_expr(operand, sys)
+      # Renders +lhs op rhs+, wrapping in parentheses when +op+ binds looser than the surrounding
+      # context (+min_prec+). The left operand keeps the same precedence (operators are
+      # left-associative); the right operand needs one higher, so an equal-precedence right subtree is
+      # still parenthesized.
+      def render_binop(op, lhs, rhs, sys, min_prec)
+        prec = PREC[op]
+        right = rhs.imm? && %i[<< >>].include?(op) ? rhs.val.to_s : render_expr(rhs, sys, prec + 1)
+        inner = "#{render_expr(lhs, sys, prec)} #{op} #{right}"
+        prec < min_prec ? "(#{inner})" : inner
       end
 
       def op_str(op)

@@ -73,21 +73,31 @@ Architecture: amd64
 
   ALLOW:
     read
-    write when count & fd & 0xffff == buf | 0x10
-    openat when flags == 0x1337 & filename
+    write when (count & fd & 0xffff) == (buf | 0x10)
+    openat when flags == (0x1337 & filename)
 
   TRACE:
     <default> (any other syscall)
 
   ERRNO(1):
-    write when count & fd & 0xffff != buf | 0x10
-    openat when flags != 0x1337 & filename
+    write when (count & fd & 0xffff) != (buf | 0x10)
+    openat when flags != (0x1337 & filename)
 
   KILL:
     sys_number >= 0x40000000  (x32 ABI)
 
 Other architectures: KILL
 EOS
+    end
+
+    it 'parenthesizes conditions by operator precedence (see spec/data/operator_precedence.asm)' do
+      raw = SeccompTools::Asm.asm(File.read(File.join(__dir__, 'data', 'operator_precedence.asm')), arch: :amd64)
+      out = explain(raw, :amd64)
+      # == binds tighter than the bitwise ops, and << looser than +, so:
+      expect(out).to include('read when count == ((fd | 0x1) & 0xff)') # nested bitwise, both wrapped
+      expect(out).to include('write when count >> 4 == (buf << 2) + 0x8') # only << wrapped
+      expect(out).to include('openat when (flags & 0xf) < 0x5')          # < binds tighter than &
+      expect(out).to include('close when (fd & 0x101) != 0')             # jset bit test
     end
 
     it 'never silently drops an argument check that does not pin a syscall' do
@@ -97,7 +107,7 @@ EOS
             "\x15\x00\x00\x01\x05\x00\x00\x00" \
             "\x06\x00\x00\x00\x00\x00\xff\x7f" \
             "\x06\x00\x00\x00\x00\x00\x00\x00"
-      expect(explain(raw, :amd64)).to include('any syscall when args[0] & 0xffff == 0x5')
+      expect(explain(raw, :amd64)).to include('any syscall when (args[0] & 0xffff) == 0x5')
     end
   end
 

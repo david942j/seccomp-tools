@@ -179,7 +179,8 @@ $ seccomp-tools asm
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
 #                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
-#                                      Default: amd64
+#                                      Default: auto-detected from the host machine.
+#                                      Set it when the filter targets an architecture other than the host.
 
 # Input file for asm
 $ cat spec/data/libseccomp.asm
@@ -354,7 +355,8 @@ $ seccomp-tools emu --help
 # Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
 #     -a, --arch ARCH                  Specify architecture.
 #                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
-#                                      Default: amd64
+#                                      Default: auto-detected from the host machine.
+#                                      Set it when the filter targets an architecture other than the host.
 #     -q, --[no-]quiet                 Run quietly, only show emulation result.
 #     -i, --ip=VAL                     Set instruction pointer.
 

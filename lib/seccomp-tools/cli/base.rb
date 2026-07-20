@@ -2,6 +2,7 @@
 
 require 'optparse'
 
+require 'seccomp-tools/logger'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -98,16 +99,29 @@ module SeccompTools
         self.class.const_get(:USAGE)
       end
 
+      # Warns about positional arguments left over in {#argv} after the command has taken what it
+      # needs, e.g. an exec given together with +-c+, or anything after +--pid+. The command still
+      # proceeds.
+      # @return [void]
+      def warn_ignored_arguments
+        return if argv.empty?
+
+        Logger.warn("ignoring unused argument#{'s' if argv.size > 1}: #{argv.join(' ')}")
+      end
+
       # Registers the common +--arch+ option on +opt+.
       #
       # @param [OptionParser] opt
       #   The parser to add the option to.
+      # @param [Array<String>] extra_desc
+      #   Extra description lines appended after the default ones, for command-specific guidance.
       # @return [void]
-      def option_arch(opt)
+      def option_arch(opt, *extra_desc)
         supported = Util.supported_archs
         opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
                "Supported architectures are <#{supported.join('|')}>.",
-               "Default: #{Util.system_arch}") do |a|
+               'Default: auto-detected from the host machine.',
+               'Set it when the filter targets an architecture other than the host.', *extra_desc) do |a|
           option[:arch] = a
         end
       end

@@ -56,7 +56,8 @@ module SeccompTools
       #
       # Leaves whose path condition is self-contradictory (e.g. +A == 1+ and +A == 2+ on the same
       # word) are dropped — a conditional jump forks both ways regardless of feasibility, so the
-      # walk can construct paths that can never happen at runtime.
+      # walk can construct paths that can never happen at runtime. See {#feasible?} for exactly
+      # what can (and deliberately cannot) be proven contradictory.
       # @return [Array(Array<Leaf>, Boolean)]
       #   The feasible leaves, and whether the walk was truncated at {STEP_CAP}.
       def run
@@ -141,8 +142,31 @@ module SeccompTools
         stack << [pc + jf + 1, st.with(path: st.path + [Constraint.new(st.a, els, rhs)])]
       end
 
-      # Is +path+ satisfiable? Only concrete facts on plain data words are checked (transformed or
-      # opaque values are assumed satisfiable), grouping the facts by which word they constrain.
+      # Is +path+ satisfiable? Deliberately a small rule-based check, not a solver.
+      #
+      # Only facts of the shape "untransformed data word compared to a constant" are examined,
+      # grouped by which word they constrain; any other fact (a transformed word, a comparison
+      # against X, an opaque value) is assumed satisfiable. So an impossible path is never
+      # *wrongly* dropped — the cost of not understanding a fact is noise in the caller's output,
+      # never hidden behavior.
+      #
+      # That fragment is where essentially all real contradictions live. The walk forks every
+      # conditional both ways, so re-merging tests over the same word manufacture impossible
+      # paths: a syscall allow-list behind an x32 range guard yields
+      # +sys >= 0x40000000 && sys == 2+, libseccomp's binary-search dispatch yields the same
+      # equality-versus-range shapes, and sentinel tests yield +sys == 0xffffffff && sys == 2+.
+      # All of these are caught, and since the data words are independent inputs, checking
+      # word-by-word is exact for this fragment, not an approximation: a conjunction of
+      # single-word facts is satisfiable iff each word's facts are.
+      #
+      # What it cannot prove infeasible are contradictions through *derived* values:
+      # +(args[0] & 0xff) == 0x100+ (impossible by masking), wraparound arithmetic like
+      # +args[0] + 1 == 0 && args[0] == 5+, or relations between two transforms of one word
+      # (+sys >> 8 == 1 && sys < 0x100+). Deciding those in general is bit-vector SMT; a filter
+      # convoluted enough to produce them (a deliberately obfuscated challenge, not a seccomp
+      # library) calls for a real solver anyway, so rule-based pruning of that space would add
+      # complexity without making such filters readable. Their paths are kept and rendered with
+      # their full conditions instead.
       # @param [Array<Constraint>] path
       # @return [Boolean]
       def feasible?(path)
@@ -151,9 +175,12 @@ module SeccompTools
             .all? { |_offset, cs| cell_feasible?(cs) }
       end
 
-      # Are the constraints on a single data word jointly satisfiable? Two different +==+ values are
-      # impossible; a single +==+ must satisfy every other fact; otherwise the inequalities must
-      # leave a non-empty range.
+      # Are the constraints on a single data word jointly satisfiable? Two different +==+ values
+      # are impossible (+A == 1 && A == 2+). A single +==+ pins the word, so every other fact —
+      # +!=+, the four bounds, and both jset forms — is simply evaluated against it
+      # (+A >= 0x40000000 && A == 2+ dies here). With no +==+, the inequalities must leave a
+      # non-empty range (+A > 10 && A < 5+); +!=+ and jset facts are ignored in that case, since
+      # ruling out a 32-bit word with them alone would take a filter no library generates.
       def cell_feasible?(constraints)
         eqs = constraints.select { |c| c.op == :== }.map { |c| c.rhs.val }.uniq
         return false if eqs.size > 1

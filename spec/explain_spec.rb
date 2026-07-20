@@ -112,6 +112,35 @@ EOS
       expect(out).to include('Architecture: amd64')
       expect(out).to include('Other architectures: KILL')
     end
+
+    it 'summarizes the 0CTF/TCTF 2023 "Nothing is True" filter' do
+      # A real CTF filter: separate 32-bit / 64-bit allow-lists, plus argument checks on
+      # open/mmap/execve. See https://github.com/nobodyisnobody/write-ups (0CTF.TCTF.2023).
+      expect(explain(fixture('tctf-2023-nothing-is-true.bpf'), :amd64)).to eq(<<EOS)
+
+Architecture: i386
+
+  ALLOW:
+    exit, read, write, brk, mmap, munmap, exit_group
+
+  KILL:
+    <default> (any other syscall)
+
+Architecture: amd64
+
+  ALLOW:
+    close, munmap, brk, exit, exit_group
+    open when filename >> 32 == 0x0 && filename == 0x31337 && flags >> 32 == 0x0 && flags == 0x0
+    mmap when prot >> 32 == 0x0 && prot == 0x2
+    execve when filename >> 32 == 0x7ffe && filename == 0xa12f7d0e
+
+  KILL:
+    sys_number >= 0x40000000  (x32 ABI)
+    <default> (any other syscall)
+
+Other architectures: KILL
+EOS
+    end
   end
 
   context 'truncation' do

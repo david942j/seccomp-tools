@@ -417,6 +417,35 @@ $ seccomp-tools explain spec/data/libseccomp.bpf -a amd64
 # Other architectures: KILL
 ```
 
+A more involved example - the 0CTF/TCTF 2023 "Nothing is True" filter, which has separate 32/64-bit
+allow-lists and argument checks on `open`, `mmap` and `execve`:
+```bash
+$ seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64
+# Seccomp policy for spec/data/tctf-2023-nothing-is-true.bpf
+#
+# Architecture: i386
+#
+#   ALLOW:
+#     exit, read, write, brk, mmap, munmap, exit_group
+#
+#   KILL:
+#     <default> (any other syscall)
+#
+# Architecture: amd64
+#
+#   ALLOW:
+#     close, munmap, brk, exit, exit_group
+#     open when filename >> 32 == 0x0 && filename == 0x31337 && flags >> 32 == 0x0 && flags == 0x0
+#     mmap when prot >> 32 == 0x0 && prot == 0x2
+#     execve when filename >> 32 == 0x7ffe && filename == 0xa12f7d0e
+#
+#   KILL:
+#     sys_number >= 0x40000000  (x32 ABI)
+#     <default> (any other syscall)
+#
+# Other architectures: KILL
+```
+
 ## Screenshots
 
 ### Dump

@@ -56,6 +56,23 @@ describe SeccompTools::Symbolic::Executor do
     expect(leaves.first.ret).to eq SeccompTools::Symbolic::Expr.imm(5)
   end
 
+  it 'starts with the kernel-guaranteed zeroed registers' do
+    # `return A` with A never written returns 0: the kernel clears A and X before a filter runs.
+    leaves, = run([inst(cmd(:ret, src: :a))])
+    expect(leaves.first.ret).to eq SeccompTools::Symbolic::Expr.imm(0)
+  end
+
+  it 'takes only the real branch of a comparison between constants' do
+    insts = [
+      inst(cmd(:jmp, jmp: :jeq, src: :x), jt: 0, jf: 1), # A == X, both are the initial 0
+      inst(cmd(:ret), k: 0x7fff0000),
+      inst(cmd(:ret), k: 0)
+    ]
+    leaves, = run(insts)
+    expect(rets(leaves)).to eq [0x7fff0000]
+    expect(leaves.first.path).to eq [] # a constant comparison teaches nothing
+  end
+
   it 'collects one leaf per reachable return with its path condition' do
     raw = File.binread(File.join(__dir__, '..', 'data', 'libseccomp.bpf'))
     insts = SeccompTools::Disasm.to_bpf(raw, :amd64).map(&:inst)

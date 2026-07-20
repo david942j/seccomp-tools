@@ -211,7 +211,32 @@ EOS
     end
 
     it 'surfaces a data-dependent return value as UNKNOWN' do
-      expect(explain_asm('return A')).to include('UNKNOWN:')
+      expect(explain_asm("A = args[0]\nreturn A")).to include('UNKNOWN:')
+    end
+  end
+
+  context 'initial machine state' do
+    it 'reports `return A` with A never written as KILL, like the kernel runs it' do
+      # The kernel guarantees A = X = 0 when a filter starts.
+      expect(explain_asm('return A')).to eq(<<EOS)
+
+Architecture: amd64
+
+  KILL:
+    <default> (any syscall)
+EOS
+    end
+
+    it 'uses the zeroed initial X instead of rendering <opaque>' do
+      src = <<~ASM
+        A = args[0]
+        A == X ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('any syscall when args[0] == 0x0')
     end
   end
 

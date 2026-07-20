@@ -130,7 +130,9 @@ module SeccompTools
       end
 
       # Forks a conditional jump into its taken and not-taken successors, recording the {Constraint}
-      # each branch implies.
+      # each branch implies. A comparison between two constants (e.g. against the guaranteed-zero
+      # initial A or X) does not fork: only the branch it actually selects is walked, and no fact
+      # is recorded.
       def branch_cmp(pc, st, args, stack)
         op, src, jt, jf = args
         # jt == jf: the jump is unconditional, so no fact is learned.
@@ -138,6 +140,11 @@ module SeccompTools
 
         rhs = src == :x ? st.x : Expr.imm(src)
         taken, els = SPLIT[op]
+        if st.a.imm? && rhs.imm?
+          j = Constraint.new(st.a, taken, rhs).holds?(st.a.val) ? jt : jf
+          return stack << [pc + j + 1, st]
+        end
+
         stack << [pc + jt + 1, st.with(path: st.path + [Constraint.new(st.a, taken, rhs)])]
         stack << [pc + jf + 1, st.with(path: st.path + [Constraint.new(st.a, els, rhs)])]
       end

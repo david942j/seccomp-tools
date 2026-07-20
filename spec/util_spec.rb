@@ -1,4 +1,7 @@
+# encoding: ascii-8bit
 # frozen_string_literal: true
+
+require 'tempfile'
 
 require 'seccomp-tools/util'
 
@@ -22,6 +25,20 @@ describe SeccompTools::Util do
     RbConfig::CONFIG['host_cpu'] = 'fake'
     expect(described_class.system_arch).to be :unknown
     RbConfig::CONFIG['host_cpu'] = org
+  end
+
+  it 'elf?' do
+    Tempfile.create(['seccomp-tools-', '']) do |f|
+      f.write("\x7fELF#{"\x00" * 12}")
+      f.close
+      expect(described_class.elf?(f.path)).to be true
+    end
+    Tempfile.create(['seccomp-tools-', '']) do |f|
+      f.write("\x20\x00\x00\x00\x00\x00\x00\x00") # a BPF instruction, not ELF
+      f.close
+      expect(described_class.elf?(f.path)).to be false
+    end
+    expect(described_class.elf?('/no/such/file')).to be false
   end
 
   it 'colorize' do

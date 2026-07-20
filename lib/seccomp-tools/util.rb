@@ -80,6 +80,19 @@ module SeccompTools
       "#{color}#{s.sub(cc[:esc_m], cc[:esc_m] + color)}#{cc[:esc_m]}"
     end
 
+    # Does the file at +path+ start with the ELF magic bytes?
+    #
+    # Used to tell an executable apart from a raw BPF blob.
+    # @param [String] path
+    #   Path to the file to check.
+    # @return [Boolean]
+    #   +false+ when the file cannot be read.
+    def elf?(path)
+      File.binread(path, 4) == "\x7fELF".b
+    rescue SystemCallError
+      false
+    end
+
     # Get content of filename under directory templates/.
     #
     # @param [String] filename

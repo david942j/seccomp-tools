@@ -7,13 +7,12 @@ require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 require 'seccomp-tools/explain'
 require 'seccomp-tools/logger'
+require 'seccomp-tools/util'
 
 module SeccompTools
   module CLI
     # Handle 'explain' command.
     class Explain < Base
-      # Magic bytes at the start of an ELF file.
-      ELF_MAGIC = "\x7fELF".b.freeze
       # Summary of this command.
       SUMMARY = 'Summarize a seccomp filter as a per-action policy.'
       # Usage of this command.
@@ -131,9 +130,7 @@ module SeccompTools
       def executable?
         return false if option[:ifile].nil? || option[:ifile] == '-'
 
-        File.binread(option[:ifile], ELF_MAGIC.size) == ELF_MAGIC
-      rescue SystemCallError
-        false
+        Util.elf?(option[:ifile])
       end
 
       # The label shown in the policy header, +nil+ when reading from stdin.

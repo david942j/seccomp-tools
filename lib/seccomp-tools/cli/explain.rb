@@ -99,7 +99,7 @@ module SeccompTools
           CLI.show(parser.help)
           return []
         end
-        return [[input, option[:arch], source_name]] if raw_bpf_file?
+        return [[input, option[:arch], source_name(option[:ifile])]] if raw_bpf_file?
 
         dump_filters(command:, pid: nil, source: command)
       end
@@ -132,10 +132,12 @@ module SeccompTools
         file && file != '-' && Util.elf?(file)
       end
 
-      # The label shown in the policy header; +<STDIN>+ when reading from stdin.
+      # The label shown in the policy header for +file+; +<STDIN>+ when reading from stdin.
+      # @param [String] file
+      #   The input path, or +-+ for stdin.
       # @return [String]
-      def source_name
-        option[:ifile] == '-' ? '<STDIN>' : option[:ifile]
+      def source_name(file)
+        file == '-' ? '<STDIN>' : file
       end
     end
   end

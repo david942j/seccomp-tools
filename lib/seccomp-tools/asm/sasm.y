@@ -74,12 +74,13 @@ rule
               end
               val[0] ^ 4 # the other 32-bit word of the same 64-bit field
             }
-          | SYS_NUMBER { 0 }
-          | ARCH { 4 }
+          | SYS_NUMBER { SeccompTools::Const::BPF::SeccompData::SYS_NUMBER }
+          | ARCH { SeccompTools::Const::BPF::SeccompData::ARCH }
           | DATA LBRACK constexpr RBRACK {
               idx = val[2].to_i
-              if idx % 4 != 0 || idx >= 64
-                raise_error(format('index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
+              size = SeccompTools::Const::BPF::SeccompData::SIZE
+              if idx % 4 != 0 || idx >= size
+                raise_error(format('index of data[] must be a multiple of 4 and less than %d, got %d', size, idx), -1)
               end
               idx
             }
@@ -88,9 +89,9 @@ rule
                    idx = val[2].to_i
                    s = val[0]
                    raise_error(format('index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
-                   word_offset(16 + idx * 8, hi: s.downcase.end_with?('h'))
+                   word_offset(SeccompTools::Const::BPF::SeccompData::ARGS + idx * 8, hi: s.downcase.end_with?('h'))
                  }
-               | INSTRUCTION_POINTER { word_offset(8, hi: false) }
+               | INSTRUCTION_POINTER { word_offset(SeccompTools::Const::BPF::SeccompData::INSTRUCTION_POINTER, hi: false) }
   args: ARGS
       | ARGS_H
   alu_op_eq: alu_op ASSIGN { val[0] + val[1] }

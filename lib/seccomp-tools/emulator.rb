@@ -154,7 +154,8 @@ module SeccompTools
     end
 
     def data_of(index)
-      raise IndexError, "Invalid index: #{index}" unless index.nobits?(3) && index.between?(0, 63)
+      max = Const::BPF::SeccompData::SIZE - 1
+      raise IndexError, "Invalid index: #{index}" unless index.nobits?(3) && index.between?(0, max)
 
       index /= 4
       case index

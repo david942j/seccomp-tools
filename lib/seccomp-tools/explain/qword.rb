@@ -80,7 +80,7 @@ module SeccompTools
       # For each 64-bit field whose word facts fuse, decides which constraint renders the fused
       # fact ({Qword}) and which is dropped.
       def qword_plan(constraints)
-        eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && word_eq?(c) }
+        eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && c.plain_data_eq? }
                          .group_by { |c| c.lhs.offset }.transform_values(&:first)
         plan = {}
         BASES.each do |base|
@@ -102,7 +102,7 @@ module SeccompTools
       # The +lo < L+ / +lo <= L+ fact on the low word of the field at +base+, if any.
       def lo_bound(constraints, base)
         constraints.find do |c|
-          c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? && %i[< <=].include?(c.op)
+          c.is_a?(Symbolic::Constraint) && c.plain_data_fact?(lo_off(base)) && %i[< <=].include?(c.op)
         end
       end
 
@@ -132,9 +132,9 @@ module SeccompTools
         hi_op, hi_val = strict(hi.op, hi.rhs.val)
         only_b = minus(b, a)
         eq = only_b.find do |c|
-          c.is_a?(Symbolic::Constraint) && word?(c, hi.lhs.offset) && word_eq?(c) && c.rhs.val == hi_val
+          c.is_a?(Symbolic::Constraint) && c.plain_data_eq?(hi.lhs.offset) && c.rhs.val == hi_val
         end
-        lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? }
+        lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && c.plain_data_fact?(lo_off(base)) }
         return unless only_b.size == 2 && eq && lo && (op = OR_MERGE[[hi_op, lo.op]])
 
         b.map { |c| c.equal?(eq) ? Qword.new(base, op, (hi_val << 32) | lo.rhs.val) : c }.reject { |c| c.equal?(lo) }
@@ -143,8 +143,7 @@ module SeccompTools
       # The field base when +a+'s single extra fact +hi+ is a constant comparison on the high word
       # of a 64-bit field; +nil+ otherwise.
       def fusable_hi(a, b, hi)
-        return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint)
-        return unless hi.lhs.plain_data? && hi.rhs.imm?
+        return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint) && hi.plain_data_fact?
 
         base = hi.lhs.offset - (hi.lhs.offset % 8)
         base if BASES.include?(base) && hi.lhs.offset == hi_off(base)
@@ -163,16 +162,6 @@ module SeccompTools
       # The constraints in +a+ whose fact does not also appear in +b+.
       def minus(a, b)
         a.reject { |c| b.any? { |d| d.key == c.key } }
-      end
-
-      # Does +c+ constrain the plain data word at +offset+?
-      def word?(c, offset)
-        c.lhs.plain_data? && c.lhs.offset == offset
-      end
-
-      # Is +c+ a +word == constant+ fact?
-      def word_eq?(c)
-        c.lhs.plain_data? && c.op == :== && c.rhs.imm?
       end
     end
   end

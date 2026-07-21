@@ -43,7 +43,7 @@ module SeccompTools
         lo = nil
         hi = nil
         @path.each do |c|
-          next unless word?(c, SYS) && c.rhs.imm?
+          next unless c.plain_data_fact?(SYS)
 
           case c.op
           when :> then lo = [lo || 0, c.rhs.val + 1].max
@@ -70,9 +70,9 @@ module SeccompTools
       # @return [Array<Symbolic::Constraint>]
       def residual
         @residual ||= begin
-          pinned = @path.filter_map { |c| c.lhs.offset if word_eq?(c) }
+          pinned = @path.filter_map { |c| c.lhs.offset if c.plain_data_eq? }
           @path.reject do |c|
-            next false unless c.lhs.plain_data? && c.rhs.imm?
+            next false unless c.plain_data_fact?
 
             redundant = c.op != :== && pinned.include?(c.lhs.offset)
             case c.lhs.offset
@@ -90,7 +90,7 @@ module SeccompTools
       # @return [Boolean]
       def arch_consistent?(val)
         @path.all? do |c|
-          next true unless word?(c, ARCH) && c.rhs.imm?
+          next true unless c.plain_data_fact?(ARCH)
 
           concrete_match?(val, c.op, c.rhs.val)
         end
@@ -107,17 +107,7 @@ module SeccompTools
 
       # The value of the single +data[offset] == k+ fact, if any.
       def eq(offset)
-        @path.find { |c| word?(c, offset) && c.op == :== && c.rhs.imm? }&.rhs&.val
-      end
-
-      # Does +c+ constrain the plain data word at +offset+?
-      def word?(c, offset)
-        c.lhs.plain_data? && c.lhs.offset == offset
-      end
-
-      # Is +c+ a +word == constant+ fact?
-      def word_eq?(c)
-        c.lhs.plain_data? && c.op == :== && c.rhs.imm?
+        @path.find { |c| c.plain_data_eq?(offset) }&.rhs&.val
       end
 
       # Evaluates one comparison concretely: does +value op k+ hold?

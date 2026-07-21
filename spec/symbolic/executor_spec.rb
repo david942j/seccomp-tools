@@ -173,6 +173,18 @@ describe SeccompTools::Symbolic::Executor do
       expect(rets(leaves_of(insts))).not_to include(0x7fff0000)
     end
 
+    it 'evaluates bit tests against a pinned value' do
+      insts = [
+        inst(cmd(:ld, mode: :abs), k: 0),
+        inst(cmd(:jmp, jmp: :jeq), jt: 0, jf: 3, k: 4),  # A == 4 -> next, else KILL
+        inst(cmd(:jmp, jmp: :jset), jt: 0, jf: 1, k: 3), # A & 3 -> ALLOW, else ERRNO
+        inst(cmd(:ret), k: 0x7fff0000),                  # impossible: 4 & 3 == 0
+        inst(cmd(:ret), k: 0x00050001),
+        inst(cmd(:ret), k: 0)
+      ]
+      expect(rets(leaves_of(insts))).to contain_exactly(0x00050001, 0)
+    end
+
     it 'keeps and drops leaves by whether an inequality range is non-empty' do
       insts = [
         inst(cmd(:ld, mode: :abs), k: 0),

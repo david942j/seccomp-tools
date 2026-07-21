@@ -26,24 +26,6 @@ module SeccompTools
         @rhs = rhs
       end
 
-      # Does this constraint hold when {#lhs} takes the concrete value +value+? Callers use it to
-      # test a specific candidate (e.g. "is this path reachable for architecture X?") and to check
-      # a path for self-contradiction.
-      # @param [Integer] value
-      # @return [Boolean]
-      # @raise [ArgumentError]
-      #   When {#rhs} is not a constant ({Expr#imm?}) — there is then no concrete value to compare
-      #   against, so the question cannot be answered.
-      def holds?(value)
-        raise ArgumentError, "rhs must be a constant, got #{rhs.kind}" unless rhs.imm?
-
-        case op
-        when :set then !value.nobits?(rhs.val)
-        when :unset then value.nobits?(rhs.val)
-        else value.public_send(op, rhs.val) # the comparisons are all Integer methods
-        end
-      end
-
       # A value that uniquely identifies this constraint, for hashing and equality.
       # @return [Array]
       def key

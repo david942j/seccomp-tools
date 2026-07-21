@@ -175,14 +175,17 @@ module SeccompTools
 
     # Endianness constants.
     module Endian
-      # Defining default endianness of architectures.
-      ENDIAN = {
-        i386: '<',
-        amd64: '<',
-        aarch64: '<',
-        riscv64: '<',
-        s390x: '>'
-      }.freeze
+      # +__AUDIT_ARCH_LE+ from +uapi/linux/audit.h+: the bit an +AUDIT_ARCH_*+ value carries iff
+      # the architecture is little-endian. The kernel encodes endianness in the arch token itself —
+      # big-endian variants of biendian CPU families get separate tokens (e.g.
+      # +AUDIT_ARCH_MIPS+/+AUDIT_ARCH_MIPSEL+).
+      AUDIT_ARCH_LE = 0x40000000
+
+      # Endianness of each architecture as a pack/unpack format modifier, derived from the
+      # {Audit::ARCH} values instead of being maintained by hand.
+      ENDIAN = Audit::ARCH_NAME.transform_values do |name|
+        Audit::ARCH[name].anybits?(AUDIT_ARCH_LE) ? '<' : '>'
+      end.freeze
 
       # Whether +arch+ is big-endian, i.e. stores the high 32-bit word of a 64-bit +seccomp_data+
       # field (+instruction_pointer+ or an argument) first. See +arch_arg_offset_lo/hi+ in

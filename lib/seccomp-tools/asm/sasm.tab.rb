@@ -15,7 +15,7 @@ module SeccompTools
   module Asm
     class SeccompAsmParser < Racc::Parser
 
-module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 137)
+module_eval(<<'...end sasm.y/module_eval...', 'sasm.y', 138)
   def initialize(scanner)
     @scanner = scanner
     super()
@@ -646,40 +646,41 @@ module_eval(<<'.,.,', 'sasm.y', 70)
 
 module_eval(<<'.,.,', 'sasm.y', 76)
   def _reduce_46(val, _values)
-     0
+     SeccompTools::Const::BPF::SeccompData::SYS_NUMBER
   end
 .,.,
 
 module_eval(<<'.,.,', 'sasm.y', 77)
   def _reduce_47(val, _values)
-     4
+     SeccompTools::Const::BPF::SeccompData::ARCH
   end
 .,.,
 
 module_eval(<<'.,.,', 'sasm.y', 79)
   def _reduce_48(val, _values)
                   idx = val[2].to_i
-              if idx % 4 != 0 || idx >= 64
-                raise_error(format('index of data[] must be a multiple of 4 and less than 64, got %d', idx), -1)
+              size = SeccompTools::Const::BPF::SeccompData::SIZE
+              if idx % 4 != 0 || idx >= size
+                raise_error(format('index of data[] must be a multiple of 4 and less than %d, got %d', size, idx), -1)
               end
               idx
 
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 87)
+module_eval(<<'.,.,', 'sasm.y', 88)
   def _reduce_49(val, _values)
                        idx = val[2].to_i
                    s = val[0]
                    raise_error(format('index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
-                   word_offset(16 + idx * 8, hi: s.downcase.end_with?('h'))
+                   word_offset(SeccompTools::Const::BPF::SeccompData::ARGS + idx * 8, hi: s.downcase.end_with?('h'))
 
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 92)
+module_eval(<<'.,.,', 'sasm.y', 93)
   def _reduce_50(val, _values)
-     word_offset(8, hi: false)
+     word_offset(SeccompTools::Const::BPF::SeccompData::INSTRUCTION_POINTER, hi: false)
   end
 .,.,
 
@@ -687,7 +688,7 @@ module_eval(<<'.,.,', 'sasm.y', 92)
 
 # reduce 52 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 95)
+module_eval(<<'.,.,', 'sasm.y', 96)
   def _reduce_53(val, _values)
      val[0] + val[1]
   end
@@ -697,13 +698,13 @@ module_eval(<<'.,.,', 'sasm.y', 95)
 
 # reduce 55 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 98)
+module_eval(<<'.,.,', 'sasm.y', 99)
   def _reduce_56(val, _values)
      Scalar::ConstVal.new(val[0] & 0xffffffff)
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 99)
+module_eval(<<'.,.,', 'sasm.y', 100)
   def _reduce_57(val, _values)
      val[1]
   end
@@ -713,37 +714,37 @@ module_eval(<<'.,.,', 'sasm.y', 99)
 
 # reduce 59 omitted
 
-module_eval(<<'.,.,', 'sasm.y', 102)
+module_eval(<<'.,.,', 'sasm.y', 103)
   def _reduce_60(val, _values)
      Scalar::A.instance
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 103)
+module_eval(<<'.,.,', 'sasm.y', 104)
   def _reduce_61(val, _values)
      Scalar::X.instance
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 104)
+module_eval(<<'.,.,', 'sasm.y', 105)
   def _reduce_62(val, _values)
      val[0].to_i
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 105)
+module_eval(<<'.,.,', 'sasm.y', 106)
   def _reduce_63(val, _values)
      val[0].to_i(16)
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 106)
+module_eval(<<'.,.,', 'sasm.y', 107)
   def _reduce_64(val, _values)
      Const::Audit::ARCH[val[0]]
   end
 .,.,
 
-module_eval(<<'.,.,', 'sasm.y', 108)
+module_eval(<<'.,.,', 'sasm.y', 109)
   def _reduce_65(val, _values)
                 s = val[0]
             return @scanner.syscalls[s.to_sym] unless s.include?('.')

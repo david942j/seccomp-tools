@@ -5,8 +5,32 @@ module SeccompTools
   module Const
     # For BPF / seccomp.
     module BPF
+      # Byte offsets of the fields of the filter's input buffer:
+      #   struct seccomp_data {
+      #     int nr;                     // SYS_NUMBER
+      #     __u32 arch;                 // ARCH
+      #     __u64 instruction_pointer;  // INSTRUCTION_POINTER
+      #     __u64 args[6];              // ARGS
+      #   };
+      # The 64-bit fields are each two 32-bit words a filter loads separately (see {QWORD_BASES}).
+      module SeccompData
+        # Byte offset of the syscall number.
+        SYS_NUMBER = 0
+        # Byte offset of the architecture.
+        ARCH = 4
+        # Byte offset of the instruction pointer.
+        INSTRUCTION_POINTER = 8
+        # Byte offset of the first 64-bit argument.
+        ARGS = 16
+        # Total size in bytes; the +len+ load returns this.
+        SIZE = 64
+        # Byte offsets of the 64-bit fields (+instruction_pointer+ and the six arguments), each a
+        # pair of 32-bit words.
+        QWORD_BASES = [INSTRUCTION_POINTER, *(ARGS...SIZE).step(8)].freeze
+      end
+
       # sizeof(struct seccomp_data)
-      SIZEOF_SECCOMP_DATA = 64
+      SIZEOF_SECCOMP_DATA = SeccompData::SIZE
 
       # option set seccomp
       PR_SET_SECCOMP = 22

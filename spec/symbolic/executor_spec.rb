@@ -105,7 +105,7 @@ describe SeccompTools::Symbolic::Executor do
       inst(cmd(:ret), k: 0)
     ]
     leaves, = run(insts)
-    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.expr
+    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.lhs
     expect(expr.kind).to be :binop
     expect([expr.op, expr.lhs, expr.rhs])
       .to eq [:&, SeccompTools::Symbolic::Expr.data(24), SeccompTools::Symbolic::Expr.data(16)]
@@ -120,7 +120,7 @@ describe SeccompTools::Symbolic::Executor do
       inst(cmd(:ret), k: 0)
     ]
     leaves, = run(insts)
-    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.expr
+    expr = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first.lhs
     expect([expr.kind, expr.op, expr.lhs]).to eq [:unop, :neg, SeccompTools::Symbolic::Expr.data(16)]
   end
 

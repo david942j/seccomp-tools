@@ -31,7 +31,7 @@ describe SeccompTools::Symbolic::Constraint do
 
   it 'exposes its parts and a hashable key' do
     c = constraint(:==, 5)
-    expect(c.expr).to eq expr.data(0)
+    expect(c.lhs).to eq expr.data(0)
     expect(c.op).to be :==
     expect(c.rhs).to eq expr.imm(5)
     expect(c.key).to eq constraint(:==, 5).key

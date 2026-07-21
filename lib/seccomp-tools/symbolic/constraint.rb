@@ -10,23 +10,23 @@ module SeccompTools
     # {Executor::Leaf}.
     class Constraint
       # @return [Expr] The left-hand side (what is being tested).
-      attr_reader :expr
+      attr_reader :lhs
       # @return [Symbol] The comparison, one of +:==, :!=, :>, :>=, :<, :<=, :set, :unset+.
       #   +:set+/+:unset+ mean "some/none of these bits are set" (from a +jset+ test).
       attr_reader :op
       # @return [Expr] The right-hand side (what it is compared against).
       attr_reader :rhs
 
-      # @param [Expr] expr
+      # @param [Expr] lhs
       # @param [Symbol] op
       # @param [Expr] rhs
-      def initialize(expr, op, rhs)
-        @expr = expr
+      def initialize(lhs, op, rhs)
+        @lhs = lhs
         @op = op
         @rhs = rhs
       end
 
-      # Does this constraint hold when {#expr} takes the concrete value +value+? Only meaningful when
+      # Does this constraint hold when {#lhs} takes the concrete value +value+? Only meaningful when
       # {#rhs} is a constant ({Expr#imm?}); callers use it to test a specific candidate (e.g. "is
       # this path reachable for architecture X?") and to check a path for self-contradiction.
       # @param [Integer] value
@@ -42,7 +42,7 @@ module SeccompTools
       # A value that uniquely identifies this constraint, for hashing and equality.
       # @return [Array]
       def key
-        [expr.key, op, rhs.key]
+        [lhs.key, op, rhs.key]
       end
     end
   end

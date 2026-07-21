@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/verdict'
 require 'seccomp-tools/symbolic/constraint'
 require 'seccomp-tools/util'
@@ -30,25 +31,6 @@ module SeccompTools
       COMPARISON = %i[== != < <= > >=].freeze
       # Byte offset of the first 64-bit syscall argument within +struct seccomp_data+.
       ARGS = 16
-      # Byte offsets of the 64-bit fields of +seccomp_data+ (+instruction_pointer+ and the six
-      # arguments), each stored as two 32-bit words whose order depends on endianness.
-      QWORD_BASES = [8, *(16...64).step(8)].freeze
-      # How the extra facts of two sibling or-branches fuse into one 64-bit comparison: one branch
-      # holds +hi > H+ (high word normalized to a strict comparison) and the other
-      # +hi == H && lo <op> L+, which together are exactly +field <fused op> (H << 32 | L)+. This is
-      # the shape libseccomp compiles SCMP_CMP_GT/GE/LT/LE/NE argument comparisons into.
-      OR_MERGE = {
-        %i[> >] => :>, %i[> >=] => :>=, %i[< <] => :<, %i[< <=] => :<=, %i[!= !=] => :!=
-      }.freeze
-
-      # A 64-bit fact reassembled from 32-bit word checks (see {#fold_qwords} and
-      # {#merge_or_ranges}); +base+ is the field's byte offset in +seccomp_data+.
-      Qword = Struct.new(:base, :op, :val) do
-        # Mirrors {Symbolic::Constraint#key} so fused condition lists can still be compared.
-        def key
-          [:qword, base, op, val]
-        end
-      end
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -62,8 +44,7 @@ module SeccompTools
         @arch = arch
         @source = source
         @truncated = truncated
-        # On a big-endian architecture the high 32-bit word of a 64-bit field comes first.
-        @hi_first = Const::Endian.big?(arch)
+        @fusion = QwordFusion.new(arch)
       end
 
       # Renders the policy.
@@ -208,10 +189,10 @@ module SeccompTools
         end
       end
 
-      # The rendered or-branch conditions of the leaves +ls+, deduplicated, with branch pairs that
-      # express one 64-bit comparison fused first (see {#merge_or_ranges}).
+      # The rendered or-branch conditions of the leaves +ls+, deduplicated, with 64-bit word checks
+      # fused back into whole-field facts (see {QwordFusion}).
       def merged_conds(ls, sys)
-        merge_or_ranges(ls.map { |l| residual(l.path) }).map { |list| render_and(list, sys) }.uniq
+        @fusion.merge_or(ls.map { |l| residual(l.path) }).map { |list| render_and(@fusion.fold(list), sys) }.uniq
       end
 
       def add_default(buckets, default)
@@ -277,16 +258,6 @@ module SeccompTools
         c.lhs.plain_data? && c.op == :== && c.rhs.imm?
       end
 
-      # The byte offset of the low 32-bit word of the 64-bit field at +base+.
-      def lo_off(base)
-        @hi_first ? base + 4 : base
-      end
-
-      # The byte offset of the high 32-bit word of the 64-bit field at +base+.
-      def hi_off(base)
-        @hi_first ? base : base + 4
-      end
-
       # The first constraint comparing the word at +offset+ to a constant with one of +ops+, or nil.
       def fact(path, offset, *ops)
         path.find { |c| word?(c, offset) && ops.include?(c.op) && c.rhs.imm? }
@@ -350,127 +321,13 @@ module SeccompTools
       # --- constraint rendering ---------------------------------------------------------------
 
       def render_and(constraints, sys)
-        fold_qwords(constraints).map do |c|
+        constraints.map do |c|
           if c.is_a?(Qword)
-            "#{data_name(lo_off(c.base), sys)} #{op_str(c.op)} 0x#{c.val.to_s(16)}"
+            "#{data_name(@fusion.lo_off(c.base), sys)} #{op_str(c.op)} 0x#{c.val.to_s(16)}"
           else
             render_constraint(c, sys)
           end
         end.join(' && ')
-      end
-
-      # A 64-bit field (+instruction_pointer+ or an argument) is two 32-bit words in +seccomp_data+,
-      # and filters check them separately. Fuses the word facts of one path into 64-bit facts: both
-      # halves pinned by +==+ become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+)
-      # becomes +field < L+ — exact, since a 64-bit value below +L < 2**32+ forces the high word to
-      # zero.
-      def fold_qwords(constraints)
-        plan = qword_plan(constraints)
-        constraints.filter_map do |c|
-          action = plan[c]
-          next if action == :drop
-
-          action || c
-        end
-      end
-
-      # For each 64-bit field whose word facts fuse, decides which constraint renders the fused
-      # fact ({Qword}) and which is dropped.
-      def qword_plan(constraints)
-        eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && word_eq?(c) }
-                         .group_by { |c| c.lhs.offset }.transform_values(&:first)
-        plan = {}
-        QWORD_BASES.each do |base|
-          hi = eqs[hi_off(base)]
-          next unless hi
-
-          if (lo = eqs[lo_off(base)])
-            plan[lo] = Qword.new(base, :==, (hi.rhs.val << 32) | lo.rhs.val)
-          elsif hi.rhs.val.zero? && (lo = lo_bound(constraints, base))
-            plan[lo] = Qword.new(base, lo.op, lo.rhs.val)
-          else
-            next
-          end
-          plan[hi] = :drop
-        end
-        plan
-      end
-
-      # The +lo < L+ / +lo <= L+ fact on the low word of the field at +base+, if any.
-      def lo_bound(constraints, base)
-        constraints.find do |c|
-          c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? && %i[< <=].include?(c.op)
-        end
-      end
-
-      # The or-branch condition lists of one rule, with sibling branches that together express a
-      # single 64-bit comparison fused (repeatedly, until nothing fuses).
-      def merge_or_ranges(lists)
-        loop do
-          fused = merge_one_pair(lists)
-          return lists unless fused
-
-          lists = fused
-        end
-      end
-
-      def merge_one_pair(lists)
-        lists.each_with_index do |a, i|
-          lists.each_with_index do |b, j|
-            next if i == j
-
-            fused = fuse_pair(a, b)
-            next unless fused
-
-            rest = lists.reject.with_index { |_, k| [i, j].include?(k) }
-            return rest.insert([i, j].min, fused)
-          end
-        end
-        nil
-      end
-
-      # When +a+'s only extra fact (vs +b+) is +hi ⋈ H+ and +b+'s extras are +hi == H+ plus a fact
-      # on the matching low word, replaces the trio in +b+ with the fused 64-bit fact ({OR_MERGE});
-      # returns +nil+ when the two condition lists do not have that shape.
-      def fuse_pair(a, b)
-        hi, = minus(a, b)
-        base = fusable_hi(a, b, hi)
-        return unless base
-
-        hi_op, hi_val = strict(hi.op, hi.rhs.val)
-        only_b = minus(b, a)
-        eq = only_b.find do |c|
-          c.is_a?(Symbolic::Constraint) && word?(c, hi.lhs.offset) && word_eq?(c) && c.rhs.val == hi_val
-        end
-        lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? }
-        return unless only_b.size == 2 && eq && lo && (op = OR_MERGE[[hi_op, lo.op]])
-
-        b.map { |c| c.equal?(eq) ? Qword.new(base, op, (hi_val << 32) | lo.rhs.val) : c }.reject { |c| c.equal?(lo) }
-      end
-
-      # The field base when +a+'s single extra fact +hi+ is a constant comparison on the high word
-      # of a 64-bit field; +nil+ otherwise.
-      def fusable_hi(a, b, hi)
-        return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint)
-        return unless hi.lhs.plain_data? && hi.rhs.imm?
-
-        base = hi.lhs.offset - (hi.lhs.offset % 8)
-        base if QWORD_BASES.include?(base) && hi.lhs.offset == hi_off(base)
-      end
-
-      # +>= v+ and +> v-1+ are the same test; normalize the high-word comparison to the strict form
-      # so {OR_MERGE} needs only one spelling.
-      def strict(op, val)
-        case op
-        when :>= then [:>, val - 1]
-        when :<= then [:<, val + 1]
-        else [op, val]
-        end
-      end
-
-      # The constraints in +a+ whose fact does not also appear in +b+.
-      def minus(a, b)
-        a.reject { |c| b.any? { |d| d.key == c.key } }
       end
 
       def render_constraint(constraint, sys)
@@ -541,7 +398,7 @@ module SeccompTools
       # second word on little-endian architectures but the first on big-endian ones (s390x).
       def qword_word_name(offset, sys)
         base = offset - (offset % 8)
-        return "data[#{offset}]" unless QWORD_BASES.include?(base)
+        return "data[#{offset}]" unless QwordFusion::BASES.include?(base)
 
         name = if base == 8
                  'instruction_pointer'
@@ -550,7 +407,7 @@ module SeccompTools
                  names = sys && Const::SYS_ARG[sys]
                  Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
                end
-        offset == hi_off(base) ? "#{name} >> 32" : name
+        offset == @fusion.hi_off(base) ? "#{name} >> 32" : name
       end
 
       def syscall_name(arch_sym, nr)

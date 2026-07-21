@@ -3,6 +3,7 @@
 
 require 'ostruct'
 
+require 'seccomp-tools/asm/asm'
 require 'seccomp-tools/const'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/emulator'
@@ -123,6 +124,53 @@ describe SeccompTools::Emulator do
     it 'kill' do
       expect(described_class.new(@insts, sys_nr: 63, arch: :riscv64).run[:ret]).to be 0x80000000
       expect(described_class.new(@insts, sys_nr: 258, arch: :amd64).run[:ret]).to be 0
+    end
+  end
+
+  context 'big-endian (s390x)' do
+    def insts_of(src, arch)
+      SeccompTools::Disasm.to_bpf(SeccompTools::Asm.asm(src, arch:), arch).map(&:inst)
+    end
+
+    it 'reads the high half of an argument from the first word' do
+      # On s390x data[32] is the HIGH half of args[2] and data[36] the low half.
+      src = <<-EOS
+        A = data[32]
+        A == 0x11223344 ? next : allow
+        A = data[36]
+        A == 0x55667788 ? kill : allow
+      allow:
+        return ALLOW
+      kill:
+        return KILL
+      EOS
+      insts = insts_of(src, :s390x)
+      args = [0, 0, 0x1122334455667788]
+      expect(described_class.new(insts, sys_nr: 4, args:, arch: :s390x).run[:ret]).to be 0
+      # The same value with swapped halves must not match.
+      args = [0, 0, 0x5566778811223344]
+      expect(described_class.new(insts, sys_nr: 4, args:, arch: :s390x).run[:ret]).to be 0x7fff0000
+      # A little-endian arch reads the LOW half at data[32], so the original value must not match.
+      insts = insts_of(src, :amd64)
+      args = [0, 0, 0x1122334455667788]
+      expect(described_class.new(insts, sys_nr: 4, args:, arch: :amd64).run[:ret]).to be 0x7fff0000
+    end
+
+    it 'reads instruction_pointer halves in big-endian order' do
+      # On s390x data[8] holds ip >> 32.
+      src = <<-EOS
+        A = data[8]
+        A == 0xdead ? next : allow
+        A = data[12]
+        A == 0xbeef ? kill : allow
+      allow:
+        return ALLOW
+      kill:
+        return KILL
+      EOS
+      insts = insts_of(src, :s390x)
+      expect(described_class.new(insts, instruction_pointer: 0xdead0000beef, arch: :s390x).run[:ret]).to be 0
+      expect(described_class.new(insts, instruction_pointer: 0xbeef0000dead, arch: :s390x).run[:ret]).to be 0x7fff0000
     end
   end
 end

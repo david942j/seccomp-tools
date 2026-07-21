@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/explain/path_facts'
 require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
-require 'seccomp-tools/symbolic/constraint'
 require 'seccomp-tools/util'
 
 module SeccompTools
   class Explain
     # Turns the raw {Symbolic::Executor::Leaf}s collected by the walk into a human-readable policy,
     # grouped by architecture and then by action (+ALLOW+, +KILL+, +ERRNO(n)+, ...).
+    #
+    # This class owns the presentation: sections, buckets and the default rule. It reads each
+    # leaf's path through {PathFacts}, decodes the returned action with {Verdict}, reassembles
+    # 64-bit word checks with {QwordFusion}, and stringifies conditions with {Renderer}.
     class Summary
-      # Byte offset of the syscall number within +struct seccomp_data+.
-      SYS = 0
-      # Byte offset of the architecture within +struct seccomp_data+.
-      ARCH = 4
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
       #   The filter's declared architecture, used when the filter itself does not branch on +arch+.
@@ -30,6 +30,7 @@ module SeccompTools
         @truncated = truncated
         @fusion = QwordFusion.new(arch)
         @renderer = Renderer.new(@fusion)
+        @facts = Hash.new { |h, leaf| h[leaf] = PathFacts.new(leaf.path) }
       end
 
       # Renders the policy.
@@ -45,6 +46,11 @@ module SeccompTools
 
       private
 
+      # The {PathFacts} of +leaf+, computed once.
+      def facts(leaf)
+        @facts[leaf]
+      end
+
       # One entry per architecture section: the section title, the architecture whose syscall names
       # apply (+nil+ when the checked value is not one seccomp-tools knows), and the leaves.
       # @return [Array<[String, Symbol?, Array<Symbolic::Executor::Leaf>]>]
@@ -54,7 +60,7 @@ module SeccompTools
 
         vals.map do |v|
           sym = arch_symbol(v)
-          [sym || format('0x%x (unknown)', v), sym, @leaves.select { |l| arch_ok?(l.path, v) }]
+          [sym || format('0x%x (unknown)', v), sym, @leaves.select { |l| facts(l).arch_consistent?(v) }]
         end
       end
 
@@ -74,31 +80,12 @@ module SeccompTools
 
       # The distinct architecture values (+AUDIT_ARCH_*+) the filter explicitly branches on.
       def arch_values
-        @leaves.filter_map { |l| eq(l.path, ARCH) }.uniq
+        @leaves.filter_map { |l| facts(l).arch_eq }.uniq
       end
 
       # Leaves reachable when +arch+ is none of the explicitly-checked values.
       def other_leaves
-        @leaves.reject { |l| eq(l.path, ARCH) }
-      end
-
-      # Is +path+ consistent with the architecture being +val+?
-      def arch_ok?(path, val)
-        path.all? do |c|
-          next true unless word?(c, ARCH) && c.rhs.imm?
-
-          concrete_match?(val, c.op, c.rhs.val)
-        end
-      end
-
-      # Evaluates one comparison concretely: does +value op k+ hold? The same rule-based core as
-      # +Symbolic::Executor+'s, applied to the arch facts the sections consume.
-      def concrete_match?(value, op, k)
-        case op
-        when :set then !value.nobits?(k)
-        when :unset then value.nobits?(k)
-        else value.public_send(op, k) # the comparisons are all Integer methods
-        end
+        @leaves.reject { |l| facts(l).arch_eq }
       end
 
       # Renders one architecture section. +arch_sym+ is used to name syscalls and arguments; +nil+
@@ -119,9 +106,9 @@ module SeccompTools
       # one bucket source: it pins a syscall number, restricts a range of numbers, checks arguments
       # only, or is the catch-all (rendered by {#add_default}).
       def rule_buckets(arch_sym, leaves, default)
-        named, rest = leaves.partition { |l| eq(l.path, SYS) }
-        ranged, rest = rest.partition { |l| sys_range(l.path) }
-        conditional, = rest.partition { |l| !residual(l.path).empty? }
+        named, rest = leaves.partition { |l| facts(l).sys_eq }
+        ranged, rest = rest.partition { |l| facts(l).sys_range }
+        conditional, = rest.partition { |l| !facts(l).residual.empty? }
 
         buckets = {}
         add_named(buckets, arch_sym, named, default)
@@ -132,7 +119,7 @@ module SeccompTools
 
       # Explicitly matched syscalls (+A == nr+), grouped by number then verdict.
       def add_named(buckets, arch_sym, leaves, default)
-        leaves.group_by { |l| eq(l.path, SYS) }.sort_by(&:first).each do |nr, group|
+        leaves.group_by { |l| facts(l).sys_eq }.sort_by(&:first).each do |nr, group|
           sys = syscall_name(arch_sym, nr)
           name = Util.colorize(sys ? sys.to_s : "0x#{nr.to_s(16)}", t: :syscall)
           group.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
@@ -151,7 +138,7 @@ module SeccompTools
       # shown when unconditional (the explicit guard is worth surfacing), and its conditional
       # variants are shown too so no check is silently dropped.
       def add_ranges(buckets, leaves)
-        leaves.group_by { |l| sys_range(l.path) }.each do |(lo, hi), group|
+        leaves.group_by { |l| facts(l).sys_range }.each do |(lo, hi), group|
           range = "sys_number >= 0x#{lo.to_s(16)}"
           range << " && sys_number <= 0x#{hi.to_s(16)}" if hi
           group.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
@@ -177,7 +164,7 @@ module SeccompTools
       # The rendered or-branch conditions of the leaves +ls+, deduplicated, with 64-bit word checks
       # fused back into whole-field facts (see {QwordFusion}).
       def merged_conds(ls, sys)
-        @fusion.merge_or(ls.map { |l| residual(l.path) })
+        @fusion.merge_or(ls.map { |l| facts(l).residual })
                .map { |list| @renderer.conjunction(@fusion.fold(list), sys) }.uniq
       end
 
@@ -192,9 +179,7 @@ module SeccompTools
 
       # The catch-all action: the verdict of a leaf that matches no syscall, no range, no arguments.
       def default_label(leaves)
-        catch_all = leaves.find do |l|
-          eq(l.path, SYS).nil? && sys_range(l.path).nil? && residual(l.path).empty?
-        end
+        catch_all = leaves.find { |l| facts(l).catch_all? }
         (catch_all || leaves.first)&.then { |l| Verdict.label(l.ret) }
       end
 
@@ -230,74 +215,6 @@ module SeccompTools
           end
         end
         lines << line
-      end
-
-      # --- path-condition queries -------------------------------------------------------------
-
-      # Does +c+ constrain the plain data word at +offset+?
-      def word?(c, offset)
-        c.lhs.plain_data? && c.lhs.offset == offset
-      end
-
-      # Is +c+ a +word == constant+ fact?
-      def word_eq?(c)
-        c.lhs.plain_data? && c.op == :== && c.rhs.imm?
-      end
-
-      # The first constraint comparing the word at +offset+ to a constant with one of +ops+, or nil.
-      def fact(path, offset, *ops)
-        path.find { |c| word?(c, offset) && ops.include?(c.op) && c.rhs.imm? }
-      end
-
-      # The value of the single +data[offset] == k+ fact on +path+, if any.
-      def eq(path, offset)
-        fact(path, offset, :==)&.rhs&.val
-      end
-
-      # The +[lo, hi]+ range (inclusive; +hi+ is +nil+ when unbounded) all bound facts on +path+
-      # restrict the syscall number to, or +nil+ when there is no lower bound. An upper bound alone
-      # does not make a range rule: it is the complement of one (e.g. the +sys < 0x40000000+ side
-      # of an x32 guard) and reads naturally as part of the default bucket.
-      def sys_range(path)
-        lo = nil
-        hi = nil
-        path.each do |c|
-          next unless word?(c, SYS) && c.rhs.imm?
-
-          case c.op
-          when :> then lo = [lo || 0, c.rhs.val + 1].max
-          when :>= then lo = [lo || 0, c.rhs.val].max
-          when :< then hi = [hi || 0xffffffff, c.rhs.val - 1].min
-          when :<= then hi = [hi || 0xffffffff, c.rhs.val].min
-          end
-        end
-        lo && [lo, hi]
-      end
-
-      # Constraints not already conveyed by the syscall-number / architecture presentation.
-      #
-      # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ — the named/ranged buckets
-      # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ — the
-      # per-architecture sections and the "any other" fall-through express them; and any non-+==+
-      # fact on a word that some +==+ on the same path already pins (it is then redundant — a
-      # contradicting combination would have been pruned as infeasible).
-      #
-      # Everything else is kept so a kernel-valid check is never silently dropped: bit-tests on an
-      # unpinned +sys_number+ (e.g. an odd/even dispatch), bit-tests or ranges on +arch+ (e.g.
-      # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
-      # against a register rather than a constant.
-      def residual(path)
-        pinned = path.filter_map { |c| c.lhs.offset if word_eq?(c) }
-        path.reject do |c|
-          next false unless c.lhs.plain_data? && c.rhs.imm?
-
-          redundant = c.op != :== && pinned.include?(c.lhs.offset)
-          case c.lhs.offset
-          when SYS then redundant || !%i[set unset].include?(c.op)
-          when ARCH then redundant || %i[== !=].include?(c.op)
-          else redundant
-          end
-        end.uniq(&:key)
       end
 
       def x32?(lo, hi)

@@ -122,7 +122,17 @@ module SeccompTools
         path.all? do |c|
           next true unless word?(c, ARCH) && c.rhs.imm?
 
-          c.holds?(val)
+          concrete_match?(val, c.op, c.rhs.val)
+        end
+      end
+
+      # Evaluates one comparison concretely: does +value op k+ hold? The same rule-based core as
+      # +Symbolic::Executor+'s, applied to the arch facts the sections consume.
+      def concrete_match?(value, op, k)
+        case op
+        when :set then !value.nobits?(k)
+        when :unset then value.nobits?(k)
+        else value.public_send(op, k) # the comparisons are all Integer methods
         end
       end
 
@@ -260,12 +270,12 @@ module SeccompTools
 
       # Does +c+ constrain the plain data word at +offset+?
       def word?(c, offset)
-        c.expr.plain_data? && c.expr.offset == offset
+        c.lhs.plain_data? && c.lhs.offset == offset
       end
 
       # Is +c+ a +word == constant+ fact?
       def word_eq?(c)
-        c.expr.plain_data? && c.op == :== && c.rhs.imm?
+        c.lhs.plain_data? && c.op == :== && c.rhs.imm?
       end
 
       # The byte offset of the low 32-bit word of the 64-bit field at +base+.
@@ -321,12 +331,12 @@ module SeccompTools
       # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
       # against a register rather than a constant.
       def residual(path)
-        pinned = path.filter_map { |c| c.expr.offset if word_eq?(c) }
+        pinned = path.filter_map { |c| c.lhs.offset if word_eq?(c) }
         path.reject do |c|
-          next false unless c.expr.plain_data? && c.rhs.imm?
+          next false unless c.lhs.plain_data? && c.rhs.imm?
 
-          redundant = c.op != :== && pinned.include?(c.expr.offset)
-          case c.expr.offset
+          redundant = c.op != :== && pinned.include?(c.lhs.offset)
+          case c.lhs.offset
           when SYS then redundant || !%i[set unset].include?(c.op)
           when ARCH then redundant || %i[== !=].include?(c.op)
           else redundant
@@ -404,7 +414,7 @@ module SeccompTools
       # fact ({Qword}) and which is dropped.
       def qword_plan(constraints)
         eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && word_eq?(c) }
-                         .group_by { |c| c.expr.offset }.transform_values(&:first)
+                         .group_by { |c| c.lhs.offset }.transform_values(&:first)
         plan = {}
         QWORD_BASES.each do |base|
           hi = eqs[hi_off(base)]
@@ -466,7 +476,7 @@ module SeccompTools
         hi_op, hi_val = strict(hi.op, hi.rhs.val)
         only_b = minus(b, a)
         eq = only_b.find do |c|
-          c.is_a?(Symbolic::Constraint) && word?(c, hi.expr.offset) && word_eq?(c) && c.rhs.val == hi_val
+          c.is_a?(Symbolic::Constraint) && word?(c, hi.lhs.offset) && word_eq?(c) && c.rhs.val == hi_val
         end
         lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? }
         return unless only_b.size == 2 && eq && lo && (op = OR_MERGE[[hi_op, lo.op]])
@@ -478,10 +488,10 @@ module SeccompTools
       # of a 64-bit field; +nil+ otherwise.
       def fusable_hi(a, b, hi)
         return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint)
-        return unless hi.expr.plain_data? && hi.rhs.imm?
+        return unless hi.lhs.plain_data? && hi.rhs.imm?
 
-        base = hi.expr.offset - (hi.expr.offset % 8)
-        base if QWORD_BASES.include?(base) && hi.expr.offset == hi_off(base)
+        base = hi.lhs.offset - (hi.lhs.offset % 8)
+        base if QWORD_BASES.include?(base) && hi.lhs.offset == hi_off(base)
       end
 
       # +>= v+ and +> v-1+ are the same test; normalize the high-word comparison to the strict form
@@ -500,11 +510,11 @@ module SeccompTools
       end
 
       def render_constraint(constraint, sys)
-        return "(#{render_binop(:&, constraint.expr, constraint.rhs, sys)}) != 0" if constraint.op == :set
-        return "(#{render_binop(:&, constraint.expr, constraint.rhs, sys)}) == 0" if constraint.op == :unset
+        return "(#{render_binop(:&, constraint.lhs, constraint.rhs, sys)}) != 0" if constraint.op == :set
+        return "(#{render_binop(:&, constraint.lhs, constraint.rhs, sys)}) == 0" if constraint.op == :unset
 
         prec = PREC[constraint.op]
-        "#{operand(constraint.expr, constraint.op, prec, sys)} " \
+        "#{operand(constraint.lhs, constraint.op, prec, sys)} " \
           "#{op_str(constraint.op)} #{operand(constraint.rhs, constraint.op, prec, sys)}"
       end
 

@@ -73,7 +73,11 @@ describe SeccompTools::Symbolic::Expr do
     end
 
     it 'negates via a unary node, folding a constant' do
+      # Ruby bitwise ops act on two's complement, so masking a negative gives the 32-bit value.
       expect(described_class.imm(5).apply(:neg, nil).val).to be 0xfffffffb # -5, two's complement
+      expect(described_class.imm(1).apply(:neg, nil).val).to be 0xffffffff
+      expect(described_class.imm(0).apply(:neg, nil).val).to be 0
+      expect(described_class.imm(0x80000000).apply(:neg, nil).val).to be 0x80000000 # its own negation
       neg = described_class.data(0).apply(:neg, nil)
       expect([neg.kind, neg.op, neg.lhs]).to eq [:unop, :neg, described_class.data(0)]
       expect(described_class.opaque.apply(:neg, nil).opaque?).to be true
@@ -85,10 +89,16 @@ describe SeccompTools::Symbolic::Expr do
       expect(e.apply(:neg, nil).apply(:neg, nil)).to eq e
     end
 
-    it 'becomes opaque for an opaque operand, an opaque base, and unrepresentable ops' do
+    it 'becomes opaque for an opaque operand or an opaque base' do
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
       expect(described_class.opaque.apply(:+, described_class.imm(1)).opaque?).to be true
-      expect(described_class.data(16).apply(:%, described_class.imm(2)).opaque?).to be true
+    end
+
+    it 'rejects an operator seccomp has no ALU instruction for, regardless of operand kinds' do
+      expect { described_class.data(16).apply(:%, described_class.imm(2)) }
+        .to raise_error(ArgumentError, /unsupported operator %/)
+      expect { described_class.imm(6).apply(:%, described_class.imm(2)) }
+        .to raise_error(ArgumentError, /unsupported operator %/)
     end
   end
 

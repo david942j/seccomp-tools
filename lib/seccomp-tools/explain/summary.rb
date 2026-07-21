@@ -2,6 +2,7 @@
 
 require 'seccomp-tools/const'
 require 'seccomp-tools/explain/qword'
+require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
 require 'seccomp-tools/symbolic/constraint'
 require 'seccomp-tools/util'
@@ -15,23 +16,6 @@ module SeccompTools
       SYS = 0
       # Byte offset of the architecture within +struct seccomp_data+.
       ARCH = 4
-      # C-like operator precedence (higher binds tighter), used to parenthesize a rendered condition
-      # exactly where it would otherwise be misread — notably that +==+ binds tighter than the
-      # bitwise operators, so +a & b == c+ must be shown as +(a & b) == c+.
-      PREC = {
-        :* => 12, :/ => 12, :+ => 11, :- => 11, :<< => 10, :>> => 10,
-        :< => 9, :<= => 9, :> => 9, :>= => 9, :== => 8, :!= => 8,
-        :& => 7, :^ => 6, :| => 5
-      }.freeze
-      # Unary negation binds tighter than any binary operator.
-      UNARY_PREC = 13
-      # The comparison operators. When one is the parent, operands are parenthesized by precedence
-      # alone (so +a & b == c+ becomes +(a & b) == c+ but +a >> b == c+ stays put), never by the
-      # extra readability rule in {#clarity_wrap?}.
-      COMPARISON = %i[== != < <= > >=].freeze
-      # Byte offset of the first 64-bit syscall argument within +struct seccomp_data+.
-      ARGS = 16
-
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
       #   The filter's declared architecture, used when the filter itself does not branch on +arch+.
@@ -45,6 +29,7 @@ module SeccompTools
         @source = source
         @truncated = truncated
         @fusion = QwordFusion.new(arch)
+        @renderer = Renderer.new(@fusion)
       end
 
       # Renders the policy.
@@ -192,7 +177,8 @@ module SeccompTools
       # The rendered or-branch conditions of the leaves +ls+, deduplicated, with 64-bit word checks
       # fused back into whole-field facts (see {QwordFusion}).
       def merged_conds(ls, sys)
-        @fusion.merge_or(ls.map { |l| residual(l.path) }).map { |list| render_and(@fusion.fold(list), sys) }.uniq
+        @fusion.merge_or(ls.map { |l| residual(l.path) })
+               .map { |list| @renderer.conjunction(@fusion.fold(list), sys) }.uniq
       end
 
       def add_default(buckets, default)
@@ -316,98 +302,6 @@ module SeccompTools
 
       def x32?(lo, hi)
         lo == 0x40000000 && hi.nil?
-      end
-
-      # --- constraint rendering ---------------------------------------------------------------
-
-      def render_and(constraints, sys)
-        constraints.map do |c|
-          if c.is_a?(Qword)
-            "#{data_name(@fusion.lo_off(c.base), sys)} #{op_str(c.op)} 0x#{c.val.to_s(16)}"
-          else
-            render_constraint(c, sys)
-          end
-        end.join(' && ')
-      end
-
-      def render_constraint(constraint, sys)
-        return "(#{render_binop(:&, constraint.lhs, constraint.rhs, sys)}) != 0" if constraint.op == :set
-        return "(#{render_binop(:&, constraint.lhs, constraint.rhs, sys)}) == 0" if constraint.op == :unset
-
-        prec = PREC[constraint.op]
-        "#{operand(constraint.lhs, constraint.op, prec, sys)} " \
-          "#{op_str(constraint.op)} #{operand(constraint.rhs, constraint.op, prec, sys)}"
-      end
-
-      # Renders an expression without any outer parentheses; each caller wraps it via {#operand}.
-      def render_expr(expr, sys)
-        return '<opaque>' if expr.opaque?
-        return "0x#{expr.val.to_s(16)}" if expr.imm?
-        return data_name(expr.offset, sys) if expr.plain_data?
-        return "-#{operand(expr.lhs, :neg, UNARY_PREC, sys)}" if expr.kind == :unop
-
-        render_binop(expr.op, expr.lhs, expr.rhs, sys)
-      end
-
-      # Renders +lhs op rhs+. Operators are left-associative, so the left operand shares +op+'s
-      # precedence while the right needs one higher (an equal-precedence right subtree is wrapped).
-      def render_binop(op, lhs, rhs, sys)
-        prec = PREC[op]
-        left = operand(lhs, op, prec, sys)
-        right = rhs.imm? && %i[<< >>].include?(op) ? rhs.val.to_s : operand(rhs, op, prec + 1, sys)
-        "#{left} #{op} #{right}"
-      end
-
-      # Renders +child+ as an operand of +parent_op+, parenthesizing it when precedence requires it
-      # (+child+ binds looser than +min_prec+) or when {#clarity_wrap?} judges the grouping too easy
-      # to misread.
-      def operand(child, parent_op, min_prec, sys)
-        s = render_expr(child, sys)
-        return s unless child.kind == :binop
-
-        PREC[child.op] < min_prec || clarity_wrap?(parent_op, child.op) ? "(#{s})" : s
-      end
-
-      # Should a +child_op+ nested under +parent_op+ be parenthesized purely for readability (beyond
-      # what precedence requires)? Yes when they sit at *different* precedence levels — mixing
-      # families like +a & (b + c)+ or +(a + b) << c+ is easy to misjudge. The exceptions, where the
-      # grouping is universally understood, are: any comparison parent (+a & b == c+ is already made
-      # unambiguous by wrapping the looser +&+), a same-level pair (+a + b - c+, +a ^ b ^ c+), and
-      # multiplication/division directly inside addition/subtraction (+a + b * c+).
-      def clarity_wrap?(parent_op, child_op)
-        return false if COMPARISON.include?(parent_op)
-        return false if PREC[parent_op] == PREC[child_op]
-        return false if PREC[child_op] == PREC[:*] && PREC[parent_op] == PREC[:+]
-
-        true
-      end
-
-      def op_str(op)
-        { :== => '==', :!= => '!=', :> => '>', :>= => '>=', :< => '<', :<= => '<=' }[op]
-      end
-
-      def data_name(offset, sys)
-        case offset
-        when 0 then 'sys_number'
-        when 4 then 'arch'
-        else qword_word_name(offset, sys)
-        end
-      end
-
-      # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word — which is the
-      # second word on little-endian architectures but the first on big-endian ones (s390x).
-      def qword_word_name(offset, sys)
-        base = offset - (offset % 8)
-        return "data[#{offset}]" unless QwordFusion::BASES.include?(base)
-
-        name = if base == 8
-                 'instruction_pointer'
-               else
-                 idx = (base - ARGS) / 8
-                 names = sys && Const::SYS_ARG[sys]
-                 Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
-               end
-        offset == @fusion.hi_off(base) ? "#{name} >> 32" : name
       end
 
       def syscall_name(arch_sym, nr)

@@ -16,6 +16,9 @@ module SeccompTools
       # @return [{Symbol => Integer}]
       #   Syscall name to number, for the architecture this scanner was created with.
       attr_reader :syscalls
+      # @return [Symbol]
+      #   The architecture this scanner was created with.
+      attr_reader :arch
 
       # Keywords with special meanings in our assembly. Keywords are all case-insensitive.
       KEYWORDS = %w[a x if else return mem args args_h data len sys_number arch instruction_pointer].freeze
@@ -55,6 +58,7 @@ module SeccompTools
       def initialize(str, arch, filename: nil)
         @filename = filename || '<inline>'
         @str = str
+        @arch = arch
         @syscalls =
           begin; Const::Syscall.const_get(arch.to_s.upcase); rescue NameError; []; end
         @syscall_all = ARCHES.each_with_object({}) do |ar, memo|

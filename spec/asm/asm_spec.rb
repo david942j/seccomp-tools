@@ -151,6 +151,43 @@ describe SeccompTools::Asm do
     EOS
   end
 
+  it 'uses big-endian word order for 64-bit fields on s390x' do
+    # On s390x the high 32-bit word of a 64-bit seccomp_data field comes first (see
+    # arch_arg_offset_lo/hi in libseccomp and syscall_arg in the kernel's seccomp selftests),
+    # so args[2] (its low half) is at offset 0x24 and args[2] >> 32 at 0x20.
+    src = <<-EOS
+      A = args[2]
+      A = args[2] >> 32
+      A = args_h[2]
+      A = instruction_pointer
+      A = instruction_pointer >> 32
+      return ALLOW
+    EOS
+    raw = described_class.asm(src, arch: :s390x)
+    expect(SeccompTools::Disasm.disasm(raw, arch: :s390x)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000024  A = args[2]
+ 0001: 0x20 0x00 0x00 0x00000020  A = args[2] >> 32
+ 0002: 0x20 0x00 0x00 0x00000020  A = args[2] >> 32
+ 0003: 0x20 0x00 0x00 0x0000000c  A = instruction_pointer
+ 0004: 0x20 0x00 0x00 0x00000008  A = instruction_pointer >> 32
+ 0005: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+    EOS
+    # ... while a little-endian arch keeps the low half first.
+    raw = described_class.asm(src, arch: :amd64)
+    expect(SeccompTools::Disasm.disasm(raw, arch: :amd64)).to eq <<-EOS
+ line  CODE  JT   JF      K
+=================================
+ 0000: 0x20 0x00 0x00 0x00000020  A = args[2]
+ 0001: 0x20 0x00 0x00 0x00000024  A = args[2] >> 32
+ 0002: 0x20 0x00 0x00 0x00000024  A = args[2] >> 32
+ 0003: 0x20 0x00 0x00 0x00000008  A = instruction_pointer
+ 0004: 0x20 0x00 0x00 0x0000000c  A = instruction_pointer >> 32
+ 0005: 0x06 0x00 0x00 0x7fff0000  return ALLOW
+    EOS
+  end
+
   it 'accepts output of disasm' do
     files = Dir.glob('spec/data/*.bpf')
     # Disassemble and reassemble under the same arch, otherwise the round-trip depends on the host arch:

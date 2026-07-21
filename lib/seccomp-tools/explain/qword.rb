@@ -149,7 +149,10 @@ module SeccompTools
       end
 
       # +>= v+ and +> v-1+ are the same test; normalize the high-word comparison to the strict form
-      # so {OR_MERGE} needs only one spelling.
+      # so {OR_MERGE} needs only one spelling. At the 32-bit boundary +val+ can step out of range
+      # (+>= 0+ to +> -1+, +<= 0xffffffff+ to +< 0x100000000+), but that is safe: the result is only
+      # matched against a data-word +==+ constant, which is masked to +0..0xffffffff+ and so can
+      # never equal it, and those boundary comparisons are always-true anyway (nothing to fuse).
       def strict(op, val)
         case op
         when :>= then [:>, val - 1]

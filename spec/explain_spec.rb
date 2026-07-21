@@ -528,4 +528,34 @@ EOS
       expect(summary.to_s).to include('analysis truncated')
     end
   end
+
+  context 'QwordFusion high-word boundary' do
+    # args[0] on amd64: low word at 16, high word at 20.
+    def con(off, op, val)
+      SeccompTools::Symbolic::Constraint.new(SeccompTools::Symbolic::Expr.data(off), op,
+                                             SeccompTools::Symbolic::Expr.imm(val))
+    end
+
+    def fuse(lists)
+      SeccompTools::Explain::QwordFusion.new(:amd64).merge_or(lists).map do |list|
+        list.map { |c| c.is_a?(SeccompTools::Explain::Qword) ? [:qword, c.op, c.val] : [c.op, c.rhs.val] }
+      end
+    end
+
+    it 'declines to fuse when normalizing the high word steps outside 32 bits' do
+      # hi >= 0 (strict -> hi > -1) and hi <= 0xffffffff (strict -> hi < 0x100000000) are
+      # always-true; the out-of-range value matches no masked == sibling, so nothing fuses and
+      # nothing crashes.
+      lo_ge = fuse([[con(20, :>=, 0)], [con(20, :==, 0), con(16, :>=, 0x10)]])
+      expect(lo_ge).to eq [[[:>=, 0]], [[:==, 0], [:>=, 0x10]]]
+      hi_le = fuse([[con(20, :<=, 0xffffffff)], [con(20, :==, 0xffffffff), con(16, :<=, 0x10)]])
+      expect(hi_le).to eq [[[:<=, 0xffffffff]], [[:==, 0xffffffff], [:<=, 0x10]]]
+    end
+
+    it 'still fuses the in-range >= H+1 encoding' do
+      # hi >= 3 (strict -> hi > 2) pairs with hi == 2 && lo >= 0x10 to form arg >= 0x200000010.
+      fused = fuse([[con(20, :>=, 3)], [con(20, :==, 2), con(16, :>=, 0x10)]])
+      expect(fused).to eq [[[:qword, :>=, 0x200000010]]]
+    end
+  end
 end

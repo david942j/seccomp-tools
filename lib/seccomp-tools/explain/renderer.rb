@@ -24,8 +24,8 @@ module SeccompTools
       # alone (so +a & b == c+ becomes +(a & b) == c+ but +a >> b == c+ stays put), never by the
       # extra readability rule in {#clarity_wrap?}.
       COMPARISON = %i[== != < <= > >=].freeze
-      # Byte offset of the first 64-bit syscall argument within +struct seccomp_data+.
-      ARGS = 16
+      # The +seccomp_data+ field layout the rendered names come from.
+      DATA = Const::BPF::SeccompData
 
       # @param [QwordFusion] fusion
       #   Supplies the endian-correct word offsets of the 64-bit fields, for naming their halves.
@@ -108,8 +108,8 @@ module SeccompTools
 
       def data_name(offset, sys)
         case offset
-        when 0 then 'sys_number'
-        when 4 then 'arch'
+        when DATA::SYS_NUMBER then 'sys_number'
+        when DATA::ARCH then 'arch'
         else qword_word_name(offset, sys)
         end
       end
@@ -118,12 +118,12 @@ module SeccompTools
       # second word on little-endian architectures but the first on big-endian ones (s390x).
       def qword_word_name(offset, sys)
         base = offset - (offset % 8)
-        return "data[#{offset}]" unless QwordFusion::BASES.include?(base)
+        return "data[#{offset}]" unless DATA::QWORD_BASES.include?(base)
 
-        name = if base == 8
+        name = if base == DATA::INSTRUCTION_POINTER
                  'instruction_pointer'
                else
-                 idx = (base - ARGS) / 8
+                 idx = (base - DATA::ARGS) / 8
                  names = sys && Const::SYS_ARG[sys]
                  Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
                end

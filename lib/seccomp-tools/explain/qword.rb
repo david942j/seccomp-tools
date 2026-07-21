@@ -19,9 +19,8 @@ module SeccompTools
     # ({Qword}), both within one path condition ({#fold}) and across the sibling or-branches
     # libseccomp compiles a 64-bit range comparison into ({#merge_or}).
     class QwordFusion
-      # Byte offsets of the 64-bit fields of +seccomp_data+ (+instruction_pointer+ and the six
-      # arguments), each stored as two 32-bit words whose order depends on endianness.
-      BASES = [8, *(16...64).step(8)].freeze
+      # Byte offsets of the 64-bit fields whose two 32-bit words this class fuses.
+      BASES = Const::BPF::SeccompData::QWORD_BASES
       # How the extra facts of two sibling or-branches fuse into one 64-bit comparison: one branch
       # holds +hi > H+ (high word normalized to a strict comparison) and the other
       # +hi == H && lo <op> L+, which together are exactly +field <fused op> (H << 32 | L)+. This is

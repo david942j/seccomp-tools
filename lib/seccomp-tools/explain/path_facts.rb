@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/const'
+
 module SeccompTools
   class Explain
     # The seccomp reading of one leaf's path condition: which syscall number it pins or bounds,
     # which architecture value it pins, and which facts remain for the rule's +when+ clause. All
     # inputs are immutable, so the queries are computed once.
     class PathFacts
-      # Byte offset of the syscall number within +struct seccomp_data+.
-      SYS = 0
-      # Byte offset of the architecture within +struct seccomp_data+.
-      ARCH = 4
+      SYS = Const::BPF::SeccompData::SYS_NUMBER
+      ARCH = Const::BPF::SeccompData::ARCH
 
       # @param [Array<Symbolic::Constraint>] path
       def initialize(path)

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/instruction/alu'
+
 module SeccompTools
   # Generic symbolic execution of classic BPF, with no seccomp knowledge. Where +SeccompTools::Emulator+
   # runs a program once with concrete inputs, the {Executor} here keeps the inputs unknown and walks
@@ -20,8 +22,10 @@ module SeccompTools
     # * {.opaque} - a value we cannot describe (an unsupported operation, or one whose operand is
     #   itself opaque). Nothing can be concluded about it.
     class Expr
-      # ALU operators that {#apply} can represent as a {.binop}. Anything else becomes {.opaque}.
-      REPRESENTABLE = %i[& | ^ << >> + - * /].freeze
+      # ALU operators that {#apply} can represent as a {.binop} — exactly the binary operators
+      # +Instruction::ALU#symbolize+ can produce (its unary +neg+ is handled separately). Anything
+      # else becomes {.opaque}.
+      REPRESENTABLE = Instruction::ALU::OP_SYM.values.freeze
 
       # @return [:imm, :data, :binop, :unop, :opaque] Which kind of expression this is.
       attr_reader :kind

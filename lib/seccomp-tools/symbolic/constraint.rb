@@ -26,6 +26,22 @@ module SeccompTools
         @rhs = rhs
       end
 
+      # Is this a fact about one plain data word compared against a constant — about the word at
+      # +offset+, when given? These are the facts rule-based consumers can reason about, e.g. the
+      # feasibility pruning in +Symbolic::Executor+.
+      # @param [Integer?] offset
+      # @return [Boolean]
+      def plain_data_fact?(offset = nil)
+        lhs.plain_data? && rhs.imm? && (offset.nil? || lhs.offset == offset)
+      end
+
+      # Is this a +word == constant+ fact — about the word at +offset+, when given?
+      # @param [Integer?] offset
+      # @return [Boolean]
+      def plain_data_eq?(offset = nil)
+        op == :== && plain_data_fact?(offset)
+      end
+
       # A value that uniquely identifies this constraint, for hashing and equality.
       # @return [Array]
       def key

@@ -45,12 +45,6 @@ module SeccompTools
         :& => %i[set unset]
       }.freeze
 
-      # The same fact with its sides swapped: +5 > x+ is +x < 5+. The bit tests are symmetric
-      # (+&+ commutes).
-      MIRROR = {
-        :== => :==, :!= => :!=, :> => :<, :>= => :<=, :< => :>, :<= => :>=, set: :set, unset: :unset
-      }.freeze
-
       # @param [Array<Instruction::Base>] instructions
       #   The program to execute, as +SeccompTools::Disasm.to_bpf(raw, arch).map(&:inst)+. Only the
       #   duck-typed +#symbolize+ method is used, so any classic-BPF instruction set works.
@@ -151,18 +145,10 @@ module SeccompTools
           return stack << [pc + j + 1, st]
         end
 
-        stack << [pc + jt + 1, st.with(path: st.path + [constraint(st.a, taken, rhs)])]
-        stack << [pc + jf + 1, st.with(path: st.path + [constraint(st.a, els, rhs)])]
-      end
-
-      # Builds the fact one branch records, normalized so a constant ends up on the right: BPF
-      # always compares the A register against X or k, but A itself may hold the constant (e.g.
-      # +A = 5+ compared against a data word +tax+'d into X earlier), and everything reasoning
-      # about facts reads "expression op constant".
-      def constraint(lhs, op, rhs)
-        return Constraint.new(rhs, MIRROR[op], lhs) if lhs.imm? && !rhs.imm?
-
-        Constraint.new(lhs, op, rhs)
+        # Constraint normalizes a constant onto the right, so +A = 5+ against a symbolic X records
+        # as +word < 5+ rather than +5 > word+.
+        stack << [pc + jt + 1, st.with(path: st.path + [Constraint.new(st.a, taken, rhs)])]
+        stack << [pc + jf + 1, st.with(path: st.path + [Constraint.new(st.a, els, rhs)])]
       end
 
       # Is +path+ satisfiable? Deliberately a small rule-based check, not a solver.

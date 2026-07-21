@@ -8,7 +8,18 @@ module SeccompTools
     # +data[16] & 0xffff != 0+. Every conditional jump adds one {Constraint} to each branch it
     # takes; the accumulated list is the "path condition" carried in {State#path} and reported on a
     # {Executor::Leaf}.
+    #
+    # A constraint keeps a lone constant on the right: BPF always compares the A register against X
+    # or +k+, but A itself may hold the constant (e.g. +A = 5+ compared against a data word +tax+'d
+    # into X earlier), and every consumer reads "expression op constant". So +Constraint.new(5, :>,
+    # word)+ normalizes to +word < 5+ at construction — the two spellings are one value.
     class Constraint
+      # The same comparison with its two sides swapped: +5 > x+ is +x < 5+. The bit tests are
+      # symmetric (+&+ commutes).
+      MIRROR = {
+        :== => :==, :!= => :!=, :> => :<, :>= => :<=, :< => :>, :<= => :>=, set: :set, unset: :unset
+      }.freeze
+
       # @return [Expr] The left-hand side (what is being tested).
       attr_reader :lhs
       # @return [Symbol] The comparison, one of +:==, :!=, :>, :>=, :<, :<=, :set, :unset+.
@@ -21,6 +32,7 @@ module SeccompTools
       # @param [Symbol] op
       # @param [Expr] rhs
       def initialize(lhs, op, rhs)
+        lhs, op, rhs = rhs, MIRROR[op], lhs if lhs.imm? && !rhs.imm? # keep the constant on the right
         @lhs = lhs
         @op = op
         @rhs = rhs

@@ -312,7 +312,13 @@ module SeccompTools
         return format('KILL_PROCESS (unknown action 0x%x)', ret.val) if sym == :KILL_PROCESS && !known_action?(ret)
 
         data = ret.val & Const::BPF::SECCOMP_RET_DATA
-        sym == :ERRNO ? "ERRNO(#{data})" : sym.to_s
+        case sym
+        when :ERRNO then "ERRNO(#{data})"
+        # TRACE's data reaches the tracer as the ptrace event message, TRAP's as si_errno of the
+        # SIGSYS - both are part of the policy, so show them (when set; 0 is the idle default).
+        when :TRACE, :TRAP then data.zero? ? sym.to_s : "#{sym}(#{data})"
+        else sym.to_s
+        end
       end
 
       def sym_of(ret)
@@ -327,7 +333,7 @@ module SeccompTools
       end
 
       def action_sym(label)
-        label.sub(/\(.*/, '').to_sym
+        label.sub(/\s*\(.*/, '').to_sym
       end
 
       # --- constraint rendering ---------------------------------------------------------------

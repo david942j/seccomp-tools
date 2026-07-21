@@ -80,7 +80,7 @@ Architecture: amd64
     write when (count & fd & 0xffff) == (buf | 0x10)
     openat when flags == (0x1337 & filename)
 
-  TRACE:
+  TRACE(1):
     <default> (any other syscall)
 
   ERRNO(1):
@@ -263,6 +263,12 @@ EOS
       leaf = SeccompTools::Symbolic::Executor::Leaf.new([], SeccompTools::Symbolic::Expr.imm(0x12345678), 0)
       expect(described_class::Summary.new([leaf], arch: :amd64).to_s)
         .to include('KILL_PROCESS (unknown action 0x12345678):')
+    end
+
+    it 'shows the data of TRAP, delivered as si_errno of the SIGSYS' do
+      # SECCOMP_RET_TRAP | 5; a plain `return TRAP` (data 0) stays "TRAP"
+      leaf = SeccompTools::Symbolic::Executor::Leaf.new([], SeccompTools::Symbolic::Expr.imm(0x00030005), 0)
+      expect(described_class::Summary.new([leaf], arch: :amd64).to_s).to include('TRAP(5):')
     end
   end
 

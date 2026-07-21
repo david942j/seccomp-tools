@@ -79,6 +79,12 @@ describe SeccompTools::Symbolic::Expr do
       expect(described_class.opaque.apply(:neg, nil).opaque?).to be true
     end
 
+    it 'cancels a double negation' do
+      expect(described_class.data(0).apply(:neg, nil).apply(:neg, nil)).to eq described_class.data(0)
+      e = described_class.data(0).apply(:+, described_class.data(4))
+      expect(e.apply(:neg, nil).apply(:neg, nil)).to eq e
+    end
+
     it 'becomes opaque for an opaque operand, an opaque base, and unrepresentable ops' do
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
       expect(described_class.opaque.apply(:+, described_class.imm(1)).opaque?).to be true

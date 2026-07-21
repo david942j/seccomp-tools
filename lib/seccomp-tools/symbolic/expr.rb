@@ -157,11 +157,14 @@ module SeccompTools
 
       private
 
-      # The unary negation +A = -A+ (two's complement, 32-bit).
+      # The unary negation +A = -A+ (two's complement, 32-bit). Negating a negation cancels — exact
+      # in 32-bit two's complement — instead of stacking into +--x+, which C would even lex as a
+      # decrement.
       # @return [Expr]
       def apply_neg
         return Expr.opaque if opaque?
         return Expr.imm(self.class.fold(0, :-, val)) if imm?
+        return lhs if kind == :unop # the only unop is :neg
 
         Expr.unop(:neg, self)
       end

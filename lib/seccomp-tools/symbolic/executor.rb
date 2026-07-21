@@ -145,8 +145,6 @@ module SeccompTools
           return stack << [pc + j + 1, st]
         end
 
-        # Constraint normalizes a constant onto the right, so +A = 5+ against a symbolic X records
-        # as +word < 5+ rather than +5 > word+.
         stack << [pc + jt + 1, st.with(path: st.path + [Constraint.new(st.a, taken, rhs)])]
         stack << [pc + jf + 1, st.with(path: st.path + [Constraint.new(st.a, els, rhs)])]
       end

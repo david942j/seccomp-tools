@@ -29,11 +29,27 @@ module SeccompTools
       # alone (so +a & b == c+ becomes +(a & b) == c+ but +a >> b == c+ stays put), never by the
       # extra readability rule in {#clarity_wrap?}.
       COMPARISON = %i[== != < <= > >=].freeze
-      # Byte offsets of the six 64-bit syscall arguments, each split into a low and high 32-bit word.
-      ARG_WORDS = (16...(16 + (8 * 6)))
-      # Byte offsets of the low word of every 64-bit field of +seccomp_data+: +instruction_pointer+
-      # and the six arguments.
-      QWORD_LOWS = [8, *(16...64).step(8)].freeze
+      # Byte offset of the first 64-bit syscall argument within +struct seccomp_data+.
+      ARGS = 16
+      # Byte offsets of the 64-bit fields of +seccomp_data+ (+instruction_pointer+ and the six
+      # arguments), each stored as two 32-bit words whose order depends on endianness.
+      QWORD_BASES = [8, *(16...64).step(8)].freeze
+      # How the extra facts of two sibling or-branches fuse into one 64-bit comparison: one branch
+      # holds +hi > H+ (high word normalized to a strict comparison) and the other
+      # +hi == H && lo <op> L+, which together are exactly +field <fused op> (H << 32 | L)+. This is
+      # the shape libseccomp compiles SCMP_CMP_GT/GE/LT/LE/NE argument comparisons into.
+      OR_MERGE = {
+        %i[> >] => :>, %i[> >=] => :>=, %i[< <] => :<, %i[< <=] => :<=, %i[!= !=] => :!=
+      }.freeze
+
+      # A 64-bit fact reassembled from 32-bit word checks (see {#fold_qwords} and
+      # {#merge_or_ranges}); +base+ is the field's byte offset in +seccomp_data+.
+      Qword = Struct.new(:base, :op, :val) do
+        # Mirrors {Symbolic::Constraint#key} so fused condition lists can still be compared.
+        def key
+          [:qword, base, op, val]
+        end
+      end
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -47,6 +63,8 @@ module SeccompTools
         @arch = arch
         @source = source
         @truncated = truncated
+        # On a big-endian architecture the high 32-bit word of a 64-bit field comes first.
+        @hi_first = Const::Endian::ENDIAN[arch] == '>'
       end
 
       # Renders the policy.
@@ -145,9 +163,9 @@ module SeccompTools
           group.group_by { |l| label_of(l.ret) }.each do |label, ls|
             next if label == default # falls through to the default action
 
-            conds = ls.map { |l| render_and(residual(l.path), sys) }
+            conds = merged_conds(ls, sys)
             plain = conds.include?('') # some path reaches this verdict with no extra condition
-            entry = plain ? name : "#{name} when #{conds.uniq.join(' or ')}"
+            entry = plain ? name : "#{name} when #{conds.join(' or ')}"
             add(buckets, label, sym_of(ls.first.ret), entry, simple: plain)
           end
         end
@@ -162,7 +180,7 @@ module SeccompTools
           range = "sys_number >= 0x#{lo.to_s(16)}"
           range << " && sys_number <= 0x#{hi.to_s(16)}" if hi
           group.group_by { |l| label_of(l.ret) }.each do |label, ls|
-            conds = ls.map { |l| render_and(residual(l.path), nil) }.uniq
+            conds = merged_conds(ls, nil)
             entry = conds.include?('') ? range.dup : "#{range} when #{conds.join(' or ')}"
             entry << '  (x32 ABI)' if x32?(lo, hi)
             add(buckets, label, sym_of(ls.first.ret), entry, simple: false)
@@ -173,12 +191,18 @@ module SeccompTools
       # Fall-through rules that inspect arguments (or a transformed syscall number) without pinning a
       # specific syscall. Kept so such checks are never silently dropped.
       def add_conditional(buckets, leaves, default)
-        leaves.each do |l|
-          label = label_of(l.ret)
+        leaves.group_by { |l| label_of(l.ret) }.each do |label, ls|
           next if label == default
 
-          add(buckets, label, sym_of(l.ret), "any syscall when #{render_and(residual(l.path), nil)}", simple: false)
+          conds = merged_conds(ls, nil)
+          add(buckets, label, sym_of(ls.first.ret), "any syscall when #{conds.join(' or ')}", simple: false)
         end
+      end
+
+      # The rendered or-branch conditions of the leaves +ls+, deduplicated, with branch pairs that
+      # express one 64-bit comparison fused first (see {#merge_or_ranges}).
+      def merged_conds(ls, sys)
+        merge_or_ranges(ls.map { |l| residual(l.path) }).map { |list| render_and(list, sys) }.uniq
       end
 
       def add_default(buckets, default)
@@ -239,6 +263,21 @@ module SeccompTools
         c.expr.plain_data? && c.expr.offset == offset
       end
 
+      # Is +c+ a +word == constant+ fact?
+      def word_eq?(c)
+        c.expr.plain_data? && c.op == :== && c.rhs.imm?
+      end
+
+      # The byte offset of the low 32-bit word of the 64-bit field at +base+.
+      def lo_off(base)
+        @hi_first ? base + 4 : base
+      end
+
+      # The byte offset of the high 32-bit word of the 64-bit field at +base+.
+      def hi_off(base)
+        @hi_first ? base : base + 4
+      end
+
       # The first constraint comparing the word at +offset+ to a constant with one of +ops+, or nil.
       def fact(path, offset, *ops)
         path.find { |c| word?(c, offset) && ops.include?(c.op) && c.rhs.imm? }
@@ -273,28 +312,26 @@ module SeccompTools
       #
       # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ — the named/ranged buckets
       # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ — the
-      # per-architecture sections and the "any other" fall-through express them; and bit-test or
-      # range facts on a word that some +==+ on the same path already pins (they are then redundant
-      # — a contradicting combination would have been pruned as infeasible).
+      # per-architecture sections and the "any other" fall-through express them; and any non-+==+
+      # fact on a word that some +==+ on the same path already pins (it is then redundant — a
+      # contradicting combination would have been pruned as infeasible).
       #
       # Everything else is kept so a kernel-valid check is never silently dropped: bit-tests on an
       # unpinned +sys_number+ (e.g. an odd/even dispatch), bit-tests or ranges on +arch+ (e.g.
       # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
       # against a register rather than a constant.
       def residual(path)
-        sys_pinned = !eq(path, SYS).nil?
-        arch_pinned = !eq(path, ARCH).nil?
+        pinned = path.filter_map { |c| c.expr.offset if word_eq?(c) }
         path.reject do |c|
-          next false unless c.rhs.imm?
+          next false unless c.expr.plain_data? && c.rhs.imm?
 
-          if word?(c, SYS)
-            %i[set unset].include?(c.op) ? sys_pinned : true
-          elsif word?(c, ARCH)
-            %i[== !=].include?(c.op) || arch_pinned
-          else
-            false
+          redundant = c.op != :== && pinned.include?(c.expr.offset)
+          case c.expr.offset
+          when SYS then redundant || !%i[set unset].include?(c.op)
+          when ARCH then redundant || %i[== !=].include?(c.op)
+          else redundant
           end
-        end
+        end.uniq(&:key)
       end
 
       def x32?(lo, hi)
@@ -339,18 +376,9 @@ module SeccompTools
       # --- constraint rendering ---------------------------------------------------------------
 
       def render_and(constraints, sys)
-        eqs = constraints.each_with_object({}) do |c, h|
-          h[c.expr.offset] = c.rhs.val if c.expr.plain_data? && c.op == :== && c.rhs.imm?
-        end
-        merged = {}
-        constraints.filter_map do |c|
-          pair = full_arg_equality(c, eqs)
-          if pair
-            lo, value = pair
-            next if merged[lo]
-
-            merged[lo] = true
-            "#{data_name(lo, sys)} == 0x#{value.to_s(16)}"
+        fold_qwords(constraints).map do |c|
+          if c.is_a?(Qword)
+            "#{data_name(lo_off(c.base), sys)} #{op_str(c.op)} 0x#{c.val.to_s(16)}"
           else
             render_constraint(c, sys)
           end
@@ -358,16 +386,117 @@ module SeccompTools
       end
 
       # A 64-bit field (+instruction_pointer+ or an argument) is two 32-bit words in +seccomp_data+,
-      # and filters check them separately. When +c+ pins one half by +==+ and the other half is
-      # also pinned, returns +[low_word_offset, combined_64bit_value]+ so the pair can be shown as
-      # one +field == value+; otherwise +nil+.
-      def full_arg_equality(c, eqs)
-        return unless c.op == :== && c.rhs.imm? && c.expr.plain_data?
+      # and filters check them separately. Fuses the word facts of one path into 64-bit facts: both
+      # halves pinned by +==+ become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+)
+      # becomes +field < L+ — exact, since a 64-bit value below +L < 2**32+ forces the high word to
+      # zero.
+      def fold_qwords(constraints)
+        plan = qword_plan(constraints)
+        constraints.filter_map do |c|
+          action = plan[c]
+          next if action == :drop
 
-        lo = c.expr.offset - (c.expr.offset % 8) # the low word of this field
-        return unless QWORD_LOWS.include?(lo) && eqs.key?(lo) && eqs.key?(lo + 4)
+          action || c
+        end
+      end
 
-        [lo, (eqs[lo + 4] << 32) | eqs[lo]]
+      # For each 64-bit field whose word facts fuse, decides which constraint renders the fused
+      # fact ({Qword}) and which is dropped.
+      def qword_plan(constraints)
+        eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && word_eq?(c) }
+                         .group_by { |c| c.expr.offset }.transform_values(&:first)
+        plan = {}
+        QWORD_BASES.each do |base|
+          hi = eqs[hi_off(base)]
+          next unless hi
+
+          if (lo = eqs[lo_off(base)])
+            plan[lo] = Qword.new(base, :==, (hi.rhs.val << 32) | lo.rhs.val)
+          elsif hi.rhs.val.zero? && (lo = lo_bound(constraints, base))
+            plan[lo] = Qword.new(base, lo.op, lo.rhs.val)
+          else
+            next
+          end
+          plan[hi] = :drop
+        end
+        plan
+      end
+
+      # The +lo < L+ / +lo <= L+ fact on the low word of the field at +base+, if any.
+      def lo_bound(constraints, base)
+        constraints.find do |c|
+          c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? && %i[< <=].include?(c.op)
+        end
+      end
+
+      # The or-branch condition lists of one rule, with sibling branches that together express a
+      # single 64-bit comparison fused (repeatedly, until nothing fuses).
+      def merge_or_ranges(lists)
+        loop do
+          fused = merge_one_pair(lists)
+          return lists unless fused
+
+          lists = fused
+        end
+      end
+
+      def merge_one_pair(lists)
+        lists.each_with_index do |a, i|
+          lists.each_with_index do |b, j|
+            next if i == j
+
+            fused = fuse_pair(a, b)
+            next unless fused
+
+            rest = lists.reject.with_index { |_, k| [i, j].include?(k) }
+            return rest.insert([i, j].min, fused)
+          end
+        end
+        nil
+      end
+
+      # When +a+'s only extra fact (vs +b+) is +hi ⋈ H+ and +b+'s extras are +hi == H+ plus a fact
+      # on the matching low word, replaces the trio in +b+ with the fused 64-bit fact ({OR_MERGE});
+      # returns +nil+ when the two condition lists do not have that shape.
+      def fuse_pair(a, b)
+        hi, = minus(a, b)
+        base = fusable_hi(a, b, hi)
+        return unless base
+
+        hi_op, hi_val = strict(hi.op, hi.rhs.val)
+        only_b = minus(b, a)
+        eq = only_b.find do |c|
+          c.is_a?(Symbolic::Constraint) && word?(c, hi.expr.offset) && word_eq?(c) && c.rhs.val == hi_val
+        end
+        lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && word?(c, lo_off(base)) && c.rhs.imm? }
+        return unless only_b.size == 2 && eq && lo && (op = OR_MERGE[[hi_op, lo.op]])
+
+        b.map { |c| c.equal?(eq) ? Qword.new(base, op, (hi_val << 32) | lo.rhs.val) : c }.reject { |c| c.equal?(lo) }
+      end
+
+      # The field base when +a+'s single extra fact +hi+ is a constant comparison on the high word
+      # of a 64-bit field; +nil+ otherwise.
+      def fusable_hi(a, b, hi)
+        return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint)
+        return unless hi.expr.plain_data? && hi.rhs.imm?
+
+        base = hi.expr.offset - (hi.expr.offset % 8)
+        base if QWORD_BASES.include?(base) && hi.expr.offset == hi_off(base)
+      end
+
+      # +>= v+ and +> v-1+ are the same test; normalize the high-word comparison to the strict form
+      # so {OR_MERGE} needs only one spelling.
+      def strict(op, val)
+        case op
+        when :>= then [:>, val - 1]
+        when :<= then [:<, val + 1]
+        else [op, val]
+        end
+      end
+
+      # The constraints in +a+ whose fact does not also appear in +b+.
+      def minus(a, b)
+        a.reject { |c| b.any? { |d| d.key == c.key } }
       end
 
       def render_constraint(constraint, sys)
@@ -430,20 +559,24 @@ module SeccompTools
         case offset
         when 0 then 'sys_number'
         when 4 then 'arch'
-        when 8 then 'instruction_pointer'
-        when 12 then 'instruction_pointer >> 32'
-        else arg_data_name(offset, sys)
+        else qword_word_name(offset, sys)
         end
       end
 
-      def arg_data_name(offset, sys)
-        return "data[#{offset}]" unless ARG_WORDS.include?(offset)
+      # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word — which is the
+      # second word on little-endian architectures but the first on big-endian ones (s390x).
+      def qword_word_name(offset, sys)
+        base = offset - (offset % 8)
+        return "data[#{offset}]" unless QWORD_BASES.include?(base)
 
-        idx = (offset - ARG_WORDS.begin) / 8
-        hi = (offset - ARG_WORDS.begin) % 8 == 4
-        names = sys && Const::SYS_ARG[sys]
-        base = Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
-        hi ? "#{base} >> 32" : base
+        name = if base == 8
+                 'instruction_pointer'
+               else
+                 idx = (base - ARGS) / 8
+                 names = sys && Const::SYS_ARG[sys]
+                 Util.colorize((names && names[idx]) || "args[#{idx}]", t: :args)
+               end
+        offset == hi_off(base) ? "#{name} >> 32" : name
       end
 
       def syscall_name(arch_sym, nr)

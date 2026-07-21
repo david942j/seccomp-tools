@@ -168,6 +168,62 @@ Architecture: amd64
 EOS
     end
 
+    it 'fuses libseccomp-style 64-bit range comparisons into one condition' do
+      # libseccomp compiles a 64-bit `arg >= V` (SCMP_CMP_GE etc.) into a high-word comparison
+      # plus a `hi == H && lo ...` branch; the two match paths must read as one 64-bit fact.
+      src = <<~ASM
+        A = sys_number
+        A == write ? ge_chk : next
+        A == read ? gt_chk : allow
+        ge_chk:
+        A = data[36]
+        A > 0x0 ? kill_it : next
+        A == 0x0 ? next : allow
+        A = data[32]
+        A >= 0x1000 ? kill_it : allow
+        gt_chk:
+        A = data[36]
+        A > 0x2 ? kill_it : next
+        A == 0x2 ? next : allow
+        A = data[32]
+        A > 0x500 ? kill_it : allow
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      out = explain_asm(src)
+      expect(out).to include('write when count >= 0x1000')
+      expect(out).to include('read when count > 0x200000500')
+    end
+
+    it 'fuses 64-bit less-than and not-equal comparisons' do
+      # For `arg < L` with a zero high word the hi > branch is infeasible, so a single path
+      # remains: `hi == 0 && lo < L`, which is exactly `arg < L`.
+      src = <<~ASM
+        A = sys_number
+        A == write ? lt_chk : next
+        A == read ? ne_chk : allow
+        lt_chk:
+        A = data[36]
+        A == 0x0 ? next : allow
+        A = data[32]
+        A < 0x1000 ? kill_it : allow
+        ne_chk:
+        A = data[36]
+        A == 0x1 ? next : kill_it
+        A = data[32]
+        A == 0x2000 ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      out = explain_asm(src)
+      expect(out).to include('write when count < 0x1000')
+      expect(out).to include('read when count != 0x100002000')
+    end
+
     it 'never silently drops an argument check that does not pin a syscall' do
       src = <<~ASM
         A = args[0]
@@ -327,6 +383,29 @@ EOS
         return KILL
       ASM
       expect(explain_asm(src)).to include('any syscall when args[0] == 0x0')
+    end
+  end
+
+  context 'big-endian architecture' do
+    it 'names and reassembles 64-bit halves in s390x word order' do
+      # On s390x the high word of a 64-bit field comes first: data[16] is the high half of
+      # args[0] and data[20] the low half.
+      src = <<~ASM
+        A = data[16]
+        A == 0x7f ? next : kill_it
+        A = data[20]
+        A == 0x31337000 ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      raw = SeccompTools::Asm.asm(src, arch: :s390x)
+      expect(explain(raw, :s390x)).to include('any syscall when args[0] == 0x7f31337000')
+
+      half = "A = data[16]\nA == 0x7f ? allow : kill_it\nallow:\nreturn ALLOW\nkill_it:\nreturn KILL"
+      raw = SeccompTools::Asm.asm(half, arch: :s390x)
+      expect(explain(raw, :s390x)).to include('any syscall when args[0] >> 32 == 0x7f')
     end
   end
 

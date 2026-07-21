@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/explain/verdict'
 require 'seccomp-tools/symbolic/constraint'
 require 'seccomp-tools/util'
 
@@ -13,8 +14,6 @@ module SeccompTools
       SYS = 0
       # Byte offset of the architecture within +struct seccomp_data+.
       ARCH = 4
-      # Buckets are printed in this order; unlisted actions sort last.
-      ORDER = %i[ALLOW USER_NOTIF LOG TRACE TRAP ERRNO KILL KILL_PROCESS UNKNOWN].freeze
       # C-like operator precedence (higher binds tighter), used to parenthesize a rendered condition
       # exactly where it would otherwise be misread — notably that +==+ binds tighter than the
       # bitwise operators, so +a & b == c+ must be shown as +(a & b) == c+.
@@ -170,13 +169,13 @@ module SeccompTools
         leaves.group_by { |l| eq(l.path, SYS) }.sort_by(&:first).each do |nr, group|
           sys = syscall_name(arch_sym, nr)
           name = Util.colorize(sys ? sys.to_s : "0x#{nr.to_s(16)}", t: :syscall)
-          group.group_by { |l| label_of(l.ret) }.each do |label, ls|
+          group.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
             next if label == default # falls through to the default action
 
             conds = merged_conds(ls, sys)
             plain = conds.include?('') # some path reaches this verdict with no extra condition
             entry = plain ? name : "#{name} when #{conds.join(' or ')}"
-            add(buckets, label, sym_of(ls.first.ret), entry, simple: plain)
+            add(buckets, label, entry, simple: plain)
           end
         end
       end
@@ -189,11 +188,11 @@ module SeccompTools
         leaves.group_by { |l| sys_range(l.path) }.each do |(lo, hi), group|
           range = "sys_number >= 0x#{lo.to_s(16)}"
           range << " && sys_number <= 0x#{hi.to_s(16)}" if hi
-          group.group_by { |l| label_of(l.ret) }.each do |label, ls|
+          group.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
             conds = merged_conds(ls, nil)
             entry = conds.include?('') ? range.dup : "#{range} when #{conds.join(' or ')}"
             entry << '  (x32 ABI)' if x32?(lo, hi)
-            add(buckets, label, sym_of(ls.first.ret), entry, simple: false)
+            add(buckets, label, entry, simple: false)
           end
         end
       end
@@ -201,11 +200,11 @@ module SeccompTools
       # Fall-through rules that inspect arguments (or a transformed syscall number) without pinning a
       # specific syscall. Kept so such checks are never silently dropped.
       def add_conditional(buckets, leaves, default)
-        leaves.group_by { |l| label_of(l.ret) }.each do |label, ls|
+        leaves.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
           next if label == default
 
           conds = merged_conds(ls, nil)
-          add(buckets, label, sym_of(ls.first.ret), "any syscall when #{conds.join(' or ')}", simple: false)
+          add(buckets, label, "any syscall when #{conds.join(' or ')}", simple: false)
         end
       end
 
@@ -221,7 +220,7 @@ module SeccompTools
         # "other" only makes sense when some syscall was singled out; otherwise the default is the
         # whole policy.
         text = buckets.empty? ? '<default> (any syscall)' : '<default> (any other syscall)'
-        add(buckets, default, action_sym(default), text, simple: false)
+        add(buckets, default, text, simple: false)
       end
 
       # The catch-all action: the verdict of a leaf that matches no syscall, no range, no arguments.
@@ -229,16 +228,16 @@ module SeccompTools
         catch_all = leaves.find do |l|
           eq(l.path, SYS).nil? && sys_range(l.path).nil? && residual(l.path).empty?
         end
-        (catch_all || leaves.first)&.then { |l| label_of(l.ret) }
+        (catch_all || leaves.first)&.then { |l| Verdict.label(l.ret) }
       end
 
-      def add(buckets, label, sym, text, simple:)
-        b = buckets[label] ||= { sym:, simple: [], complex: [] }
+      def add(buckets, label, text, simple:)
+        b = buckets[label] ||= { simple: [], complex: [] }
         (simple ? b[:simple] : b[:complex]) << text
       end
 
       def sorted_buckets(buckets)
-        buckets.sort_by { |label, b| [ORDER.index(b[:sym]) || ORDER.size, label] }
+        buckets.sort_by { |label, _b| Verdict.rank(label) }
       end
 
       def render_bucket(label, bucket)
@@ -346,41 +345,6 @@ module SeccompTools
 
       def x32?(lo, hi)
         lo == 0x40000000 && hi.nil?
-      end
-
-      # --- verdict decoding -------------------------------------------------------------------
-
-      def label_of(ret)
-        return 'UNKNOWN' unless ret.imm?
-
-        sym = sym_of(ret)
-        # An unrecognized action value loads fine; the kernel treats it as KILL_PROCESS
-        # (KILL_THREAD before Linux 4.14). See seccomp(2).
-        return format('KILL_PROCESS (unknown action 0x%x)', ret.val) if sym == :KILL_PROCESS && !known_action?(ret)
-
-        data = ret.val & Const::BPF::SECCOMP_RET_DATA
-        case sym
-        when :ERRNO then "ERRNO(#{data})"
-        # TRACE's data reaches the tracer as the ptrace event message, TRAP's as si_errno of the
-        # SIGSYS - both are part of the policy, so show them (when set; 0 is the idle default).
-        when :TRACE, :TRAP then data.zero? ? sym.to_s : "#{sym}(#{data})"
-        else sym.to_s
-        end
-      end
-
-      def sym_of(ret)
-        return :UNKNOWN unless ret.imm?
-        return :KILL_PROCESS unless known_action?(ret)
-
-        Const::BPF::ACTION.invert[ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL]
-      end
-
-      def known_action?(ret)
-        Const::BPF::ACTION.value?(ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL)
-      end
-
-      def action_sym(label)
-        label.sub(/\s*\(.*/, '').to_sym
       end
 
       # --- constraint rendering ---------------------------------------------------------------

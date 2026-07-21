@@ -183,6 +183,15 @@ module SeccompTools
         riscv64: '<',
         s390x: '>'
       }.freeze
+
+      # Whether +arch+ is big-endian, i.e. stores the high 32-bit word of a 64-bit +seccomp_data+
+      # field (+instruction_pointer+ or an argument) first. See +arch_arg_offset_lo/hi+ in
+      # libseccomp and the +syscall_arg+ macro of the kernel's seccomp selftests.
+      # @param [Symbol] arch
+      # @return [Boolean]
+      def self.big?(arch)
+        ENDIAN[arch] == '>'
+      end
     end
   end
 end

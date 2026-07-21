@@ -72,7 +72,7 @@ rule
                 off = val[1] == '>>' ? 0 : -1
                 raise_error("operator after an argument can only be '>> 32'", off)
               end
-              val[0] + 4
+              val[0] ^ 4 # the other 32-bit word of the same 64-bit field
             }
           | SYS_NUMBER { 0 }
           | ARCH { 4 }
@@ -88,9 +88,9 @@ rule
                    idx = val[2].to_i
                    s = val[0]
                    raise_error(format('index of %s[] must between 0 and 5, got %d', s, idx), -1) unless idx.between?(0, 5)
-                   16 + idx * 8 + (s.downcase.end_with?('h') ? 4 : 0)
+                   word_offset(16 + idx * 8, hi: s.downcase.end_with?('h'))
                  }
-               | INSTRUCTION_POINTER { 8 }
+               | INSTRUCTION_POINTER { word_offset(8, hi: false) }
   args: ARGS
       | ARGS_H
   alu_op_eq: alu_op ASSIGN { val[0] + val[1] }
@@ -131,11 +131,18 @@ end
 require 'seccomp-tools/asm/scalar'
 require 'seccomp-tools/asm/scanner'
 require 'seccomp-tools/asm/statement'
+require 'seccomp-tools/const'
 
 ---- inner
   def initialize(scanner)
     @scanner = scanner
     super()
+  end
+
+  # The byte offset of the low (+hi: false+) or high 32-bit word of the 8-byte seccomp_data field
+  # at +base+; on a big-endian target the high word comes first.
+  def word_offset(base, hi:)
+    base + (hi == SeccompTools::Const::Endian.big?(@scanner.arch) ? 0 : 4)
   end
 
   # @return [Array<Statement>]

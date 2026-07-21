@@ -25,7 +25,10 @@ module SeccompTools
       @sys_nr = sys_nr
       @args = args
       @ip = instruction_pointer
-      @arch = audit(arch || Util.system_arch)
+      arch ||= Util.system_arch
+      @arch = audit(arch)
+      # On a big-endian architecture the high 32-bit word of a 64-bit field comes first.
+      @big_endian = Const::Endian.big?(arch)
     end
 
     # Run emulation!
@@ -157,12 +160,19 @@ module SeccompTools
       case index
       when 0 then @sys_nr || undefined('sys_number')
       when 1 then @arch || undefined('arch')
-      when 2 then (@ip & 0xffffffff) || undefined('instruction_pointer')
-      when 3 then (@ip >> 32) || undefined('instruction_pointer')
+      when 2, 3 then word_of(@ip || undefined('instruction_pointer'), index)
       else
         val = @args[(index - 4) / 2] || undefined("args[#{(index - 4) / 2}]")
-        (val >> (index.even? ? 0 : 32)) & 0xffffffff
+        word_of(val, index)
       end
+    end
+
+    # The 32-bit word of the 64-bit value +val+ that lives at word-index +index+ of
+    # +seccomp_data+: the high word comes second on little-endian architectures but first on
+    # big-endian ones (s390x).
+    def word_of(val, index)
+      hi = index.odd? ^ @big_endian
+      (val >> (hi ? 32 : 0)) & 0xffffffff
     end
 
     def undefined(var)

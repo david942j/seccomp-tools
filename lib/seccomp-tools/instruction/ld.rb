@@ -77,8 +77,7 @@ module SeccompTools
         case k
         when 0 then 'sys_number'
         when 4 then 'arch'
-        when 8 then 'instruction_pointer'
-        when 12 then 'instruction_pointer >> 32'
+        when 8, 12 then hi_word?(k) ? 'instruction_pointer >> 32' : 'instruction_pointer'
         else
           idx = Array.new(12) { |i| (i * 4) + 16 }.index(k)
           return 'INVALID' if idx.nil?
@@ -87,8 +86,16 @@ module SeccompTools
         end
       end
 
+      # Is the 32-bit word at byte offset +k+ the high half of its 64-bit +seccomp_data+ field?
+      # The high word comes second on little-endian architectures but first on big-endian ones
+      # (s390x); see +arch_arg_offset_hi+ in libseccomp.
+      def hi_word?(k)
+        (k % 8 == 4) ^ Const::Endian.big?(arch)
+      end
+
       def args_name(idx)
-        default = idx.even? ? "args[#{idx / 2}]" : "args[#{idx / 2}] >> 32"
+        hi = hi_word?((idx * 4) + 16)
+        default = hi ? "args[#{idx / 2}] >> 32" : "args[#{idx / 2}]"
         return default unless show_arg_infer?
 
         sys_nrs = contexts.map { |ctx| ctx.known_data[0] }.uniq
@@ -100,7 +107,7 @@ module SeccompTools
 
         comment = "# #{sys}(#{args.join(', ')})"
         arg_name = Util.colorize(args[idx / 2], t: :args)
-        "#{idx.even? ? arg_name : "#{arg_name} >> 32"} #{Util.colorize(comment, t: :gray)}"
+        "#{hi ? "#{arg_name} >> 32" : arg_name} #{Util.colorize(comment, t: :gray)}"
       end
     end
   end

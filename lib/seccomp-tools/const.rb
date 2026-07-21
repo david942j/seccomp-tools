@@ -176,9 +176,8 @@ module SeccompTools
     # Endianness constants.
     module Endian
       # +__AUDIT_ARCH_LE+ from +uapi/linux/audit.h+: the bit an +AUDIT_ARCH_*+ value carries iff
-      # the architecture is little-endian. The kernel encodes endianness in the arch token itself —
-      # big-endian variants of biendian CPU families get separate tokens (e.g.
-      # +AUDIT_ARCH_MIPS+/+AUDIT_ARCH_MIPSEL+).
+      # the architecture is little-endian. The kernel encodes endianness in the arch token itself,
+      # so it never needs to be guessed from an architecture's name.
       AUDIT_ARCH_LE = 0x40000000
 
       # Endianness of each architecture as a pack/unpack format modifier, derived from the

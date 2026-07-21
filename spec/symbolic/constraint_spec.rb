@@ -27,6 +27,11 @@ describe SeccompTools::Symbolic::Constraint do
       expect(constraint(:unset, 0x3).holds?(0x4)).to be true
       expect(constraint(:unset, 0x3).holds?(0x1)).to be false
     end
+
+    it 'refuses a non-constant rhs instead of comparing against nil' do
+      c = described_class.new(expr.data(0), :==, expr.data(4))
+      expect { c.holds?(5) }.to raise_error(ArgumentError, /rhs must be a constant, got data/)
+    end
   end
 
   it 'exposes its parts and a hashable key' do

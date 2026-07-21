@@ -182,6 +182,90 @@ EOS
     end
   end
 
+  context 'unusual but kernel-valid checks' do
+    it 'keeps a bit-test on the syscall number instead of dropping the rule' do
+      # an odd/even dispatch pins no syscall, but half the policy must not vanish
+      src = <<~ASM
+        A = sys_number
+        if (A & 0x1) goto kill_it else goto allow
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('KILL:')
+      expect(explain_asm(src)).to include('any syscall when (sys_number & 0x1) != 0')
+    end
+
+    it 'keeps a bit-test on the architecture' do
+      # testing the __AUDIT_ARCH_64BIT flag instead of pinning one arch value
+      src = <<~ASM
+        A = arch
+        if (A & 0x80000000) goto ok else goto kill_it
+        ok:
+        A = sys_number
+        A == write ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('write when (arch & 0x80000000) != 0')
+    end
+
+    it 'bounds a syscall range from both sides' do
+      src = <<~ASM
+        A = sys_number
+        A >= 0x100 ? chk : allow
+        chk:
+        A = sys_number
+        A < 0x200 ? err : allow
+        err:
+        return ERRNO(1)
+        allow:
+        return ALLOW
+      ASM
+      out = explain_asm(src)
+      expect(out).to include('sys_number >= 0x100 && sys_number <= 0x1ff')
+      expect(out).to include('sys_number >= 0x200') # the >= 0x100 && >= 0x200 side keeps the max
+    end
+
+    it 'renders a syscall number compared against a register' do
+      src = <<~ASM
+        A = args[0]
+        X = A
+        A = sys_number
+        A == X ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('any syscall when sys_number == args[0]')
+    end
+
+    it 'reassembles the two halves of instruction_pointer like an argument' do
+      src = <<~ASM
+        A = data[8]
+        A == 0x31337000 ? next : kill_it
+        A = data[12]
+        A == 0x7fff ? allow : kill_it
+        allow:
+        return ALLOW
+        kill_it:
+        return KILL
+      ASM
+      expect(explain_asm(src)).to include('any syscall when instruction_pointer == 0x7fff31337000')
+    end
+
+    it 'labels an unrecognized action value as the kernel treats it' do
+      # seccomp(2): an unknown action acts as KILL_PROCESS (KILL_THREAD before Linux 4.14).
+      leaf = SeccompTools::Symbolic::Executor::Leaf.new([], SeccompTools::Symbolic::Expr.imm(0x12345678), 0)
+      expect(described_class::Summary.new([leaf], arch: :amd64).to_s)
+        .to include('KILL_PROCESS (unknown action 0x12345678):')
+    end
+  end
+
   context 'degenerate filters' do
     it 'reports a single unconditional return as the default action' do
       expect(explain_asm('return ALLOW')).to eq(<<EOS)

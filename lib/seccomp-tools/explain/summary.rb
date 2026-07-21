@@ -31,6 +31,9 @@ module SeccompTools
       COMPARISON = %i[== != < <= > >=].freeze
       # Byte offsets of the six 64-bit syscall arguments, each split into a low and high 32-bit word.
       ARG_WORDS = (16...(16 + (8 * 6)))
+      # Byte offsets of the low word of every 64-bit field of +seccomp_data+: +instruction_pointer+
+      # and the six arguments.
+      QWORD_LOWS = [8, *(16...64).step(8)].freeze
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -124,7 +127,7 @@ module SeccompTools
       # only, or is the catch-all (rendered by {#add_default}).
       def rule_buckets(arch_sym, leaves, default)
         named, rest = leaves.partition { |l| eq(l.path, SYS) }
-        ranged, rest = rest.partition { |l| lower_bound(l.path) }
+        ranged, rest = rest.partition { |l| sys_range(l.path) }
         conditional, = rest.partition { |l| !residual(l.path).empty? }
 
         buckets = {}
@@ -155,12 +158,13 @@ module SeccompTools
       # shown when unconditional (the explicit guard is worth surfacing), and its conditional
       # variants are shown too so no check is silently dropped.
       def add_ranges(buckets, leaves)
-        leaves.group_by { |l| lower_bound(l.path) }.each do |(op, val), group|
-          range = "sys_number #{op_str(op)} 0x#{val.to_s(16)}"
+        leaves.group_by { |l| sys_range(l.path) }.each do |(lo, hi), group|
+          range = "sys_number >= 0x#{lo.to_s(16)}"
+          range << " && sys_number <= 0x#{hi.to_s(16)}" if hi
           group.group_by { |l| label_of(l.ret) }.each do |label, ls|
             conds = ls.map { |l| render_and(residual(l.path), nil) }.uniq
             entry = conds.include?('') ? range.dup : "#{range} when #{conds.join(' or ')}"
-            entry << '  (x32 ABI)' if x32?(op, val)
+            entry << '  (x32 ABI)' if x32?(lo, hi)
             add(buckets, label, sym_of(ls.first.ret), entry, simple: false)
           end
         end
@@ -189,7 +193,7 @@ module SeccompTools
       # The catch-all action: the verdict of a leaf that matches no syscall, no range, no arguments.
       def default_label(leaves)
         catch_all = leaves.find do |l|
-          eq(l.path, SYS).nil? && lower_bound(l.path).nil? && residual(l.path).empty?
+          eq(l.path, SYS).nil? && sys_range(l.path).nil? && residual(l.path).empty?
         end
         (catch_all || leaves.first)&.then { |l| label_of(l.ret) }
       end
@@ -245,19 +249,56 @@ module SeccompTools
         fact(path, offset, :==)&.rhs&.val
       end
 
-      # A +[op, value]+ lower bound on the syscall number, if any.
-      def lower_bound(path)
-        c = fact(path, SYS, :>, :>=)
-        c && [c.op, c.rhs.val]
+      # The +[lo, hi]+ range (inclusive; +hi+ is +nil+ when unbounded) all bound facts on +path+
+      # restrict the syscall number to, or +nil+ when there is no lower bound. An upper bound alone
+      # does not make a range rule: it is the complement of one (e.g. the +sys < 0x40000000+ side
+      # of an x32 guard) and reads naturally as part of the default bucket.
+      def sys_range(path)
+        lo = nil
+        hi = nil
+        path.each do |c|
+          next unless word?(c, SYS) && c.rhs.imm?
+
+          case c.op
+          when :> then lo = [lo || 0, c.rhs.val + 1].max
+          when :>= then lo = [lo || 0, c.rhs.val].max
+          when :< then hi = [hi || 0xffffffff, c.rhs.val - 1].min
+          when :<= then hi = [hi || 0xffffffff, c.rhs.val].min
+          end
+        end
+        lo && [lo, hi]
       end
 
-      # Constraints that are neither the syscall-number nor the architecture check.
+      # Constraints not already conveyed by the syscall-number / architecture presentation.
+      #
+      # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ — the named/ranged buckets
+      # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ — the
+      # per-architecture sections and the "any other" fall-through express them; and bit-test or
+      # range facts on a word that some +==+ on the same path already pins (they are then redundant
+      # — a contradicting combination would have been pruned as infeasible).
+      #
+      # Everything else is kept so a kernel-valid check is never silently dropped: bit-tests on an
+      # unpinned +sys_number+ (e.g. an odd/even dispatch), bit-tests or ranges on +arch+ (e.g.
+      # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
+      # against a register rather than a constant.
       def residual(path)
-        path.reject { |c| word?(c, SYS) || word?(c, ARCH) }
+        sys_pinned = !eq(path, SYS).nil?
+        arch_pinned = !eq(path, ARCH).nil?
+        path.reject do |c|
+          next false unless c.rhs.imm?
+
+          if word?(c, SYS)
+            %i[set unset].include?(c.op) ? sys_pinned : true
+          elsif word?(c, ARCH)
+            %i[== !=].include?(c.op) || arch_pinned
+          else
+            false
+          end
+        end
       end
 
-      def x32?(op, val)
-        (op == :>= && val == 0x40000000) || (op == :> && val == 0x3fffffff)
+      def x32?(lo, hi)
+        lo == 0x40000000 && hi.nil?
       end
 
       # --- verdict decoding -------------------------------------------------------------------
@@ -266,14 +307,23 @@ module SeccompTools
         return 'UNKNOWN' unless ret.imm?
 
         sym = sym_of(ret)
+        # An unrecognized action value loads fine; the kernel treats it as KILL_PROCESS
+        # (KILL_THREAD before Linux 4.14). See seccomp(2).
+        return format('KILL_PROCESS (unknown action 0x%x)', ret.val) if sym == :KILL_PROCESS && !known_action?(ret)
+
         data = ret.val & Const::BPF::SECCOMP_RET_DATA
         sym == :ERRNO ? "ERRNO(#{data})" : sym.to_s
       end
 
       def sym_of(ret)
         return :UNKNOWN unless ret.imm?
+        return :KILL_PROCESS unless known_action?(ret)
 
-        Const::BPF::ACTION.invert[ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL] || :UNKNOWN
+        Const::BPF::ACTION.invert[ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL]
+      end
+
+      def known_action?(ret)
+        Const::BPF::ACTION.value?(ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL)
       end
 
       def action_sym(label)
@@ -301,15 +351,15 @@ module SeccompTools
         end.join(' && ')
       end
 
-      # A 64-bit argument is two 32-bit words in +seccomp_data+, and filters check them separately.
-      # When +c+ pins one half by +==+ and the other half is also pinned, returns
-      # +[low_word_offset, combined_64bit_value]+ so the pair can be shown as one +arg == value+;
-      # otherwise +nil+.
+      # A 64-bit field (+instruction_pointer+ or an argument) is two 32-bit words in +seccomp_data+,
+      # and filters check them separately. When +c+ pins one half by +==+ and the other half is
+      # also pinned, returns +[low_word_offset, combined_64bit_value]+ so the pair can be shown as
+      # one +field == value+; otherwise +nil+.
       def full_arg_equality(c, eqs)
-        return unless c.op == :== && c.rhs.imm? && c.expr.plain_data? && ARG_WORDS.include?(c.expr.offset)
+        return unless c.op == :== && c.rhs.imm? && c.expr.plain_data?
 
-        lo = c.expr.offset - ((c.expr.offset - ARG_WORDS.begin) % 8) # the low word of this argument
-        return unless eqs.key?(lo) && eqs.key?(lo + 4)
+        lo = c.expr.offset - (c.expr.offset % 8) # the low word of this field
+        return unless QWORD_LOWS.include?(lo) && eqs.key?(lo) && eqs.key?(lo + 4)
 
         [lo, (eqs[lo + 4] << 32) | eqs[lo]]
       end

@@ -22,9 +22,8 @@ module SeccompTools
     # * {.opaque} - a value we cannot describe (an unsupported operation, or one whose operand is
     #   itself opaque). Nothing can be concluded about it.
     class Expr
-      # ALU operators that {#apply} can represent as a {.binop} — exactly the binary operators
-      # +Instruction::ALU#symbolize+ can produce (its unary +neg+ is handled separately). Anything
-      # else becomes {.opaque}.
+      # The binary ALU operators {#apply} accepts — exactly the ones +Instruction::ALU#symbolize+
+      # can produce (its unary +neg+ is handled separately).
       REPRESENTABLE = Instruction::ALU::OP_SYM.values.freeze
 
       # @return [:imm, :data, :binop, :unop, :opaque] Which kind of expression this is.
@@ -107,18 +106,20 @@ module SeccompTools
       end
 
       # Applies an ALU operation, returning the resulting {Expr}. +neg+ is unary (its operand is
-      # ignored). Two constants fold into a new constant; a {REPRESENTABLE} operation on non-opaque
-      # operands becomes a {.binop}; anything else (an opaque operand) becomes {.opaque}.
+      # ignored). Two constants fold into a new constant; an operation on non-opaque operands
+      # becomes a {.binop}; an opaque operand makes the result {.opaque}.
       # @param [Symbol] op
       #   A Ruby operator symbol as produced by +Instruction::ALU#symbolize+, or +:neg+.
       # @param [Expr, nil] operand
       #   The right operand (+nil+ for the unary +neg+).
       # @return [Expr]
+      # @raise [ArgumentError]
+      #   When +op+ is not one of seccomp's ALU operators (+:neg+ or {REPRESENTABLE}).
       def apply(op, operand)
         return apply_neg if op == :neg
+        raise ArgumentError, "unsupported operator #{op}" unless REPRESENTABLE.include?(op)
         return Expr.opaque if opaque? || operand.opaque?
         return Expr.imm(self.class.fold(val, op, operand.val)) if imm? && operand.imm?
-        return Expr.opaque unless REPRESENTABLE.include?(op)
 
         Expr.binop(op, self, operand)
       end

@@ -85,10 +85,16 @@ describe SeccompTools::Symbolic::Expr do
       expect(e.apply(:neg, nil).apply(:neg, nil)).to eq e
     end
 
-    it 'becomes opaque for an opaque operand, an opaque base, and unrepresentable ops' do
+    it 'becomes opaque for an opaque operand or an opaque base' do
       expect(described_class.data(16).apply(:+, described_class.opaque).opaque?).to be true
       expect(described_class.opaque.apply(:+, described_class.imm(1)).opaque?).to be true
-      expect(described_class.data(16).apply(:%, described_class.imm(2)).opaque?).to be true
+    end
+
+    it 'rejects an operator seccomp has no ALU instruction for, regardless of operand kinds' do
+      expect { described_class.data(16).apply(:%, described_class.imm(2)) }
+        .to raise_error(ArgumentError, /unsupported operator %/)
+      expect { described_class.imm(6).apply(:%, described_class.imm(2)) }
+        .to raise_error(ArgumentError, /unsupported operator %/)
     end
   end
 

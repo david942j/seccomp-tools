@@ -62,6 +62,25 @@ describe SeccompTools::Symbolic::Executor do
     expect(leaves.first.ret).to eq SeccompTools::Symbolic::Expr.imm(0)
   end
 
+  it 'normalizes a constant A compared against a symbolic X onto "expression op constant"' do
+    insts = [
+      inst(cmd(:ld, mode: :abs), k: 0),                  # A = data[0]
+      inst(cmd(:misc, misc: :tax)),                      # X = data[0]
+      inst(cmd(:ld, mode: :imm), k: 5),                  # A = 5
+      inst(cmd(:jmp, jmp: :jgt, src: :x), jt: 0, jf: 1), # if (A > X), i.e. 5 > data[0]
+      inst(cmd(:ret), k: 0x7fff0000),
+      inst(cmd(:ret), k: 0)
+    ]
+    leaves, = run(insts)
+    c = leaves.find { |l| l.ret.val == 0x7fff0000 }.path.first
+    # ... recorded as data[0] < 5, with the operator mirrored
+    expect([c.lhs, c.op, c.rhs])
+      .to eq [SeccompTools::Symbolic::Expr.data(0), :<, SeccompTools::Symbolic::Expr.imm(5)]
+    c = leaves.find { |l| l.ret.val.zero? }.path.first
+    expect([c.lhs, c.op, c.rhs])
+      .to eq [SeccompTools::Symbolic::Expr.data(0), :>=, SeccompTools::Symbolic::Expr.imm(5)]
+  end
+
   it 'takes only the real branch of a comparison between constants' do
     insts = [
       inst(cmd(:jmp, jmp: :jeq, src: :x), jt: 0, jf: 1), # A == X, both are the initial 0

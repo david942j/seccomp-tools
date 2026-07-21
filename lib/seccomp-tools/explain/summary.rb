@@ -64,7 +64,7 @@ module SeccompTools
         @source = source
         @truncated = truncated
         # On a big-endian architecture the high 32-bit word of a 64-bit field comes first.
-        @hi_first = Const::Endian::ENDIAN[arch] == '>'
+        @hi_first = Const::Endian.big?(arch)
       end
 
       # Renders the policy.

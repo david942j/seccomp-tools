@@ -27,9 +27,10 @@ module SeccompTools
       # Byte offsets of the 64-bit fields whose two 32-bit words this class fuses.
       BASES = Const::BPF::SeccompData::QWORD_BASES
       # How the extra facts of two sibling or-branches fuse into one 64-bit comparison: one branch
-      # holds +hi > H+ (high word normalized to a strict comparison) and the other
-      # +hi == H && lo <op> L+, which together are exactly +field <fused op> (H << 32 | L)+. This is
-      # the shape libseccomp compiles SCMP_CMP_GT/GE/LT/LE/NE argument comparisons into.
+      # holds a strict high-word fact +hi <hi_op> H+ (+hi_op+ is +>+, +<+ or +!=+, normalized by
+      # {#strict}) and the other +hi == H && lo <lo_op> L+; keyed by +[hi_op, lo_op]+, they are
+      # exactly +field <fused op> (H << 32 | L)+. This is the shape libseccomp compiles
+      # SCMP_CMP_GT/GE/LT/LE/NE argument comparisons into.
       OR_MERGE = {
         %i[> >] => :>, %i[> >=] => :>=, %i[< <] => :<, %i[< <=] => :<=, %i[!= !=] => :!=
       }.freeze
@@ -57,8 +58,7 @@ module SeccompTools
       end
 
       # Fuses the word facts of one path condition into 64-bit facts: both halves pinned by +==+
-      # become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+) becomes +field < L+ —
-      # exact, since a 64-bit value below +L < 2**32+ forces the high word to zero.
+      # become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+) becomes +field < L+.
       # @param [Array<Symbolic::Constraint, Qword>] constraints
       # @return [Array<Symbolic::Constraint, Qword>]
       def fold(constraints)

@@ -88,12 +88,9 @@ module SeccompTools
       #              [ data[20] == 2, data[16] > 0x500 ] ])
       #   #=> [ [ Qword(base: 16, op: :>, val: 0x200000500) ] ]
       def merge_or(lists)
-        loop do
-          fused = merge_one_pair(lists)
-          return lists unless fused
-
-          lists = fused
-        end
+        lists = lists.dup # own a mutable copy; the caller's array is left untouched
+        loop { break unless merge_one_pair!(lists) }
+        lists
       end
 
       private
@@ -124,7 +121,9 @@ module SeccompTools
         constraints.find { |c| c.plain_data_fact?(lo_off(base)) && %i[< <=].include?(c.op) }
       end
 
-      def merge_one_pair(lists)
+      # Fuses the first fusable pair of +lists+ in place — dropping the two branches and putting the
+      # fused one at the earlier slot — and returns it, or +nil+ when no pair fused.
+      def merge_one_pair!(lists)
         lists.each_with_index do |a, i|
           lists.each_with_index do |b, j|
             next if i == j
@@ -132,8 +131,10 @@ module SeccompTools
             fused = fuse_pair(a, b)
             next unless fused
 
-            rest = lists.reject.with_index { |_, k| [i, j].include?(k) }
-            return rest.insert([i, j].min, fused)
+            lo, hi = [i, j].minmax
+            lists[lo] = fused
+            lists.delete_at(hi)
+            return fused
           end
         end
         nil

@@ -61,7 +61,7 @@ module SeccompTools
       # not form a fusable pair pass through unchanged.
       # @param [Array<Symbolic::Constraint, Qword>] constraints
       # @return [Array<Symbolic::Constraint, Qword>]
-      # @example Both halves pinned by == (amd64: args[0] lo word @16, hi @20)
+      # @example Both halves pinned by == (little-endian: args[0] lo word @16, hi @20)
       #   fold([ data[20] == 0x1, data[16] == 0x2 ])
       #   #=> [ Qword(base: 16, op: :==, val: 0x100000002) ]
       # @example A zero high word with a low-word bound
@@ -83,7 +83,7 @@ module SeccompTools
       # @param [Array<Array<Symbolic::Constraint, Qword>>] lists
       #   The condition lists of one rule's or-branches.
       # @return [Array<Array<Symbolic::Constraint, Qword>>]
-      # @example The two match branches of a 64-bit +args[0] > 0x200000500+ (amd64: lo @16, hi @20)
+      # @example The two match branches of a 64-bit +args[0] > 0x200000500+ (little-endian: lo @16, hi @20)
       #   merge_or([ [ data[20] > 2 ],
       #              [ data[20] == 2, data[16] > 0x500 ] ])
       #   #=> [ [ Qword(base: 16, op: :>, val: 0x200000500) ] ]
@@ -150,7 +150,7 @@ module SeccompTools
       # @return [Array<Symbolic::Constraint, Qword>, nil]
       #   +b+ with its +hi == H+ / +lo <op> L+ pair collapsed into one {Qword}, or +nil+ when the
       #   two lists do not have the fusable shape.
-      # @example Fusing the two match paths of a 64-bit +args[0] > 0x200000500+ (amd64: lo word @16, hi @20)
+      # @example Fusing the two match paths of a 64-bit +args[0] > 0x200000500+ (little-endian: lo word @16, hi @20)
       #   a = [ data[20] >  2 ]                    # hi > H
       #   b = [ data[20] == 2, data[16] > 0x500 ]  # hi == H && lo > L
       #   fuse_pair(a, b) #=> [ Qword(base: 16, op: :>, val: 0x200000500) ]

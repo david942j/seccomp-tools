@@ -1,6 +1,7 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
+require 'seccomp-tools/asm/asm'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/util'
 
@@ -484,5 +485,25 @@ describe SeccompTools::Disasm do
  0027: 0x06 0x00 0x00 0x00000000  return KILL
  0028: 0x06 0x00 0x00 0x7fff0000  return ALLOW
     EOS
+  end
+
+  it 'names arguments by the filter-inferred arch, not the declared one' do
+    # Assembled for amd64 but disassembled as aarch64. The `arch == X86_64` check lets disasm infer
+    # amd64, so syscall 1 and its arguments must read as amd64.write(fd, ...) — the same inference
+    # the jump line already uses — and not the aarch64 syscall 1 (io_destroy(ctx)).
+    src = <<-EOS
+      A = arch
+      A == ARCH_X86_64 ? next : dead
+      A = sys_number
+      A == write ? chk : dead
+    chk:
+      A = args[0]
+      return ALLOW
+    dead:
+      return KILL
+    EOS
+    out = described_class.disasm(SeccompTools::Asm.asm(src, arch: :amd64), arch: :aarch64)
+    expect(out).to include('if (A != amd64.write) goto')
+    expect(out).to include('A = fd # amd64.write(fd, buf, count)')
   end
 end

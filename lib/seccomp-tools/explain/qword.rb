@@ -57,10 +57,16 @@ module SeccompTools
         offset - (offset % 8)
       end
 
-      # Fuses the word facts of one path condition into 64-bit facts: both halves pinned by +==+
-      # become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+) becomes +field < L+.
+      # Fuses the 32-bit word facts of one path condition into whole-field {Qword}s; facts that do
+      # not form a fusable pair pass through unchanged.
       # @param [Array<Symbolic::Constraint, Qword>] constraints
       # @return [Array<Symbolic::Constraint, Qword>]
+      # @example Both halves pinned by == (amd64: args[0] lo word @16, hi @20)
+      #   fold([ data[20] == 0x1, data[16] == 0x2 ])
+      #   #=> [ Qword(base: 16, op: :==, val: 0x100000002) ]
+      # @example A zero high word with a low-word bound
+      #   fold([ data[20] == 0x0, data[16] < 0x1000 ])
+      #   #=> [ Qword(base: 16, op: :<, val: 0x1000) ]
       def fold(constraints)
         plan = qword_plan(constraints)
         constraints.filter_map do |c|

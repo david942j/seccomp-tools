@@ -56,10 +56,13 @@ describe SeccompTools::Explain::QwordFusion do
   describe '#merge_or' do
     subject(:fusion) { described_class.new(:amd64) }
 
-    it 'fuses the two match branches of a 64-bit > comparison' do
-      # hi > H  OR  (hi == H && lo > L)  ==  arg > (H<<32 | L)
-      lists = [[con(20, :>, 2)], [con(20, :==, 2), con(16, :>, 0x500)]]
-      expect(flat(fusion.merge_or(lists).first)).to eq [[:qword, 16, :>, 0x200000500]]
+    it 'fuses every range/inequality operator libseccomp emits' do
+      # hi <hi_op> H  OR  (hi == H && lo <lo_op> L)  ==  arg <want> (H<<32 | L), for H=2, L=0x500.
+      # The high word always carries the strict operator; the low word carries the exact one.
+      [%i[> > >], %i[> >= >=], %i[< < <], %i[< <= <=], %i[!= != !=]].each do |hi_op, lo_op, want|
+        lists = [[con(20, hi_op, 2)], [con(20, :==, 2), con(16, lo_op, 0x500)]]
+        expect(flat(fusion.merge_or(lists).first)).to eq([[:qword, 16, want, 0x200000500]]), "lo #{lo_op}"
+      end
     end
 
     it 'fuses the in-range >= H+1 encoding' do

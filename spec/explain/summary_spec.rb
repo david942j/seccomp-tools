@@ -13,10 +13,10 @@ describe SeccompTools::Explain::Summary do
     SeccompTools::Symbolic::Executor::Leaf.new(path, SeccompTools::Symbolic::Expr.imm(ret_val), 0)
   end
 
-  it 'prints the source header and a truncation warning when asked' do
-    out = described_class.new([], arch: :amd64, source: 'a.bpf', truncated: true).to_s
-    expect(out).to start_with("Seccomp policy for a.bpf\n")
-    expect(out).to include('analysis truncated')
+  it 'prints the source header above the sections, and a truncation warning when asked' do
+    out = described_class.new([leaf(0x7fff0000)], arch: :amd64, source: 'a.bpf').to_s
+    expect(out).to start_with("Seccomp policy for a.bpf\n\nArchitecture: amd64\n")
+    expect(described_class.new([], arch: :amd64, truncated: true).to_s).to include('analysis truncated')
   end
 
   it 'notes when a filter runs off the end without returning' do

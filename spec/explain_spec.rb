@@ -40,11 +40,6 @@ Architecture: amd64
 Other architectures: KILL
 EOS
     end
-
-    it 'prints the source header when given' do
-      expect(explain(fixture('libseccomp.bpf'), :amd64, source: 'a.bpf'))
-        .to start_with("Seccomp policy for a.bpf\n\nArchitecture: amd64\n")
-    end
   end
 
   context 'block-list filter' do
@@ -168,9 +163,11 @@ Architecture: amd64
 EOS
     end
 
-    it 'fuses libseccomp-style 64-bit range comparisons into one condition' do
+    it 'fuses libseccomp-style 64-bit comparisons end to end' do
       # libseccomp compiles a 64-bit `arg >= V` (SCMP_CMP_GE etc.) into a high-word comparison
-      # plus a `hi == H && lo ...` branch; the two match paths must read as one 64-bit fact.
+      # plus a `hi == H && lo ...` branch; the two match paths must read as one 64-bit fact. The
+      # per-operator fusion matrix lives in spec/explain/qword_spec.rb; this checks the wiring
+      # from a real filter.
       src = <<~ASM
         A = sys_number
         A == write ? ge_chk : next
@@ -195,33 +192,6 @@ EOS
       out = explain_asm(src)
       expect(out).to include('write when count >= 0x1000')
       expect(out).to include('read when count > 0x200000500')
-    end
-
-    it 'fuses 64-bit less-than and not-equal comparisons' do
-      # For `arg < L` with a zero high word the hi > branch is infeasible, so a single path
-      # remains: `hi == 0 && lo < L`, which is exactly `arg < L`.
-      src = <<~ASM
-        A = sys_number
-        A == write ? lt_chk : next
-        A == read ? ne_chk : allow
-        lt_chk:
-        A = data[36]
-        A == 0x0 ? next : allow
-        A = data[32]
-        A < 0x1000 ? kill_it : allow
-        ne_chk:
-        A = data[36]
-        A == 0x1 ? next : kill_it
-        A = data[32]
-        A == 0x2000 ? allow : kill_it
-        allow:
-        return ALLOW
-        kill_it:
-        return KILL
-      ASM
-      out = explain_asm(src)
-      expect(out).to include('write when count < 0x1000')
-      expect(out).to include('read when count != 0x100002000')
     end
 
     it 'never silently drops an argument check that does not pin a syscall' do

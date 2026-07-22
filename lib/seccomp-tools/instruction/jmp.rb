@@ -101,7 +101,7 @@ module SeccompTools
         arches = contexts.map { |ctx| ctx.known_data[4] }.uniq
         return nil unless arches.size == 1 && !arches.first.nil?
 
-        Const::Audit::ARCH_NAME.invert[Const::Audit::ARCH.invert[arches.first]]
+        Const::Audit.arch_symbol(arches.first)
       end
 
       def src

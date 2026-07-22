@@ -40,14 +40,18 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [SeccompTools::Disasm::Context] context
-      #   Current context.
-      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
-      #   Always the next line, with the loaded value recorded in the context.
-      def branch(context)
-        ctx = context.dup
-        ctx.load(reg, **load_val)
-        [[line + 1, ctx]]
+      # @param [Symbolic::State] state
+      #   Current state.
+      # @return [Array<(Integer, Symbolic::State)>]
+      #   Always the next line, with the loaded value recorded in the register.
+      def branch(state)
+        v = load_val
+        val = case v[:rel]
+              when :immi then Symbolic::Expr.imm(v[:val])
+              when :mem then state.mem[v[:val]]
+              when :data then Symbolic::Expr.data(v[:val])
+              end
+        [[line + 1, reg == 'X' ? state.with(x: val) : state.with(a: val)]]
       end
 
       private
@@ -100,7 +104,7 @@ module SeccompTools
         default = hi ? "args[#{idx / 2}] >> 32" : "args[#{idx / 2}]"
         return default unless show_arg_infer?
 
-        sys_nrs = contexts.map { |ctx| ctx.known_data[0] }.uniq
+        sys_nrs = states.map { |st| st.pinned(Const::BPF::SeccompData::SYS_NUMBER) }.uniq
         return default if sys_nrs.size != 1 || sys_nrs.first.nil?
 
         a = infer_arch || arch

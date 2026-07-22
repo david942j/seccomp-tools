@@ -24,7 +24,7 @@ module SeccompTools
 
       # See {Base#branch}.
       #
-      # Accepts and ignores any arguments, the context is irrelevant here.
+      # Accepts and ignores any arguments, the state is irrelevant here.
       # @return [Array]
       #   Always an empty array, a filter stops executing at a return.
       def branch(*)

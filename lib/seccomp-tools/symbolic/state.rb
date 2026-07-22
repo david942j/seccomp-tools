@@ -54,6 +54,26 @@ module SeccompTools
       def signature
         [a.key, x.key, mem.map(&:key), path.map(&:key)]
       end
+
+      # The constant the data word at byte +offset+ is pinned to on this path (by an +==+ fact), or
+      # +nil+ when it is not pinned.
+      # @param [Integer] offset
+      # @return [Integer?]
+      def pinned(offset)
+        path.find { |c| c.plain_data_eq?(offset) }&.rhs&.val
+      end
+
+      # @param [State] other
+      # @return [Boolean]
+      def ==(other)
+        other.is_a?(State) && signature == other.signature
+      end
+      alias eql? ==
+
+      # @return [Integer]
+      def hash
+        signature.hash
+      end
     end
   end
 end

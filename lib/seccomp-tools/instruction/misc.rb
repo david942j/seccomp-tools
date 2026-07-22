@@ -24,17 +24,15 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [SeccompTools::Disasm::Context] context
-      #   Current context.
-      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
-      #   Always the next line, with the copied value recorded in the context.
-      def branch(context)
-        ctx = context.dup
+      # @param [Symbolic::State] state
+      #   Current state.
+      # @return [Array<(Integer, Symbolic::State)>]
+      #   Always the next line, with the copied value recorded in the register.
+      def branch(state)
         case op
-        when :txa then ctx['A'] = ctx['X']
-        when :tax then ctx['X'] = ctx['A']
+        when :txa then [[line + 1, state.with(a: state.x)]]
+        when :tax then [[line + 1, state.with(x: state.a)]]
         end
-        [[line + 1, ctx]]
       end
 
       private

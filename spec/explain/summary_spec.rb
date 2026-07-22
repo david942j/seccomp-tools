@@ -28,6 +28,14 @@ describe SeccompTools::Explain::Summary do
       .to include('KILL_PROCESS (unknown action 0x12345678):')
   end
 
+  it 'names a pinned syscall numerically when the arch has no syscall table' do
+    # a library caller may pass any arch; naming falls back to the number instead of crashing
+    e = SeccompTools::Symbolic::Expr
+    path = [SeccompTools::Symbolic::Constraint.new(e.data(0), :==, e.imm(5))]
+    out = described_class.new([leaf(0x7fff0000, path:), leaf(0)], arch: :nonesuch).to_s
+    expect(out).to include('0x5')
+  end
+
   it 'shows the whole 64-bit value when both argument halves are pinned' do
     e = SeccompTools::Symbolic::Expr
     c = SeccompTools::Symbolic::Constraint

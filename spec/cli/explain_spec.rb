@@ -56,6 +56,8 @@ EOS
 
   it 'shows the help when no file is given' do
     expect { described_class.new([]).handle }.to output(/Usage: seccomp-tools explain/).to_stdout
+    # options with no input (nothing left after parsing) also fall through to the help
+    expect { described_class.new(['-a', 'amd64']).handle }.to output(/Usage: seccomp-tools explain/).to_stdout
   end
 
   it 'prints one section per architecture' do
@@ -94,6 +96,17 @@ EOS
       expect { described_class.new([elf.path]).handle }.to output(/Architecture: amd64\n\n  ALLOW:/).to_stdout
     ensure
       elf.unlink
+    end
+
+    it 'passes --timeout and --limit through to the dumper' do
+      opts = {}
+      allow(SeccompTools::Dumper).to receive(:dump) do |*, **o|
+        opts = o
+        []
+      end
+      described_class.new(['-c', './x', '-t', '2.5', '-l', '3']).handle
+      expect(opts[:timeout]).to eq 2.5
+      expect(opts[:limit]).to eq 3
     end
 
     it 'treats -c input as a command to run' do

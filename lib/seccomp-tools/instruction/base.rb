@@ -62,6 +62,18 @@ module SeccompTools
 
       private
 
+      # The architecture this instruction's operands should be read as: the one the filter has
+      # branched on (+arch == AUDIT_ARCH_*+) when the context pins a single value, else +nil+ so
+      # callers fall back to the declared {#arch}. Lets syscall/argument names stay correct even
+      # when the filter is disassembled under a different +--arch+ than it targets.
+      # @return [Symbol?]
+      def infer_arch
+        arches = contexts.map { |ctx| ctx.known_data[4] }.uniq
+        return nil unless arches.size == 1 && !arches.first.nil?
+
+        Const::Audit.arch_symbol(arches.first)
+      end
+
       # Delegate the accessors of the wrapped {SeccompTools::BPF} so subclasses can use them directly.
       %i(code jt jf k arch line contexts show_arg_infer?).each do |sym|
         define_method(sym) do

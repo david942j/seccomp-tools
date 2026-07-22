@@ -95,15 +95,6 @@ module SeccompTools
         a == arch ? name : "#{a}.#{name}"
       end
 
-      # Infers the architecture from context.
-      # @return [Symbol?]
-      def infer_arch
-        arches = contexts.map { |ctx| ctx.known_data[4] }.uniq
-        return nil unless arches.size == 1 && !arches.first.nil?
-
-        Const::Audit.arch_symbol(arches.first)
-      end
-
       def src
         SRC.invert[code & 8] == :x ? :x : k
       end

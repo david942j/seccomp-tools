@@ -20,6 +20,21 @@ module SeccompTools
         :== => :==, :!= => :!=, :> => :<, :>= => :<=, :< => :>, :<= => :>=, set: :set, unset: :unset
       }.freeze
 
+      # Applies one of the constraint operators to concrete operands: the +jset+ bit tests
+      # (+:set+/+:unset+) and the Integer comparisons. Stateless — used to evaluate a pinned
+      # constraint or a candidate value, without building a {Constraint}.
+      # @param [Integer] value
+      # @param [Symbol] op
+      # @param [Integer] k
+      # @return [Boolean]
+      def self.evaluate(value, op, k)
+        case op
+        when :set then !value.nobits?(k)
+        when :unset then value.nobits?(k)
+        else value.public_send(op, k) # the comparisons are all Integer methods
+        end
+      end
+
       # @return [Expr] The left-hand side (what is being tested).
       attr_reader :lhs
       # @return [Symbol] The comparison, one of +:==, :!=, :>, :>=, :<, :<=, :set, :unset+.

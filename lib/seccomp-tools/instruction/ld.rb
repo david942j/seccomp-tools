@@ -76,10 +76,10 @@ module SeccompTools
       def seccomp_data_str
         data = Const::BPF::SeccompData
         case k
-        when data::SYS_NUMBER then 'sys_number'
-        when data::ARCH then 'arch'
+        when data::SYS_NUMBER, data::ARCH then data::NAMES[k]
         when data::INSTRUCTION_POINTER, data::INSTRUCTION_POINTER + 4
-          hi_word?(k) ? 'instruction_pointer >> 32' : 'instruction_pointer'
+          ip = data::NAMES[data::INSTRUCTION_POINTER]
+          hi_word?(k) ? "#{ip} >> 32" : ip
         else
           idx = (data::ARGS...data::SIZE).step(4).to_a.index(k)
           return 'INVALID' if idx.nil?

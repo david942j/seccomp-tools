@@ -27,6 +27,9 @@ module SeccompTools
         # Byte offsets of the 64-bit fields (+instruction_pointer+ and the six arguments), each a
         # pair of 32-bit words.
         QWORD_BASES = [INSTRUCTION_POINTER, *(ARGS...SIZE).step(8)].freeze
+        # Display names of the fixed (non-argument) fields, keyed by byte offset. For the 64-bit
+        # +instruction_pointer+ this is the field's base name; a high-word load appends +>> 32+.
+        NAMES = { SYS_NUMBER => 'sys_number', ARCH => 'arch', INSTRUCTION_POINTER => 'instruction_pointer' }.freeze
       end
 
       # sizeof(struct seccomp_data)
@@ -195,6 +198,15 @@ module SeccompTools
         'ARCH_RISCV64' => 0xc00000f3,
         'ARCH_S390X' => 0x80000016
       }.freeze
+
+      # The architecture symbol (e.g. +:amd64+) for an +AUDIT_ARCH_*+ value, or +nil+ when it is
+      # not one seccomp-tools knows.
+      # @param [Integer] audit_val
+      # @return [Symbol?]
+      def self.arch_symbol(audit_val)
+        name = ARCH.invert[audit_val]
+        name && ARCH_NAME.invert[name]
+      end
     end
 
     # Endianness constants.

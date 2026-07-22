@@ -127,9 +127,21 @@ module SeccompTools
         nil
       end
 
-      # When +a+'s only extra fact (vs +b+) is +hi <op> H+ and +b+'s extras are +hi == H+ plus a
-      # fact on the matching low word, replaces the trio in +b+ with the fused 64-bit fact
-      # ({OR_MERGE}); returns +nil+ when the two condition lists do not have that shape.
+      # Fuses two sibling or-branches into one 64-bit fact. It applies when +a+'s only extra fact
+      # (vs +b+) is a strict high-word fact +hi <op> H+, and +b+'s two extras are +hi == H+ plus a
+      # bound on the matching low word: that pair in +b+ is then replaced by the fused {Qword} (see
+      # {OR_MERGE}).
+      # @param [Array<Symbolic::Constraint, Qword>] a
+      #   One or-branch's condition list.
+      # @param [Array<Symbolic::Constraint, Qword>] b
+      #   The sibling branch's condition list.
+      # @return [Array<Symbolic::Constraint, Qword>, nil]
+      #   +b+ with its +hi == H+ / +lo <op> L+ pair collapsed into one {Qword}, or +nil+ when the
+      #   two lists do not have the fusable shape.
+      # @example Fusing the two match paths of a 64-bit +args[0] > 0x200000500+ (amd64: lo word @16, hi @20)
+      #   a = [ data[20] >  2 ]                    # hi > H
+      #   b = [ data[20] == 2, data[16] > 0x500 ]  # hi == H && lo > L
+      #   fuse_pair(a, b) #=> [ Qword(base: 16, op: :>, val: 0x200000500) ]
       def fuse_pair(a, b)
         only_a = minus(a, b)
         return unless only_a.size == 1

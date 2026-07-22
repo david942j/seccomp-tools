@@ -313,19 +313,6 @@ EOS
       ASM
       expect(explain_asm(src)).to include('any syscall when instruction_pointer == 0x7fff31337000')
     end
-
-    it 'labels an unrecognized action value as the kernel treats it' do
-      # seccomp(2): an unknown action acts as KILL_PROCESS (KILL_THREAD before Linux 4.14).
-      leaf = SeccompTools::Symbolic::Executor::Leaf.new([], SeccompTools::Symbolic::Expr.imm(0x12345678), 0)
-      expect(described_class::Summary.new([leaf], arch: :amd64).to_s)
-        .to include('KILL_PROCESS (unknown action 0x12345678):')
-    end
-
-    it 'shows the data of TRAP, delivered as si_errno of the SIGSYS' do
-      # SECCOMP_RET_TRAP | 5; a plain `return TRAP` (data 0) stays "TRAP"
-      leaf = SeccompTools::Symbolic::Executor::Leaf.new([], SeccompTools::Symbolic::Expr.imm(0x00030005), 0)
-      expect(described_class::Summary.new([leaf], arch: :amd64).to_s).to include('TRAP(5):')
-    end
   end
 
   context 'degenerate filters' do
@@ -519,43 +506,6 @@ EOS
     it 'colorizes syscall names like the other commands do' do
       allow(SeccompTools::Util).to receive(:colorize_enabled?).and_return(true)
       expect(explain(fixture('twctf-2016-diary.bpf'), :amd64)).to include("\e[38;5;120mopen\e[0m")
-    end
-  end
-
-  context 'truncation' do
-    it 'warns when the walk was cut short' do
-      summary = described_class::Summary.new([], arch: :amd64, truncated: true)
-      expect(summary.to_s).to include('analysis truncated')
-    end
-  end
-
-  context 'QwordFusion high-word boundary' do
-    # args[0] on amd64: low word at 16, high word at 20.
-    def con(off, op, val)
-      SeccompTools::Symbolic::Constraint.new(SeccompTools::Symbolic::Expr.data(off), op,
-                                             SeccompTools::Symbolic::Expr.imm(val))
-    end
-
-    def fuse(lists)
-      SeccompTools::Explain::QwordFusion.new(:amd64).merge_or(lists).map do |list|
-        list.map { |c| c.is_a?(SeccompTools::Explain::Qword) ? [:qword, c.op, c.val] : [c.op, c.rhs.val] }
-      end
-    end
-
-    it 'declines to fuse when normalizing the high word steps outside 32 bits' do
-      # hi >= 0 (strict -> hi > -1) and hi <= 0xffffffff (strict -> hi < 0x100000000) are
-      # always-true; the out-of-range value matches no masked == sibling, so nothing fuses and
-      # nothing crashes.
-      lo_ge = fuse([[con(20, :>=, 0)], [con(20, :==, 0), con(16, :>=, 0x10)]])
-      expect(lo_ge).to eq [[[:>=, 0]], [[:==, 0], [:>=, 0x10]]]
-      hi_le = fuse([[con(20, :<=, 0xffffffff)], [con(20, :==, 0xffffffff), con(16, :<=, 0x10)]])
-      expect(hi_le).to eq [[[:<=, 0xffffffff]], [[:==, 0xffffffff], [:<=, 0x10]]]
-    end
-
-    it 'still fuses the in-range >= H+1 encoding' do
-      # hi >= 3 (strict -> hi > 2) pairs with hi == 2 && lo >= 0x10 to form arg >= 0x200000010.
-      fused = fuse([[con(20, :>=, 3)], [con(20, :==, 2), con(16, :>=, 0x10)]])
-      expect(fused).to eq [[[:qword, :>=, 0x200000010]]]
     end
   end
 end

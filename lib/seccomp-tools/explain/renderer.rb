@@ -41,7 +41,7 @@ module SeccompTools
       def conjunction(constraints, sys)
         constraints.map do |c|
           if c.is_a?(Qword)
-            "#{data_name(@fusion.lo_off(c.base), sys)} #{op_str(c.op)} 0x#{c.val.to_s(16)}"
+            "#{data_name(@fusion.lo_off(c.base), sys)} #{c.op} 0x#{c.val.to_s(16)}"
           else
             constraint(c, sys)
           end
@@ -56,7 +56,7 @@ module SeccompTools
 
         prec = PREC[constraint.op]
         "#{operand(constraint.lhs, constraint.op, prec, sys)} " \
-          "#{op_str(constraint.op)} #{operand(constraint.rhs, constraint.op, prec, sys)}"
+          "#{constraint.op} #{operand(constraint.rhs, constraint.op, prec, sys)}"
       end
 
       # Renders an expression without any outer parentheses; each caller wraps it via {#operand}.
@@ -100,10 +100,6 @@ module SeccompTools
         return false if PREC[child_op] == PREC[:*] && PREC[parent_op] == PREC[:+]
 
         true
-      end
-
-      def op_str(op)
-        { :== => '==', :!= => '!=', :> => '>', :>= => '>=', :< => '<', :<= => '<=' }[op]
       end
 
       def data_name(offset, sys)

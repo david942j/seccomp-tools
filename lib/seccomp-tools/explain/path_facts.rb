@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/symbolic/constraint'
 
 module SeccompTools
   class Explain
@@ -85,14 +86,14 @@ module SeccompTools
       end
 
       # Is the path consistent with the architecture being +val+? Every constant arch fact is
-      # evaluated concretely — the same rule-based core as +Symbolic::Executor+'s pruning.
+      # evaluated against +val+.
       # @param [Integer] val
       # @return [Boolean]
       def arch_consistent?(val)
         @path.all? do |c|
           next true unless c.plain_data_fact?(ARCH)
 
-          concrete_match?(val, c.op, c.rhs.val)
+          Symbolic::Constraint.evaluate(val, c.op, c.rhs.val)
         end
       end
 
@@ -108,15 +109,6 @@ module SeccompTools
       # The value of the single +data[offset] == k+ fact, if any.
       def eq(offset)
         @path.find { |c| c.plain_data_eq?(offset) }&.rhs&.val
-      end
-
-      # Evaluates one comparison concretely: does +value op k+ hold?
-      def concrete_match?(value, op, k)
-        case op
-        when :set then !value.nobits?(k)
-        when :unset then value.nobits?(k)
-        else value.public_send(op, k) # the comparisons are all Integer methods
-        end
       end
     end
   end

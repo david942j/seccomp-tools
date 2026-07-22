@@ -104,9 +104,8 @@ module SeccompTools
 
       def data_name(offset, sys)
         case offset
-        when DATA::SYS_NUMBER then 'sys_number'
-        when DATA::ARCH then 'arch'
-        else qword_word_name(offset, sys)
+        when DATA::SYS_NUMBER, DATA::ARCH then DATA::NAMES[offset] # the scalar fields
+        else qword_word_name(offset, sys) # endian-split fields (instruction_pointer, args)
         end
       end
 
@@ -117,7 +116,7 @@ module SeccompTools
         return "data[#{offset}]" unless DATA::QWORD_BASES.include?(base)
 
         name = if base == DATA::INSTRUCTION_POINTER
-                 'instruction_pointer'
+                 DATA::NAMES[base]
                else
                  idx = (base - DATA::ARGS) / 8
                  names = sys && Const::SYS_ARG[sys]

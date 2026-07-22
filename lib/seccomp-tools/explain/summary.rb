@@ -59,7 +59,7 @@ module SeccompTools
         return [[@arch, @arch, @leaves]] if vals.empty?
 
         vals.map do |v|
-          sym = arch_symbol(v)
+          sym = Const::Audit.arch_symbol(v)
           [sym || format('0x%x (unknown)', v), sym, @leaves.select { |l| facts(l).arch_consistent?(v) }]
         end
       end
@@ -225,11 +225,6 @@ module SeccompTools
         arch_sym && Const::Syscall.const_get(arch_sym.upcase).invert[nr]
       rescue NameError
         nil
-      end
-
-      def arch_symbol(audit_val)
-        name = Const::Audit::ARCH.invert[audit_val]
-        name && Const::Audit::ARCH_NAME.invert[name]
       end
     end
   end

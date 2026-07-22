@@ -25,6 +25,22 @@ describe SeccompTools::Symbolic::Constraint do
     end
   end
 
+  describe '.evaluate' do
+    it 'applies the comparison operators to concrete values' do
+      expect(described_class.evaluate(5, :==, 5)).to be true
+      expect(described_class.evaluate(6, :>, 5)).to be true
+      expect(described_class.evaluate(5, :<=, 5)).to be true
+      expect(described_class.evaluate(5, :!=, 5)).to be false
+    end
+
+    it 'applies the jset bit tests' do
+      expect(described_class.evaluate(0x1, :set, 0x3)).to be true
+      expect(described_class.evaluate(0x4, :set, 0x3)).to be false
+      expect(described_class.evaluate(0x4, :unset, 0x3)).to be true
+      expect(described_class.evaluate(0x1, :unset, 0x3)).to be false
+    end
+  end
+
   describe 'shape predicates' do
     it 'recognizes a word-versus-constant fact, optionally at an offset' do
       c = described_class.new(expr.data(4), :>, expr.imm(5))

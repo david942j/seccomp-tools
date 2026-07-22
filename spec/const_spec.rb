@@ -9,3 +9,13 @@ describe SeccompTools::Const::Endian do
     expect(described_class.big?(:amd64)).to be false
   end
 end
+
+describe SeccompTools::Const::Audit do
+  describe '.arch_symbol' do
+    it 'maps an AUDIT_ARCH_* value to the architecture symbol, or nil' do
+      expect(described_class.arch_symbol(0xc000003e)).to be :amd64
+      expect(described_class.arch_symbol(0x80000016)).to be :s390x
+      expect(described_class.arch_symbol(0x14)).to be_nil # AUDIT_ARCH_PPC, unknown here
+    end
+  end
+end

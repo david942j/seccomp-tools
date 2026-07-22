@@ -154,14 +154,14 @@ module SeccompTools
     end
 
     def data_of(index)
-      max = Const::BPF::SeccompData::SIZE - 1
-      raise IndexError, "Invalid index: #{index}" unless index.nobits?(3) && index.between?(0, max)
+      data = Const::BPF::SeccompData
+      raise IndexError, "Invalid index: #{index}" unless index.nobits?(3) && index.between?(0, data::SIZE - 1)
 
       index /= 4
       case index
-      when 0 then @sys_nr || undefined('sys_number')
-      when 1 then @arch || undefined('arch')
-      when 2, 3 then word_of(@ip || undefined('instruction_pointer'), index)
+      when 0 then @sys_nr || undefined(data::NAMES[data::SYS_NUMBER])
+      when 1 then @arch || undefined(data::NAMES[data::ARCH])
+      when 2, 3 then word_of(@ip || undefined(data::NAMES[data::INSTRUCTION_POINTER]), index)
       else
         val = @args[(index - 4) / 2] || undefined("args[#{(index - 4) / 2}]")
         word_of(val, index)

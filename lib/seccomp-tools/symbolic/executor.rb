@@ -141,7 +141,7 @@ module SeccompTools
         rhs = src == :x ? st.x : Expr.imm(src)
         taken, els = SPLIT[op]
         if st.a.imm? && rhs.imm?
-          j = concrete_match?(st.a.val, taken, rhs.val) ? jt : jf
+          j = Constraint.evaluate(st.a.val, taken, rhs.val) ? jt : jf
           return stack << [pc + j + 1, st]
         end
 
@@ -191,7 +191,7 @@ module SeccompTools
       def cell_feasible?(constraints)
         eqs = constraints.select { |c| c.op == :== }.map { |c| c.rhs.val }.uniq
         return false if eqs.size > 1
-        return constraints.all? { |c| concrete_match?(eqs.first, c.op, c.rhs.val) } unless eqs.empty?
+        return constraints.all? { |c| Constraint.evaluate(eqs.first, c.op, c.rhs.val) } unless eqs.empty?
 
         lo = 0
         hi = 0xffffffff
@@ -204,17 +204,6 @@ module SeccompTools
           end
         end
         lo <= hi
-      end
-
-      # Evaluates one comparison concretely: does +value op k+ hold? This is the entire concrete
-      # core the rule-based pruning needs — deliberately far from constraint solving, see
-      # {#feasible?}.
-      def concrete_match?(value, op, k)
-        case op
-        when :set then !value.nobits?(k)
-        when :unset then value.nobits?(k)
-        else value.public_send(op, k) # the comparisons are all Integer methods
-        end
       end
     end
   end

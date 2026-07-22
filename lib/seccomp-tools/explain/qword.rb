@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
-require 'seccomp-tools/symbolic/constraint'
 
 module SeccompTools
   class Explain

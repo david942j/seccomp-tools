@@ -177,7 +177,7 @@ module SeccompTools
       # @param [Array<Constraint>] path
       # @return [Boolean]
       def feasible?(path)
-        path.select { |c| c.lhs.plain_data? && c.rhs.imm? }
+        path.select(&:plain_data_fact?)
             .group_by { |c| c.lhs.offset }
             .all? { |_offset, cs| cell_feasible?(cs) }
       end

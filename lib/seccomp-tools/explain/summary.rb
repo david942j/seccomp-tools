@@ -16,6 +16,14 @@ module SeccompTools
     # leaf's path through {PathFacts}, decodes the returned action with {Verdict}, reassembles
     # 64-bit word checks with {QwordFusion}, and stringifies conditions with {Renderer}.
     class Summary
+      # Display name of the syscall-number field, for the range subjects.
+      SYS_NAME = Const::BPF::SeccompData::NAMES.fetch(Const::BPF::SeccompData::SYS_NUMBER)
+      # The x32 ABI bit (+__X32_SYSCALL_BIT+); a lower-bound-only range at exactly this value is the
+      # conventional x32 guard, worth annotating.
+      X32_SYSCALL_BIT = 0x40000000
+      # Widest a wrapped bucket line may get, in columns.
+      WRAP_WIDTH = 72
+
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
       #   The filter's declared architecture, used when the filter itself does not branch on +arch+.
@@ -39,7 +47,9 @@ module SeccompTools
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
         out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
-        sections.each { |title, arch_sym, leaves| out << "\n" << render_section(title, arch_sym, leaves) }
+        sections.each do |title, arch_sym, leaves|
+          out << "\n" << render_section(title, section_buckets(arch_sym, leaves))
+        end
         out << render_other_arches
         out
       end
@@ -73,14 +83,17 @@ module SeccompTools
         leaves = other_leaves
         default = default_label(leaves)
         return '' unless default
-        return "\nOther architectures: #{default}\n" if rule_buckets(nil, leaves, default).empty?
 
-        "\n#{render_section('<any other>', nil, leaves)}"
+        buckets = rule_buckets(nil, leaves, default)
+        return "\nOther architectures: #{default}\n" if buckets.empty?
+
+        add_default(buckets, default)
+        "\n#{render_section('<any other>', buckets)}"
       end
 
       # The distinct architecture values (+AUDIT_ARCH_*+) the filter explicitly branches on.
       def arch_values
-        @leaves.filter_map { |l| facts(l).arch_eq }.uniq
+        @arch_values ||= @leaves.filter_map { |l| facts(l).arch_eq }.uniq
       end
 
       # Leaves reachable when +arch+ is none of the explicitly-checked values.
@@ -88,13 +101,17 @@ module SeccompTools
         @leaves.reject { |l| facts(l).arch_eq }
       end
 
-      # Renders one architecture section. +arch_sym+ is used to name syscalls and arguments; +nil+
-      # (architecture unknown) leaves them numeric.
-      def render_section(title, arch_sym, leaves)
+      # The action buckets of one section: its non-default rules plus the default rule. +arch_sym+
+      # names syscalls/arguments; +nil+ (architecture unknown) leaves them numeric.
+      def section_buckets(arch_sym, leaves)
         default = default_label(leaves)
         buckets = rule_buckets(arch_sym, leaves, default)
         add_default(buckets, default)
+        buckets
+      end
 
+      # Renders one architecture section from its prebuilt +buckets+.
+      def render_section(title, buckets)
         out = "Architecture: #{Util.colorize(title, t: :arch)}\n"
         return out << "\n  (no return reached; filter runs off the end)\n" if buckets.empty?
 
@@ -139,8 +156,8 @@ module SeccompTools
       # variants are shown too so no check is silently dropped.
       def add_ranges(buckets, leaves)
         leaves.group_by { |l| facts(l).sys_range }.each do |(lo, hi), group|
-          range = "sys_number >= 0x#{lo.to_s(16)}"
-          range << " && sys_number <= 0x#{hi.to_s(16)}" if hi
+          range = "#{SYS_NAME} >= 0x#{lo.to_s(16)}"
+          range << " && #{SYS_NAME} <= 0x#{hi.to_s(16)}" if hi
           group.group_by { |l| Verdict.label(l.ret) }.each do |label, ls|
             conds = merged_conds(ls, nil)
             entry = conds.include?('') ? range.dup : "#{range} when #{conds.join(' or ')}"
@@ -207,7 +224,7 @@ module SeccompTools
         line = +''
         tokens.each do |tok|
           piece = line.empty? ? tok : ", #{tok}"
-          if !line.empty? && line.size + piece.size > 72
+          if !line.empty? && line.size + piece.size > WRAP_WIDTH
             lines << line
             line = +tok
           else
@@ -218,7 +235,7 @@ module SeccompTools
       end
 
       def x32?(lo, hi)
-        lo == 0x40000000 && hi.nil?
+        lo == X32_SYSCALL_BIT && hi.nil?
       end
 
       def syscall_name(arch_sym, nr)

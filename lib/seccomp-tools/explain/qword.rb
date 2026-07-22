@@ -12,6 +12,12 @@ module SeccompTools
       def key
         [:qword, base, op, val]
       end
+
+      # A {Qword} is a whole-field fact, never a single plain-word one, so it matches neither
+      # predicate. Defining them lets the fusion code treat a mixed list uniformly, without an
+      # +is_a?+ guard on every access.
+      def plain_data_fact?(_offset = nil) = false
+      alias_method :plain_data_eq?, :plain_data_fact?
     end
 
     # A 64-bit field of +seccomp_data+ (+instruction_pointer+ or an argument) is two 32-bit words,
@@ -46,6 +52,11 @@ module SeccompTools
         @hi_first ? base : base + 4
       end
 
+      # The byte offset of the 64-bit field that the word at +offset+ belongs to.
+      def base_of(offset)
+        offset - (offset % 8)
+      end
+
       # Fuses the word facts of one path condition into 64-bit facts: both halves pinned by +==+
       # become +field == value+, and +hi == 0+ with a +lo < L+ (or +<=+) becomes +field < L+ —
       # exact, since a 64-bit value below +L < 2**32+ forces the high word to zero.
@@ -76,11 +87,10 @@ module SeccompTools
 
       private
 
-      # For each 64-bit field whose word facts fuse, decides which constraint renders the fused
-      # fact ({Qword}) and which is dropped.
+      # Maps each constraint to what {#fold} should do with it: a {Qword} to replace it with, or
+      # +:drop+ to remove it. A constraint absent from the plan is kept as-is.
       def qword_plan(constraints)
-        eqs = constraints.select { |c| c.is_a?(Symbolic::Constraint) && c.plain_data_eq? }
-                         .group_by { |c| c.lhs.offset }.transform_values(&:first)
+        eqs = constraints.select(&:plain_data_eq?).group_by { |c| c.lhs.offset }.transform_values(&:first)
         plan = {}
         BASES.each do |base|
           hi = eqs[hi_off(base)]
@@ -100,9 +110,7 @@ module SeccompTools
 
       # The +lo < L+ / +lo <= L+ fact on the low word of the field at +base+, if any.
       def lo_bound(constraints, base)
-        constraints.find do |c|
-          c.is_a?(Symbolic::Constraint) && c.plain_data_fact?(lo_off(base)) && %i[< <=].include?(c.op)
-        end
+        constraints.find { |c| c.plain_data_fact?(lo_off(base)) && %i[< <=].include?(c.op) }
       end
 
       def merge_one_pair(lists)
@@ -120,31 +128,32 @@ module SeccompTools
         nil
       end
 
-      # When +a+'s only extra fact (vs +b+) is +hi ⋈ H+ and +b+'s extras are +hi == H+ plus a fact
-      # on the matching low word, replaces the trio in +b+ with the fused 64-bit fact ({OR_MERGE});
-      # returns +nil+ when the two condition lists do not have that shape.
+      # When +a+'s only extra fact (vs +b+) is +hi <op> H+ and +b+'s extras are +hi == H+ plus a
+      # fact on the matching low word, replaces the trio in +b+ with the fused 64-bit fact
+      # ({OR_MERGE}); returns +nil+ when the two condition lists do not have that shape.
       def fuse_pair(a, b)
-        hi, = minus(a, b)
-        base = fusable_hi(a, b, hi)
+        only_a = minus(a, b)
+        return unless only_a.size == 1
+
+        hi = only_a.first
+        base = hi_field_base(hi)
         return unless base
 
         hi_op, hi_val = strict(hi.op, hi.rhs.val)
         only_b = minus(b, a)
-        eq = only_b.find do |c|
-          c.is_a?(Symbolic::Constraint) && c.plain_data_eq?(hi.lhs.offset) && c.rhs.val == hi_val
-        end
-        lo = only_b.find { |c| c.is_a?(Symbolic::Constraint) && c.plain_data_fact?(lo_off(base)) }
+        eq = only_b.find { |c| c.plain_data_eq?(hi.lhs.offset) && c.rhs.val == hi_val }
+        lo = only_b.find { |c| c.plain_data_fact?(lo_off(base)) }
         return unless only_b.size == 2 && eq && lo && (op = OR_MERGE[[hi_op, lo.op]])
 
         b.map { |c| c.equal?(eq) ? Qword.new(base, op, (hi_val << 32) | lo.rhs.val) : c }.reject { |c| c.equal?(lo) }
       end
 
-      # The field base when +a+'s single extra fact +hi+ is a constant comparison on the high word
-      # of a 64-bit field; +nil+ otherwise.
-      def fusable_hi(a, b, hi)
-        return unless minus(a, b).size == 1 && hi.is_a?(Symbolic::Constraint) && hi.plain_data_fact?
+      # The field base when +hi+ is a constant comparison on the high word of a 64-bit field;
+      # +nil+ otherwise.
+      def hi_field_base(hi)
+        return unless hi.plain_data_fact?
 
-        base = hi.lhs.offset - (hi.lhs.offset % 8)
+        base = base_of(hi.lhs.offset)
         base if BASES.include?(base) && hi.lhs.offset == hi_off(base)
       end
 

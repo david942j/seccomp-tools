@@ -50,23 +50,22 @@ module SeccompTools
 
       private
 
-      def constraint(constraint, sys)
-        return "(#{binop(:&, constraint.lhs, constraint.rhs, sys)}) != 0" if constraint.op == :set
-        return "(#{binop(:&, constraint.lhs, constraint.rhs, sys)}) == 0" if constraint.op == :unset
+      def constraint(c, sys)
+        return "(#{binop(:&, c.lhs, c.rhs, sys)}) != 0" if c.op == :set
+        return "(#{binop(:&, c.lhs, c.rhs, sys)}) == 0" if c.op == :unset
 
-        prec = PREC[constraint.op]
-        "#{operand(constraint.lhs, constraint.op, prec, sys)} " \
-          "#{constraint.op} #{operand(constraint.rhs, constraint.op, prec, sys)}"
+        prec = PREC[c.op]
+        "#{operand(c.lhs, c.op, prec, sys)} #{c.op} #{operand(c.rhs, c.op, prec, sys)}"
       end
 
       # Renders an expression without any outer parentheses; each caller wraps it via {#operand}.
-      def expr(expr, sys)
-        return '<opaque>' if expr.opaque?
-        return "0x#{expr.val.to_s(16)}" if expr.imm?
-        return data_name(expr.offset, sys) if expr.plain_data?
-        return "-#{operand(expr.lhs, :neg, UNARY_PREC, sys)}" if expr.kind == :unop
+      def expr(e, sys)
+        return '<opaque>' if e.opaque?
+        return "0x#{e.val.to_s(16)}" if e.imm?
+        return data_name(e.offset, sys) if e.plain_data?
+        return "-#{operand(e.lhs, :neg, UNARY_PREC, sys)}" if e.kind == :unop
 
-        binop(expr.op, expr.lhs, expr.rhs, sys)
+        binop(e.op, e.lhs, e.rhs, sys)
       end
 
       # Renders +lhs op rhs+. Operators are left-associative, so the left operand shares +op+'s
@@ -112,7 +111,7 @@ module SeccompTools
       # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word — which is the
       # second word on little-endian architectures but the first on big-endian ones (s390x).
       def qword_word_name(offset, sys)
-        base = offset - (offset % 8)
+        base = @fusion.base_of(offset)
         return "data[#{offset}]" unless DATA::QWORD_BASES.include?(base)
 
         name = if base == DATA::INSTRUCTION_POINTER

@@ -39,8 +39,15 @@ module SeccompTools
       # @param [String] label
       # @return [Array(Integer, String)]
       def rank(label)
-        action = label.sub(/\s*\(.*/, '').to_sym
-        [ORDER.index(action) || ORDER.size, label]
+        [ORDER.index(action_of(label)) || ORDER.size, label]
+      end
+
+      # The bare action symbol of a label, recovered by stripping any +(data)+ / + (annotation)+
+      # suffix {.label} appended. Safe because no action name itself contains +" ("+.
+      # @param [String] label
+      # @return [Symbol]
+      def action_of(label)
+        label.sub(/\s*\(.*/, '').to_sym
       end
     end
   end

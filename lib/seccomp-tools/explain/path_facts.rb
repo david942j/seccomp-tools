@@ -6,56 +6,26 @@ require 'seccomp-tools/symbolic/constraint'
 module SeccompTools
   class Explain
     # The seccomp reading of one leaf's path condition: which syscall number it pins or bounds,
-    # which architecture value it pins, and which facts remain for the rule's +when+ clause. All
-    # inputs are immutable, so the queries are computed once.
+    # which architecture value it pins, and which facts remain for the rule's +when+ clause. The
+    # path is immutable, so every query is derived once, eagerly.
     class PathFacts
       SYS = Const::BPF::SeccompData::SYS_NUMBER
       ARCH = Const::BPF::SeccompData::ARCH
+      # Largest 32-bit value, the upper end of an unconstrained syscall-number range.
+      U32_MAX = 0xffffffff
 
-      # @param [Array<Symbolic::Constraint>] path
-      def initialize(path)
-        @path = path
-      end
-
-      # The syscall number the path pins with +==+, if any.
+      # The syscall number the path pins with +==+, or +nil+.
       # @return [Integer?]
-      def sys_eq
-        return @sys_eq if defined?(@sys_eq)
-
-        @sys_eq = eq(SYS)
-      end
-
-      # The architecture value the path pins with +==+, if any.
+      attr_reader :sys_eq
+      # The architecture value the path pins with +==+, or +nil+.
       # @return [Integer?]
-      def arch_eq
-        return @arch_eq if defined?(@arch_eq)
-
-        @arch_eq = eq(ARCH)
-      end
-
+      attr_reader :arch_eq
       # The +[lo, hi]+ range (inclusive; +hi+ is +nil+ when unbounded) all bound facts restrict the
       # syscall number to, or +nil+ when there is no lower bound. An upper bound alone does not
       # make a range rule: it is the complement of one (e.g. the +sys < 0x40000000+ side of an x32
       # guard) and reads naturally as part of the default bucket.
       # @return [Array(Integer, Integer?)?]
-      def sys_range
-        return @sys_range if defined?(@sys_range)
-
-        lo = nil
-        hi = nil
-        @path.each do |c|
-          next unless c.plain_data_fact?(SYS)
-
-          case c.op
-          when :> then lo = [lo || 0, c.rhs.val + 1].max
-          when :>= then lo = [lo || 0, c.rhs.val].max
-          when :< then hi = [hi || 0xffffffff, c.rhs.val - 1].min
-          when :<= then hi = [hi || 0xffffffff, c.rhs.val].min
-          end
-        end
-        @sys_range = lo && [lo, hi]
-      end
-
+      attr_reader :sys_range
       # Constraints not already conveyed by the syscall-number / architecture presentation.
       #
       # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ — the named/ranged buckets
@@ -69,20 +39,15 @@ module SeccompTools
       # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
       # against a register rather than a constant.
       # @return [Array<Symbolic::Constraint>]
-      def residual
-        @residual ||= begin
-          pinned = @path.filter_map { |c| c.lhs.offset if c.plain_data_eq? }
-          @path.reject do |c|
-            next false unless c.plain_data_fact?
+      attr_reader :residual
 
-            redundant = c.op != :== && pinned.include?(c.lhs.offset)
-            case c.lhs.offset
-            when SYS then redundant || !%i[set unset].include?(c.op)
-            when ARCH then redundant || %i[== !=].include?(c.op)
-            else redundant
-            end
-          end.uniq(&:key)
-        end
+      # @param [Array<Symbolic::Constraint>] path
+      def initialize(path)
+        @path = path
+        @sys_eq = eq(SYS)
+        @arch_eq = eq(ARCH)
+        @sys_range = compute_sys_range
+        @residual = compute_residual
       end
 
       # Is the path consistent with the architecture being +val+? Every constant arch fact is
@@ -109,6 +74,36 @@ module SeccompTools
       # The value of the single +data[offset] == k+ fact, if any.
       def eq(offset)
         @path.find { |c| c.plain_data_eq?(offset) }&.rhs&.val
+      end
+
+      def compute_sys_range
+        lo = nil
+        hi = nil
+        @path.each do |c|
+          next unless c.plain_data_fact?(SYS)
+
+          case c.op
+          when :> then lo = [lo || 0, c.rhs.val + 1].max
+          when :>= then lo = [lo || 0, c.rhs.val].max
+          when :< then hi = [hi || U32_MAX, c.rhs.val - 1].min
+          when :<= then hi = [hi || U32_MAX, c.rhs.val].min
+          end
+        end
+        lo && [lo, hi]
+      end
+
+      def compute_residual
+        pinned = @path.filter_map { |c| c.lhs.offset if c.plain_data_eq? }
+        @path.reject do |c|
+          next false unless c.plain_data_fact?
+
+          redundant = c.op != :== && pinned.include?(c.lhs.offset)
+          case c.lhs.offset
+          when SYS then redundant || !%i[set unset].include?(c.op)
+          when ARCH then redundant || %i[== !=].include?(c.op)
+          else redundant
+          end
+        end.uniq(&:key)
       end
     end
   end

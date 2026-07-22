@@ -3,7 +3,8 @@
 require 'set'
 
 require 'seccomp-tools/bpf'
-require 'seccomp-tools/disasm/context'
+require 'seccomp-tools/symbolic/constraint'
+require 'seccomp-tools/symbolic/state'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -31,16 +32,19 @@ module SeccompTools
     #   #=> "0000: A = sys_number\n0001: if (A == read) goto 0003\n0002: return KILL\n0003: return ALLOW\n"
     def disasm(raw, arch: nil, display_bpf: true, arg_infer: true)
       codes = to_bpf(raw, arch)
-      contexts = Array.new(codes.size) { Set.new }
-      contexts[0].add(Context.new)
-      # all we care about is whether A is data[*]
-      dis = codes.zip(contexts).map do |code, ctxs|
-        ctxs.each do |ctx|
-          code.branch(ctx) do |pc, c|
-            contexts[pc].add(c) unless pc >= contexts.size
+      states = Array.new(codes.size) { Set.new }
+      states[0].add(Symbolic::State.initial)
+      # A forward pass (jumps only go forward) tracking, per line, the states that can reach it, so
+      # syscall names and argument positions can be inferred from what each register holds. Unlike
+      # the Executor, this over-approximates — it forks every conditional instead of folding — so
+      # dead lines are still rendered.
+      dis = codes.zip(states).map do |code, sts|
+        sts.each do |st|
+          code.branch(st) do |pc, s|
+            states[pc].add(s) unless pc >= states.size
           end
         end
-        code.contexts = ctxs
+        code.states = sts
         code.disasm(code: display_bpf, arg_infer:)
       end.join("\n")
       if display_bpf

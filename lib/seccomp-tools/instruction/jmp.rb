@@ -38,24 +38,46 @@ module SeccompTools
       # See {Base#branch}.
       #
       # Unlike the other instructions, a conditional jump has two possible successors. On the
-      # taken branch of an equality test the context is narrowed, recording that A is known to
-      # equal the compared value.
-      # @param [SeccompTools::Disasm::Context] context
-      #   Current context.
-      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      # taken branch of an equality test the state is narrowed, recording that A is known to equal
+      # the compared value.
+      # @param [Symbolic::State] state
+      #   Current state.
+      # @return [Array<(Integer, Symbolic::State)>]
       #   One pair for an unconditional jump, two otherwise.
       # @example
       #   # 0000: if (A == 0) goto 0002 else goto 0003
-      #   jeq.branch(ctx) #=> [[2, narrowed_ctx], [3, ctx]]
-      def branch(context)
-        return [[at(k), context]] if jop == :none
-        return [[at(jt), context]] if jt == jf
-        return [[at(jt), context.dup.eql!(src)], [at(jf), context]] if jop == :==
+      #   jeq.branch(state) #=> [[2, narrowed_state], [3, state]]
+      def branch(state)
+        return [[at(k), state]] if jop == :none
+        return [[at(jt), state]] if jt == jf
+        return [[at(jt), narrow(state)], [at(jf), state]] if jop == :==
 
-        [[at(jt), context], [at(jf), context]]
+        [[at(jt), state], [at(jf), state]]
       end
 
       private
+
+      # The taken branch of +A == src+ learns +A == value+. When A holds a plain data word and the
+      # compared side is (or resolves to) a constant, that pins the word — recorded as a
+      # {Symbolic::Constraint} on the path. Anything else leaves the state unchanged.
+      # @param [Symbolic::State] state
+      # @return [Symbolic::State]
+      def narrow(state)
+        return state unless state.a.plain_data?
+
+        rhs = src == :x ? resolve(state, state.x) : Symbolic::Expr.imm(k)
+        return state unless rhs.imm?
+
+        state.with(path: state.path + [Symbolic::Constraint.new(state.a, :==, rhs)])
+      end
+
+      # Replaces a data-word +expr+ with the constant it is pinned to on +state+'s path, if any;
+      # otherwise returns it unchanged.
+      def resolve(state, expr)
+        return expr unless expr.plain_data?
+
+        state.path.find { |c| c.plain_data_eq?(expr.offset) }&.rhs || expr
+      end
 
       def jop
         case Const::BPF::JMP.invert[code & 0x70]
@@ -71,15 +93,15 @@ module SeccompTools
       def src_str
         return 'X' if src == :x
 
-        # if A is the same in all contexts
-        a = contexts.map(&:a).uniq
+        # only when A holds the same data word across every reaching state
+        a = states.map(&:a).uniq
         return k.to_s if a.size != 1
 
         a = a[0]
-        return k.to_s unless a.data?
+        return k.to_s unless a.plain_data?
 
         hex = "0x#{k.to_s(16)}"
-        case a.val
+        case a.offset
           # interpret as syscalls only if it's an equality test
         when 0 then Util.colorize(jop == :== ? sysname_by_k || hex : hex, t: :syscall)
         when 4 then Util.colorize(Const::Audit::ARCH.invert[k] || hex, t: :arch)

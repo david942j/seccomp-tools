@@ -506,4 +506,24 @@ describe SeccompTools::Disasm do
     expect(out).to include('if (A != amd64.write) goto')
     expect(out).to include('A = fd # amd64.write(fd, buf, count)')
   end
+
+  it 'propagates a pinned value through an A == X comparison' do
+    # X ends up holding args[1], pinned to 1; A == X then pins sys_number to 1 (write), so the
+    # later args[0] load is named fd # write(...).
+    src = <<-EOS
+      A = args[1]
+      A == 0x1 ? n1 : deny
+    n1:
+      X = A
+      A = sys_number
+      A == X ? n2 : deny
+    n2:
+      A = args[0]
+      return ALLOW
+    deny:
+      return KILL
+    EOS
+    out = described_class.disasm(SeccompTools::Asm.asm(src, arch: :amd64), arch: :amd64, display_bpf: false)
+    expect(out).to include('A = fd # write(fd, buf, count)')
+  end
 end

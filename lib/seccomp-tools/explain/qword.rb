@@ -77,10 +77,16 @@ module SeccompTools
         end
       end
 
-      # The or-branch condition lists of one rule, with sibling branches that together express a
-      # single 64-bit comparison fused (repeatedly, until nothing fuses).
+      # Fuses sibling or-branches that together express one 64-bit comparison, repeatedly until
+      # nothing fuses; branches that do not pair up are returned untouched. See {#fuse_pair} for
+      # the shape of a fusable pair.
       # @param [Array<Array<Symbolic::Constraint, Qword>>] lists
+      #   The condition lists of one rule's or-branches.
       # @return [Array<Array<Symbolic::Constraint, Qword>>]
+      # @example The two match branches of a 64-bit +args[0] > 0x200000500+ (amd64: lo @16, hi @20)
+      #   merge_or([ [ data[20] > 2 ],
+      #              [ data[20] == 2, data[16] > 0x500 ] ])
+      #   #=> [ [ Qword(base: 16, op: :>, val: 0x200000500) ] ]
       def merge_or(lists)
         loop do
           fused = merge_one_pair(lists)

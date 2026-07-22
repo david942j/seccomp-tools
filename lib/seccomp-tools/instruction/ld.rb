@@ -74,12 +74,14 @@ module SeccompTools
       #   __u64 args[6];
       # };
       def seccomp_data_str
+        data = Const::BPF::SeccompData
         case k
-        when 0 then 'sys_number'
-        when 4 then 'arch'
-        when 8, 12 then hi_word?(k) ? 'instruction_pointer >> 32' : 'instruction_pointer'
+        when data::SYS_NUMBER then 'sys_number'
+        when data::ARCH then 'arch'
+        when data::INSTRUCTION_POINTER, data::INSTRUCTION_POINTER + 4
+          hi_word?(k) ? 'instruction_pointer >> 32' : 'instruction_pointer'
         else
-          idx = Array.new(12) { |i| (i * 4) + 16 }.index(k)
+          idx = (data::ARGS...data::SIZE).step(4).to_a.index(k)
           return 'INVALID' if idx.nil?
 
           args_name(idx)
@@ -94,7 +96,7 @@ module SeccompTools
       end
 
       def args_name(idx)
-        hi = hi_word?((idx * 4) + 16)
+        hi = hi_word?((idx * 4) + Const::BPF::SeccompData::ARGS)
         default = hi ? "args[#{idx / 2}] >> 32" : "args[#{idx / 2}]"
         return default unless show_arg_infer?
 

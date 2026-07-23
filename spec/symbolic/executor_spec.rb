@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'timeout'
+
 require 'seccomp-tools/bpf'
 require 'seccomp-tools/const'
 require 'seccomp-tools/disasm/disasm'
@@ -145,6 +147,26 @@ describe SeccompTools::Symbolic::Executor do
     stub_const('SeccompTools::Symbolic::Executor::STEP_CAP', 1)
     _, truncated = run([inst(cmd(:ld, mode: :abs), k: 0), inst(cmd(:ret), k: 0)])
     expect(truncated).to be true
+  end
+
+  it 'walks re-merging control flow without the visited set degrading to a linear scan' do
+    # A chain of N diamonds: each loads a distinct data word, forks on `== k`, and rejoins before
+    # the next. Because both branches rejoin, 2^N distinct path conditions reach the final return.
+    # The visited set dedups on the state key, which embeds the path condition; that only keeps the
+    # walk tractable if the state *hashes* well. Its hash used to be that of a nested Array, which
+    # collapses when siblings differ only in a comparison operator (Ruby maps :== and :!= to one
+    # hash), turning every insert into an O(n) scan and this walk into minutes of work.
+    n = 11
+    insts = Array.new(n) do |i|
+      [inst(cmd(:ld, mode: :abs), k: i * 4), # A = data[i*4] (a distinct word)
+       inst(cmd(:jmp, jmp: :jeq, src: :k), jt: 1, jf: 0, k: 0x1000 + i), # A == k -> merge, skipping
+       inst(cmd(:jmp, jmp: :ja), k: 0)] # ...the unconditional rejoin
+    end.flatten << inst(cmd(:ret), k: 0x7fff0000)
+
+    leaves = Timeout.timeout(5) { leaves_of(insts) }
+    # Every word is independent, so all 2^N paths are feasible and reach ALLOW.
+    expect(leaves.size).to be(2**n)
+    expect(rets(leaves).uniq).to eq [0x7fff0000]
   end
 
   context 'feasibility pruning' do

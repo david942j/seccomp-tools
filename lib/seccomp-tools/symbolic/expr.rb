@@ -124,16 +124,23 @@ module SeccompTools
         Expr.binop(op, self, operand)
       end
 
-      # A value that uniquely identifies this expression, for hashing and equality (so the executor
-      # can recognise two states as identical). Sub-expressions are reduced to their own keys, so the
-      # result is a plain nested value.
-      # @return [Array]
+      # A string that uniquely identifies this expression, used for both equality and hashing;
+      # memoized, since an {Expr} is immutable. The operator is written as text, not left a {Symbol},
+      # because Ruby's +Symbol#hash+ maps the operators to very few values (+:==+ and +:!=+ hash
+      # alike) — a key carrying them would collapse when hashed and drag the walk's visited +Set+
+      # down to a linear scan; a string hashes over its bytes cleanly. The encoding is injective
+      # (leaves are +i<val>+ / +d<offset>+ / +o+, compounds are parenthesised, and no operator
+      # contains a leaf-start char, a digit, or the +;+ / +,+ that {State} joins with), so it is
+      # safe to compare on.
+      # @return [String]
       def key
-        case kind
-        when :binop then [:binop, op, lhs.key, rhs.key]
-        when :unop then [:unop, op, lhs.key]
-        else [kind, val, offset]
-        end
+        @key ||= case kind
+                 when :binop then "(#{lhs.key}#{op}#{rhs.key})"
+                 when :unop  then "(#{op}#{lhs.key})"
+                 when :imm   then "i#{val}"
+                 when :data  then "d#{offset}"
+                 else 'o'
+                 end
       end
 
       # @param [Expr] other

@@ -19,19 +19,9 @@ module SeccompTools
       def label(ret)
         return 'UNKNOWN' unless ret.imm?
 
-        action = Const::BPF::ACTION.invert[ret.val & Const::BPF::SECCOMP_RET_ACTION_FULL]
         # An unrecognized action value loads fine; the kernel treats it as KILL_PROCESS
         # (KILL_THREAD before Linux 4.14). See seccomp(2).
-        return format('KILL_PROCESS (unknown action 0x%x)', ret.val) if action.nil?
-
-        data = ret.val & Const::BPF::SECCOMP_RET_DATA
-        case action
-        when :ERRNO then "ERRNO(#{data})"
-        # TRACE's data reaches the tracer as the ptrace event message, TRAP's as si_errno of the
-        # SIGSYS - both are part of the policy, so show them (when set; 0 is the idle default).
-        when :TRACE, :TRAP then data.zero? ? action.to_s : "#{action}(#{data})"
-        else action.to_s
-        end
+        Const::BPF.action_label(ret.val) || format('KILL_PROCESS (unknown action 0x%x)', ret.val)
       end
 
       # Where the bucket labeled +label+ sorts: by its action's position in {ORDER}, then

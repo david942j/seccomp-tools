@@ -13,6 +13,7 @@ List of commands:
 	disasm	Disassemble seccomp bpf.
 	dump	Automatically dump seccomp bpf from execution file(s).
 	emu	Emulate seccomp rules.
+	explain	Summarize a seccomp filter as a per-action policy.
 
 See 'seccomp-tools <command> --help' to read about a specific subcommand.
     EOS
@@ -83,6 +84,26 @@ Usage: seccomp-tools emu [options] BPF_FILE [sys_nr [arg0 [arg1 ... arg5]]]
                                      Set it when the filter targets an architecture other than the host.
     -q, --[no-]quiet                 Run quietly, only show emulation result.
     -i, --ip=VAL                     Set instruction pointer.
+EOS
+  end
+
+  it 'help explain' do
+    expect { described_class.work(%w[explain --help]) }.to output(<<EOS).to_stdout
+explain - Summarize a seccomp filter as a per-action policy.
+
+Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
+    -a, --arch ARCH                  Specify architecture.
+                                     Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+                                     Default: auto-detected from the host machine.
+                                     Set it when the filter targets an architecture other than the host.
+                                     With an executable or --pid the architecture is auto-detected instead.
+    -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
+                                     Use this to pass arguments or pipe things to the execution file.
+    -l, --limit LIMIT                Explain only the first LIMIT installed filters.
+                                     Only meaningful when the input is an executable or --pid. Default: 1
+    -p, --pid PID                    Explain the seccomp filters installed on an existing process.
+                                     You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+    -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
 EOS
   end
 

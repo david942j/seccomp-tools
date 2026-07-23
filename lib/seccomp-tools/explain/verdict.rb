@@ -1,0 +1,44 @@
+# frozen_string_literal: true
+
+require 'seccomp-tools/const'
+
+module SeccompTools
+  class Explain
+    # Decodes the value a filter path returns into the action it stands for: the label a policy
+    # shows (+ALLOW+, +ERRNO(5)+, ...) and where that action sorts among the buckets.
+    module Verdict
+      # Buckets are printed in this order; unlisted actions sort last.
+      ORDER = %i[ALLOW USER_NOTIF LOG TRACE TRAP ERRNO KILL KILL_PROCESS UNKNOWN].freeze
+
+      module_function
+
+      # The label for the value +ret+ a leaf returns, including the +SECCOMP_RET_DATA+ part when
+      # it is meaningful for the action.
+      # @param [Symbolic::Expr] ret
+      # @return [String]
+      def label(ret)
+        return 'UNKNOWN' unless ret.imm?
+
+        # An unrecognized action value loads fine; the kernel treats it as KILL_PROCESS
+        # (KILL_THREAD before Linux 4.14). See seccomp(2).
+        Const::BPF.action_label(ret.val) || format('KILL_PROCESS (unknown action 0x%x)', ret.val)
+      end
+
+      # Where the bucket labeled +label+ sorts: by its action's position in {ORDER}, then
+      # alphabetically. Works on any label {.label} produces, data and annotations included.
+      # @param [String] label
+      # @return [Array(Integer, String)]
+      def rank(label)
+        [ORDER.index(action_of(label)) || ORDER.size, label]
+      end
+
+      # The bare action symbol of a label, recovered by stripping any +(data)+ / + (annotation)+
+      # suffix {.label} appended. Safe because no action name itself contains +" ("+.
+      # @param [String] label
+      # @return [Symbol]
+      def action_of(label)
+        label.sub(/\s*\(.*/, '').to_sym
+      end
+    end
+  end
+end

@@ -7,7 +7,7 @@ require 'seccomp-tools/logger'
 
 module SeccompTools
   module CLI
-    # Shared helpers for commands that dump seccomp filters via ptrace (currently {Dump}).
+    # Shared helpers for the commands that dump seccomp filters via ptrace ({Dump} and {Explain}).
     module Dumpable
       # Dumps the seccomp filters from a command run via +sh+, or from an existing process, yielding
       # each installed filter.

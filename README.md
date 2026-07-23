@@ -23,6 +23,7 @@ Some features might be CTF-specific, but also useful for analyzing seccomp of re
   - Colorful!
 * Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
+* Explain - Summarizes a filter as a per-action policy (which syscalls are allowed/killed, and when).
 * Supports multi-architecture.
 
 ## Installation
@@ -52,6 +53,7 @@ $ seccomp-tools --help
 # 	disasm	Disassemble seccomp bpf.
 # 	dump	Automatically dump seccomp bpf from execution file(s).
 # 	emu	Emulate seccomp rules.
+# 	explain	Summarize a seccomp filter as a per-action policy.
 #
 # See 'seccomp-tools <command> --help' to read about a specific subcommand.
 
@@ -377,6 +379,75 @@ $ seccomp-tools emu spec/data/libseccomp.bpf write 0x3
 #
 # return ALLOW at line 0009
 
+```
+
+### Explain
+
+Summarizes a whole filter as a per-action policy: which syscalls end in `ALLOW`, `KILL`, `ERRNO`, etc.,
+and under what argument constraints. The input can be a dumped BPF file, an executable (its seccomp is
+dumped first, like `dump`), or a running process via `--pid`.
+```bash
+$ seccomp-tools explain --help
+# explain - Summarize a seccomp filter as a per-action policy.
+#
+# Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+#                                      Default: auto-detected from the host machine.
+#                                      Set it when the filter targets an architecture other than the host.
+#                                      With an executable or --pid the architecture is auto-detected instead.
+#     -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
+#                                      Use this to pass arguments or pipe things to the execution file.
+#     -l, --limit LIMIT                Explain only the first LIMIT installed filters.
+#                                      Only meaningful when the input is an executable or --pid. Default: 1
+#     -p, --pid PID                    Explain the seccomp filters installed on an existing process.
+#                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+#     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
+
+$ seccomp-tools explain spec/data/libseccomp.bpf -a amd64
+# Seccomp policy for spec/data/libseccomp.bpf
+#
+# Architecture: amd64
+#
+#   ALLOW:
+#     write, close, dup, exit
+#
+#   ERRNO(5):
+#     <default> (any other syscall)
+#
+#   KILL:
+#     sys_number >= 0x40000000  (x32 ABI)
+#
+# Other architectures: KILL
+```
+
+A more involved example - the 0CTF/TCTF 2023 "Nothing is True" filter, which has separate 32/64-bit
+allow-lists and argument checks on `open`, `mmap` and `execve`:
+```bash
+$ seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64
+# Seccomp policy for spec/data/tctf-2023-nothing-is-true.bpf
+#
+# Architecture: i386
+#
+#   ALLOW:
+#     exit, read, write, brk, mmap, munmap, exit_group
+#
+#   KILL:
+#     <default> (any other syscall)
+#
+# Architecture: amd64
+#
+#   ALLOW:
+#     close, munmap, brk, exit, exit_group
+#     open when filename == 0x31337 && flags == 0x0
+#     mmap when prot == 0x2
+#     execve when filename == 0x7ffea12f7d0e
+#
+#   KILL:
+#     sys_number >= 0x40000000  (x32 ABI)
+#     <default> (any other syscall)
+#
+# Other architectures: KILL
 ```
 
 ## Screenshots

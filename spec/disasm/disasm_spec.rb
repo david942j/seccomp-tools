@@ -526,4 +526,14 @@ describe SeccompTools::Disasm do
     out = described_class.disasm(SeccompTools::Asm.asm(src, arch: :amd64), arch: :amd64, display_bpf: false)
     expect(out).to include('A = fd # write(fd, buf, count)')
   end
+
+  it 'shows TRACE/TRAP data and an unknown action, all re-assemblable' do
+    { 'TRACE(5)' => 'return TRACE(5)', 'TRAP(7)' => 'return TRAP(7)',
+      '0x12345678' => 'return 0x12345678' }.each do |asm, expected|
+      raw = SeccompTools::Asm.asm("return #{asm}", arch: :amd64)
+      out = described_class.disasm(raw, arch: :amd64, display_bpf: false)
+      expect(out).to include(expected)
+      expect(SeccompTools::Asm.asm(out.sub(/\A\d+: /, ''), arch: :amd64)).to eq raw # faithful round-trip
+    end
+  end
 end

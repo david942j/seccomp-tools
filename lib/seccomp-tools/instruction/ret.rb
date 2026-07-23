@@ -37,9 +37,8 @@ module SeccompTools
         _, type = symbolize
         return 'A' if type == :a
 
-        str = ACTION.invert[type & SECCOMP_RET_ACTION_FULL].to_s
-        str += "(#{type & SECCOMP_RET_DATA})" if str == 'ERRNO'
-        str
+        # fall back to the raw value (still re-assemblable) for an action the kernel does not define
+        Const::BPF.action_label(type) || "0x#{type.to_s(16)}"
       end
     end
   end

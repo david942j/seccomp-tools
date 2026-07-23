@@ -19,3 +19,20 @@ describe SeccompTools::Const::Audit do
     end
   end
 end
+
+describe SeccompTools::Const::BPF do
+  describe '.action_label' do
+    it 'names a return value, showing the data ERRNO/TRACE/TRAP consume' do
+      expect(described_class.action_label(0x7fff0000)).to eq 'ALLOW'
+      expect(described_class.action_label(0x00000000)).to eq 'KILL'
+      expect(described_class.action_label(0x00050005)).to eq 'ERRNO(5)' # data always shown
+      expect(described_class.action_label(0x7ff00007)).to eq 'TRACE(7)'
+      expect(described_class.action_label(0x00030005)).to eq 'TRAP(5)'
+      expect(described_class.action_label(0x7ff00000)).to eq 'TRACE' # idle data 0 omitted
+    end
+
+    it 'is nil when the action bits are not a kernel-defined value' do
+      expect(described_class.action_label(0x12345678)).to be_nil
+    end
+  end
+end

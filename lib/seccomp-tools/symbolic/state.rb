@@ -48,11 +48,15 @@ module SeccompTools
         State.new(a:, x:, mem:, path:)
       end
 
-      # A value that uniquely identifies this state. The walk uses it to skip a +(line, state)+ pair
-      # it has already visited, which keeps merging control-flow from blowing up.
-      # @return [Array]
-      def signature
-        [a.key, x.key, mem.map(&:key), path.map(&:key)]
+      # A string that identifies this state exactly, joined from each part's {Expr#key} /
+      # {Constraint#key} (the same identity, one level up). The walk uses it to skip a
+      # +(line, state)+ pair it has already visited, which keeps merging control-flow from blowing
+      # up. Both {#==} and {#hash} are decided on it: it is a +String+, not a nested +Array+, so that
+      # {#hash} distributes — see {Expr#key} for why an +Array+ key collapses. The +;+ / +,+
+      # separators appear in no part's key, so the join stays injective.
+      # @return [String]
+      def key
+        @key ||= "#{a.key};#{x.key};#{mem.map(&:key).join(',')};#{path.map(&:key).join(',')}"
       end
 
       # The constant the data word at byte +offset+ is pinned to on this path (by an +==+ fact), or
@@ -66,13 +70,13 @@ module SeccompTools
       # @param [State] other
       # @return [Boolean]
       def ==(other)
-        other.is_a?(State) && signature == other.signature
+        other.is_a?(State) && key == other.key
       end
       alias eql? ==
 
       # @return [Integer]
       def hash
-        signature.hash
+        key.hash
       end
     end
   end

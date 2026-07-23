@@ -82,7 +82,7 @@ module SeccompTools
           steps += 1
           pc, st = stack.pop
           next if pc >= @instructions.size
-          next unless visited.add?([pc, st.signature])
+          next unless visited.add?([pc, st.key])
 
           step(pc, st, leaves, stack)
         end

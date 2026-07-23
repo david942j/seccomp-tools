@@ -69,10 +69,11 @@ module SeccompTools
         op == :== && plain_data_fact?(offset)
       end
 
-      # A value that uniquely identifies this constraint, for hashing and equality.
-      # @return [Array]
+      # A string that uniquely identifies this constraint, for both equality and hashing; the
+      # +expr op expr+ counterpart of {Expr#key}, injective for the same reason.
+      # @return [String]
       def key
-        [lhs.key, op, rhs.key]
+        @key ||= "#{lhs.key}#{op}#{rhs.key}"
       end
     end
   end

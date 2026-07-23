@@ -21,7 +21,7 @@ describe SeccompTools::Explain::QwordFusion do
   describe SeccompTools::Explain::Qword do
     it 'has a key mirroring Constraint#key so fused lists stay comparable' do
       q = described_class.new(16, :==, 0x100000002)
-      expect(q.key).to eq [:qword, 16, :==, 0x100000002]
+      expect(q.key).to eq 'q16,==,4294967298'
       expect(q.key).not_to eq described_class.new(16, :==, 0x3).key
     end
   end

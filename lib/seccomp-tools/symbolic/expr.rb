@@ -124,16 +124,29 @@ module SeccompTools
         Expr.binop(op, self, operand)
       end
 
-      # A value that uniquely identifies this expression, for hashing and equality (so the executor
-      # can recognise two states as identical). Sub-expressions are reduced to their own keys, so the
-      # result is a plain nested value.
-      # @return [Array]
+      # A string that uniquely identifies this expression, used for both equality and hashing (so the
+      # executor can recognise two states as identical). Memoized, since an {Expr} is immutable and
+      # shared across many states.
+      #
+      # It is a +String+, not a nested +Array+, so that hashing a {State}'s key distributes: Ruby's
+      # +Symbol#hash+ maps the operators an expression is built from to very few values (+:==+ and
+      # +:!=+ hash alike), so an +Array+ key that differs only in an operator hashes the same,
+      # degrading the walk's visited +Set+ into a linear scan. A +String+ hashes over its bytes,
+      # which does not collapse.
+      #
+      # The encoding is injective (distinct expressions give distinct strings), so it is safe to
+      # compare on: leaves are +i<val>+ / +d<offset>+ / +o+; compounds are fully parenthesised; and
+      # no operator string contains a leaf-start char (+i+ +d+ +o+ +(+), a digit, or the +;+ / +,+
+      # {State} uses to join, so every operator/operand boundary is unambiguous.
+      # @return [String]
       def key
-        case kind
-        when :binop then [:binop, op, lhs.key, rhs.key]
-        when :unop then [:unop, op, lhs.key]
-        else [kind, val, offset]
-        end
+        @key ||= case kind
+                 when :binop then "(#{lhs.key}#{op}#{rhs.key})"
+                 when :unop  then "(#{op}#{lhs.key})"
+                 when :imm   then "i#{val}"
+                 when :data  then "d#{offset}"
+                 else 'o'
+                 end
       end
 
       # @param [Expr] other

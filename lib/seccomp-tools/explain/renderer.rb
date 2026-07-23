@@ -109,7 +109,7 @@ module SeccompTools
       end
 
       # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word — which is the
-      # second word on little-endian architectures but the first on big-endian ones (s390x).
+      # second word on little-endian architectures but the first on big-endian ones.
       def qword_word_name(offset, sys)
         base = @fusion.base_of(offset)
         return "data[#{offset}]" unless DATA::QWORD_BASES.include?(base)

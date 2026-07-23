@@ -128,6 +128,24 @@ module SeccompTools
         tax: 0x00,
         txa: 0x80
       }.freeze
+
+      # The action a seccomp return +value+ names, e.g. +"ALLOW"+ or +"ERRNO(5)"+, or +nil+ when
+      # the action bits are not a value the kernel defines. The data part is shown for the actions
+      # that consume it: +ERRNO+ always, and +TRACE+/+TRAP+ when non-zero (0 is their idle default).
+      # The result is both human-readable and re-assemblable.
+      # @param [Integer] value
+      # @return [String?]
+      def self.action_label(value)
+        action = ACTION.invert[value & SECCOMP_RET_ACTION_FULL]
+        return if action.nil?
+
+        data = value & SECCOMP_RET_DATA
+        case action
+        when :ERRNO then "ERRNO(#{data})"
+        when :TRACE, :TRAP then data.zero? ? action.to_s : "#{action}(#{data})"
+        else action.to_s
+        end
+      end
     end
 
     # Define syscall numbers for all architectures.

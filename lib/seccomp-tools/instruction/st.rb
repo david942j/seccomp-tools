@@ -23,14 +23,14 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [SeccompTools::Disasm::Context] context
-      #   Current context.
-      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
-      #   Always the next line, with the stored value recorded in the context.
-      def branch(context)
-        ctx = context.dup
-        ctx.store(k, reg)
-        [[line + 1, ctx]]
+      # @param [Symbolic::State] state
+      #   Current state.
+      # @return [Array<(Integer, Symbolic::State)>]
+      #   Always the next line, with the register's value recorded in the scratch slot.
+      def branch(state)
+        mem = state.mem.dup
+        mem[k] = reg == 'X' ? state.x : state.a
+        [[line + 1, state.with(mem:)]]
       end
     end
   end

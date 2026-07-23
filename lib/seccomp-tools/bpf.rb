@@ -24,8 +24,8 @@ module SeccompTools
     attr_reader :k
     # @return [Symbol] Architecture.
     attr_reader :arch
-    # @return [Set<SeccompTools::Disasm::Context>] Possible contexts before this instruction.
-    attr_accessor :contexts
+    # @return [Set<SeccompTools::Symbolic::State>] Possible states before this instruction.
+    attr_accessor :states
 
     # Instantiate a {BPF} object.
     # @param [String, {Symbol => Integer}] raw
@@ -51,7 +51,7 @@ module SeccompTools
       end
       @arch = arch
       @line = line
-      @contexts = Set.new
+      @states = Set.new
       @disasm_setting = {
         code: true,
         arg_infer: true
@@ -111,15 +111,15 @@ module SeccompTools
     end
 
     # Yields every branch that may be taken after executing this instruction.
-    # @param [SeccompTools::Disasm::Context] context
-    #   Current context.
+    # @param [SeccompTools::Symbolic::State] state
+    #   Current state.
     # @yieldparam [Integer] pc
     #   Program counter after this instruction.
-    # @yieldparam [SeccompTools::Disasm::Context] ctx
-    #   Context after this instruction.
+    # @yieldparam [SeccompTools::Symbolic::State] st
+    #   State after this instruction.
     # @return [void]
-    def branch(context, &)
-      inst.branch(context).each(&)
+    def branch(state, &)
+      inst.branch(state).each(&)
     end
 
     # Corresponding instruction object.

@@ -42,14 +42,12 @@ module SeccompTools
       end
 
       # See {Base#branch}.
-      # @param [SeccompTools::Disasm::Context] context
-      #   Current context.
-      # @return [Array<(Integer, SeccompTools::Disasm::Context)>]
+      # @param [Symbolic::State] state
+      #   Current state.
+      # @return [Array<(Integer, Symbolic::State)>]
       #   Always the next line, with A marked as no longer tracked.
-      def branch(context)
-        ctx = context.dup
-        ctx[:a] = Disasm::Context::Value.new
-        [[line + 1, ctx]]
+      def branch(state)
+        [[line + 1, state.with(a: Symbolic::Expr.opaque)]]
       end
 
       private

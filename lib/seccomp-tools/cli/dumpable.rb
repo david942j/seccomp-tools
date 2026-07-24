@@ -14,6 +14,7 @@ module SeccompTools
       #
       # When +pid+ is given the process is traced (requiring +CAP_SYS_ADMIN+); otherwise +command+
       # is executed. On a permission error while tracing a pid, {#dump_permission_error} exits.
+      # Warns when nothing was installed, so a caller that produces no output still tells the user why.
       # @param [String?] command
       #   The command to run, when +pid+ is +nil+.
       # @param [Integer?] pid
@@ -27,11 +28,15 @@ module SeccompTools
       # @yieldparam [Symbol?] arch
       #   The architecture of the traced process, if known.
       # @return [Array]
-      #   One entry per filter: the block's return values.
+      #   One entry per filter: the block's return values. Empty when nothing was installed.
       def dump_seccomp(command:, pid:, limit:, timeout:, &)
-        return dump_seccomp_by_pid(pid, limit, &) if pid
-
-        SeccompTools::Dumper.dump('/bin/sh', '-c', command, limit:, timeout:, &)
+        filters = if pid
+                    dump_seccomp_by_pid(pid, limit, &)
+                  else
+                    SeccompTools::Dumper.dump('/bin/sh', '-c', command, limit:, timeout:, &)
+                  end
+        Logger.warn('No seccomp filter was installed.') if filters.empty?
+        filters
       end
 
       # Whether tracer-based dumping is available on this platform (Linux only). Logs an error when

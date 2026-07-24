@@ -65,7 +65,8 @@ EOS
 
   it 'timeout' do
     start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    expect { described_class.new(['-c', 'sleep 1d', '-t', '1']).handle }.not_to output.to_stdout
+    expect { described_class.new(['-c', 'sleep 1d', '-t', '1']).handle }
+      .to output("[WARN] No seccomp filter was installed.\n").to_stdout
     expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - start).to be < 2
   end
 
@@ -88,7 +89,7 @@ EOS
       command = nil
       allow(SeccompTools::Dumper).to receive(:dump) do |*args, **|
         command = args[2]
-        []
+        ['filter'] # non-empty, so the "no filter" warning stays out of these argument checks
       end
       -> { command }
     end
@@ -107,9 +108,15 @@ EOS
     end
 
     it 'warns about positional arguments left after --pid' do
-      allow(SeccompTools::Dumper).to receive(:dump_by_pid).and_return([])
+      allow(SeccompTools::Dumper).to receive(:dump_by_pid).and_return(['filter'])
       expect { described_class.new(['-p', '123', './extra']).handle }
         .to output("[WARN] ignoring unused argument: ./extra\n").to_stdout
     end
+  end
+
+  it 'warns when the target installs no seccomp filter' do
+    expect(SeccompTools::Dumper).to receive(:dump).with('/bin/sh', '-c', './x', anything) { [] }
+    expect { described_class.new(['-c', './x']).handle }
+      .to output("[WARN] No seccomp filter was installed.\n").to_stdout
   end
 end

@@ -127,11 +127,9 @@ module SeccompTools
       def dump_filters(command:, pid:, source:)
         return [] unless dumping_supported?
 
-        filters = dump_seccomp(command:, pid:, limit: option[:limit], timeout: option[:timeout]) do |bpf, arch|
+        dump_seccomp(command:, pid:, limit: option[:limit], timeout: option[:timeout]) do |bpf, arch|
           [bpf, arch || option[:arch], source]
         end
-        Logger.warn('No seccomp filter was installed.') if filters.empty?
-        filters
       end
 
       # Is +file+ an ELF executable to run, rather than a raw BPF blob or stdin to read?

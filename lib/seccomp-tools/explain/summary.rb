@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
-require 'seccomp-tools/explain/path_facts'
+require 'seccomp-tools/explain/arch_scope'
 require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
@@ -32,13 +32,12 @@ module SeccompTools
       # @param [Boolean] truncated
       #   Whether the walk hit {Symbolic::Executor::STEP_CAP}.
       def initialize(leaves, arch:, source: nil, truncated: false)
-        @leaves = leaves
         @arch = arch
         @source = source
         @truncated = truncated
         @fusion = QwordFusion.new(arch)
         @renderer = Renderer.new(@fusion)
-        @facts = Hash.new { |h, leaf| h[leaf] = PathFacts.new(leaf.path) }
+        @scope = ArchScope.new(leaves)
       end
 
       # Renders the policy.
@@ -47,7 +46,7 @@ module SeccompTools
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
         out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
-        sections.each do |title, arch_sym, leaves|
+        @scope.sections(@arch).each do |_arch_val, arch_sym, title, leaves|
           out << "\n" << render_section(title, section_buckets(arch_sym, leaves))
         end
         out << render_other_arches
@@ -56,32 +55,19 @@ module SeccompTools
 
       private
 
-      # The {PathFacts} of +leaf+, computed once.
+      # The {PathFacts} of +leaf+, computed once (shared with {ArchScope}).
       def facts(leaf)
-        @facts[leaf]
-      end
-
-      # One entry per architecture section: the section title, the architecture whose syscall names
-      # apply (+nil+ when the checked value is not one seccomp-tools knows), and the leaves.
-      # @return [Array<[String, Symbol?, Array<Symbolic::Executor::Leaf>]>]
-      def sections
-        vals = arch_values
-        return [[@arch, @arch, @leaves]] if vals.empty?
-
-        vals.map do |v|
-          sym = Const::Audit.arch_symbol(v)
-          [sym || format('0x%x (unknown)', v), sym, @leaves.select { |l| facts(l).arch_consistent?(v) }]
-        end
+        @scope.facts(leaf)
       end
 
       # Renders what happens on the architectures the filter does not explicitly check for. Usually
       # those paths just fall to one action and a one-liner suffices; when they carry rules of their
       # own, a full section is rendered so the rules are not silently dropped.
       def render_other_arches
-        return '' if arch_values.empty?
+        return '' if @scope.arch_values.empty?
 
-        leaves = other_leaves
-        default = default_label(leaves)
+        leaves = @scope.other_leaves
+        default = @scope.default_label(leaves)
         return '' unless default
 
         buckets = rule_buckets(nil, leaves, default)
@@ -91,20 +77,10 @@ module SeccompTools
         "\n#{render_section('<any other>', buckets)}"
       end
 
-      # The distinct architecture values (+AUDIT_ARCH_*+) the filter explicitly branches on.
-      def arch_values
-        @arch_values ||= @leaves.filter_map { |l| facts(l).arch_eq }.uniq
-      end
-
-      # Leaves reachable when +arch+ is none of the explicitly-checked values.
-      def other_leaves
-        @leaves.reject { |l| facts(l).arch_eq }
-      end
-
       # The action buckets of one section: its non-default rules plus the default rule. +arch_sym+
       # names syscalls/arguments; +nil+ (architecture unknown) leaves them numeric.
       def section_buckets(arch_sym, leaves)
-        default = default_label(leaves)
+        default = @scope.default_label(leaves)
         buckets = rule_buckets(arch_sym, leaves, default)
         add_default(buckets, default)
         buckets
@@ -192,12 +168,6 @@ module SeccompTools
         # whole policy.
         text = buckets.empty? ? '<default> (any syscall)' : '<default> (any other syscall)'
         add(buckets, default, text, simple: false)
-      end
-
-      # The catch-all action: the verdict of a leaf that matches no syscall, no range, no arguments.
-      def default_label(leaves)
-        catch_all = leaves.find { |l| facts(l).catch_all? }
-        (catch_all || leaves.first)&.then { |l| Verdict.label(l.ret) }
       end
 
       def add(buckets, label, text, simple:)

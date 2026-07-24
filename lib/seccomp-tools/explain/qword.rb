@@ -7,9 +7,10 @@ module SeccompTools
     # A 64-bit fact reassembled from 32-bit word checks (see {QwordFusion}); +base+ is the field's
     # byte offset in +seccomp_data+.
     Qword = Struct.new(:base, :op, :val) do
-      # Mirrors {Symbolic::Constraint#key} so fused condition lists can still be compared.
+      # Mirrors {Symbolic::Constraint#key} (a string) so fused condition lists can still be compared;
+      # the +q+ prefix keeps it distinct from any constraint key, which starts with an operand char.
       def key
-        [:qword, base, op, val]
+        "q#{base},#{op},#{val}"
       end
 
       # A {Qword} is a whole-field fact, never a single plain-word one, so it matches neither

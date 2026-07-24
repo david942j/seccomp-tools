@@ -17,7 +17,7 @@ describe SeccompTools::Symbolic::State do
   end
 
   describe 'value equality' do
-    it 'compares by signature, so equal states dedup in a Set' do
+    it 'compares by key, so equal states dedup in a Set' do
       a = described_class.initial.with(a: expr.data(0))
       b = described_class.initial.with(a: expr.data(0))
       expect(a).to eq b
@@ -45,9 +45,9 @@ describe SeccompTools::Symbolic::State do
     expect(st.a.val).to be 0 # original untouched
   end
 
-  it 'has a signature that reflects its contents' do
+  it 'has a key that reflects its contents' do
     st = described_class.initial
-    expect(st.signature).to eq described_class.initial.signature
-    expect(st.with(a: SeccompTools::Symbolic::Expr.imm(5)).signature).not_to eq st.signature
+    expect(st.key).to eq described_class.initial.key
+    expect(st.with(a: SeccompTools::Symbolic::Expr.imm(5)).key).not_to eq st.key
   end
 end

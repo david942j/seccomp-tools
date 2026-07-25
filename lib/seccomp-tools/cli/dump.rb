@@ -23,9 +23,6 @@ module SeccompTools
       def initialize(*)
         super
         option[:format] = :disasm
-        option[:limit] = 1
-        option[:pid] = nil
-        option[:timeout] = nil
       end
 
       # Define option parser.
@@ -34,23 +31,10 @@ module SeccompTools
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
-          opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh).',
-                 'Use this option if want to pass arguments or do pipe things to the execution file.',
-                 'e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.',
-                 'Takes precedence over the [EXEC] argument.') do |command|
-            option[:command] = command
-          end
-
           opt.on('-f', '--format FORMAT', %i[disasm raw inspect],
                  'Output format. FORMAT can only be one of <disasm|raw|inspect>.',
                  'Default: disasm') do |f|
                    option[:format] = f
-                 end
-
-          opt.on('-l', '--limit LIMIT', 'Limit the number of calling "prctl(PR_SET_SECCOMP)".',
-                 'The target process will be killed whenever its calling times reaches LIMIT.',
-                 'Default: 1', Integer) do |l|
-                   option[:limit] = l
                  end
 
           opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.',
@@ -60,18 +44,13 @@ module SeccompTools
                    option[:ofile] = o
                  end
 
-          opt.on('-p', '--pid PID', 'Dump installed seccomp filters of the existing process.',
-                 'You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.',
-                 Integer) do |p|
-            option[:pid] = p
-          end
-
-          opt.on('-t', '--timeout SEC', 'Timeout for the execution, in seconds.',
-                 'The target process will be killed when the timeout expires.',
-                 'This option is ignored when --pid is given.',
-                 'Default: no timeout', Float) do |t|
-                   option[:timeout] = t
-                 end
+          option_filter_source(
+            opt, 'dump',
+            sh_exec: ['e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.',
+                      'Takes precedence over the [EXEC] argument.'],
+            limit: ['The target process is killed once it reaches LIMIT.'],
+            timeout: ['This option is ignored when --pid is given.']
+          )
         end
       end
 

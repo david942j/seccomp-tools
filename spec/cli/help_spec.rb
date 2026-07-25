@@ -29,25 +29,23 @@ dump - Automatically dump seccomp bpf from execution file(s).
 NOTE : This function is only available on Linux.
 
 Usage: seccomp-tools dump [EXEC] [options]
-    -c, --sh-exec <command>          Executes the given command (via sh).
-                                     Use this option if want to pass arguments or do pipe things to the execution file.
-                                     e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.
-                                     Takes precedence over the [EXEC] argument.
     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
                                      Default: disasm
-    -l, --limit LIMIT                Limit the number of calling "prctl(PR_SET_SECCOMP)".
-                                     The target process will be killed whenever its calling times reaches LIMIT.
-                                     Default: 1
     -o, --output FILE                Output result into FILE instead of stdout.
                                      If multiple seccomp syscalls have been invoked (see --limit),
                                      results will be written to FILE, FILE_1, FILE_2.. etc.
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
-    -p, --pid PID                    Dump installed seccomp filters of the existing process.
-                                     You must have CAP_SYS_ADMIN (e.g. be root) in order to use this option.
-    -t, --timeout SEC                Timeout for the execution, in seconds.
-                                     The target process will be killed when the timeout expires.
+    -c, --sh-exec <command>          Executes the given command (via sh) and dumps its seccomp.
+                                     Use this to pass arguments or pipe things to the execution file.
+                                     e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.
+                                     Takes precedence over the [EXEC] argument.
+    -l, --limit LIMIT                Dump only the first LIMIT installed filters.
+                                     Only meaningful when the input is an executable or --pid. Default: 1
+                                     The target process is killed once it reaches LIMIT.
+    -p, --pid PID                    Dump the seccomp filters installed on an existing process.
+                                     You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+    -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
                                      This option is ignored when --pid is given.
-                                     Default: no timeout
 EOS
   end
 

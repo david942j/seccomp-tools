@@ -17,16 +17,6 @@ module SeccompTools
       # Usage of this command.
       USAGE = "explain - #{SUMMARY}\n\nUsage: seccomp-tools explain [options] [BPF_FILE|EXEC]".freeze
 
-      # Instantiate an {Explain} object.
-      #
-      # Takes the same arguments as {Base#initialize}.
-      def initialize(*)
-        super
-        option[:limit] = 1
-        option[:pid] = nil
-        option[:timeout] = nil
-      end
-
       # Define option parser.
       # @return [OptionParser]
       #   The parser of this command's options.
@@ -35,25 +25,7 @@ module SeccompTools
           opt.banner = usage
 
           option_arch(opt, 'With an executable or --pid the architecture is auto-detected instead.')
-
-          opt.on('-c', '--sh-exec <command>', 'Executes the given command (via sh) and explains its seccomp.',
-                 'Use this to pass arguments or pipe things to the execution file.') do |command|
-            option[:command] = command
-          end
-
-          opt.on('-l', '--limit LIMIT', Integer, 'Explain only the first LIMIT installed filters.',
-                 'Only meaningful when the input is an executable or --pid. Default: 1') do |l|
-            option[:limit] = l
-          end
-
-          opt.on('-p', '--pid PID', Integer, 'Explain the seccomp filters installed on an existing process.',
-                 'You must have CAP_SYS_ADMIN (e.g. be root) to use this option.') do |p|
-            option[:pid] = p
-          end
-
-          opt.on('-t', '--timeout SEC', Float, 'Timeout (seconds) for the execution. Default: no timeout') do |t|
-            option[:timeout] = t
-          end
+          option_filter_source(opt, 'explain')
         end
       end
 

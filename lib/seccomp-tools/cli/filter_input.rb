@@ -52,10 +52,20 @@ module SeccompTools
       end
 
       # Should the input be read directly as a raw BPF blob, rather than run as a command? True when
-      # no +-c+ was given and the positional argument is not an executable (a plain file or stdin).
+      # the command accepts blobs at all, no +-c+ was given, and the positional argument is not an
+      # executable (a plain file or stdin).
       # @return [Boolean]
       def raw_bpf_file?
-        !option[:command] && !executable?(option[:ifile])
+        accepts_raw_bpf? && !option[:command] && !executable?(option[:ifile])
+      end
+
+      # Does a positional argument that is not an ELF mean "read this filter"? True for the commands
+      # that analyze a filter ({Explain}, {Audit}); {Dump} overrides it to +false+, because its
+      # positional is always something to execute - a shell script is not an ELF but must still be
+      # run, not parsed as BPF.
+      # @return [Boolean]
+      def accepts_raw_bpf?
+        true
       end
 
       # Dumps filters from a command or pid and labels each with +source+.

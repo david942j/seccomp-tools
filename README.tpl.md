@@ -121,7 +121,7 @@ SHELL_OUTPUT_OF(seccomp-tools explain spec/data/libseccomp.bpf -a amd64)
 ```
 
 A more involved example - the 0CTF/TCTF 2023 "Nothing is True" filter, which has separate 32/64-bit
-allow-lists and argument checks on `open`, `mmap` and `execve`:
+allowlists and argument checks on `open`, `mmap` and `execve`:
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64)
 ```

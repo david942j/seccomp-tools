@@ -9,7 +9,7 @@ module SeccompTools
   # values it manipulates are the {Expr}, {Constraint}, and {State} types; see {Executor} for the
   # full picture.
   module Symbolic
-    # A value the executor only knows *symbolically* — that is, without picking concrete inputs.
+    # A value the executor only knows *symbolically* - that is, without picking concrete inputs.
     #
     # Every register and scratch slot in the {State} holds an {Expr}, which is one of:
     # * {.imm} - a known 32-bit constant, e.g. the result of +A = 5+.
@@ -22,7 +22,7 @@ module SeccompTools
     # * {.opaque} - a value we cannot describe (an unsupported operation, or one whose operand is
     #   itself opaque). Nothing can be concluded about it.
     class Expr
-      # The binary ALU operators {#apply} accepts — exactly the ones +Instruction::ALU#symbolize+
+      # The binary ALU operators {#apply} accepts - exactly the ones +Instruction::ALU#symbolize+
       # can produce (its unary +neg+ is handled separately).
       REPRESENTABLE = Instruction::ALU::OP_SYM.values.freeze
 
@@ -127,7 +127,7 @@ module SeccompTools
       # A string that uniquely identifies this expression, used for both equality and hashing;
       # memoized, since an {Expr} is immutable. The operator is written as text, not left a {Symbol},
       # because Ruby's +Symbol#hash+ maps the operators to very few values (+:==+ and +:!=+ hash
-      # alike) — a key carrying them would collapse when hashed and drag the walk's visited +Set+
+      # alike) - a key carrying them would collapse when hashed and drag the walk's visited +Set+
       # down to a linear scan; a string hashes over its bytes cleanly. The encoding is injective
       # (leaves are +i<val>+ / +d<offset>+ / +o+, compounds are parenthesised, and no operator
       # contains a leaf-start char, a digit, or the +;+ / +,+ that {State} joins with), so it is
@@ -169,8 +169,8 @@ module SeccompTools
 
       private
 
-      # The unary negation +A = -A+ (two's complement, 32-bit). Negating a negation cancels — exact
-      # in 32-bit two's complement — instead of stacking into +--x+, which C would even lex as a
+      # The unary negation +A = -A+ (two's complement, 32-bit). Negating a negation cancels - exact
+      # in 32-bit two's complement - instead of stacking into +--x+, which C would even lex as a
       # decrement.
       # @return [Expr]
       def apply_neg

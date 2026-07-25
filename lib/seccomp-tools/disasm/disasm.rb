@@ -36,7 +36,7 @@ module SeccompTools
       states[0].add(Symbolic::State.initial)
       # A forward pass (jumps only go forward) tracking, per line, the states that can reach it, so
       # syscall names and argument positions can be inferred from what each register holds. Unlike
-      # the Executor, this over-approximates — it forks every conditional instead of folding — so
+      # the Executor, this over-approximates - it forks every conditional instead of folding - so
       # dead lines are still rendered.
       dis = codes.zip(states).map do |code, sts|
         sts.each do |st|

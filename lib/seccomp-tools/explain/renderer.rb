@@ -11,7 +11,7 @@ module SeccompTools
     # otherwise be misread.
     class Renderer
       # C-like operator precedence (higher binds tighter), used to parenthesize a rendered condition
-      # exactly where it would otherwise be misread — notably that +==+ binds tighter than the
+      # exactly where it would otherwise be misread - notably that +==+ binds tighter than the
       # bitwise operators, so +a & b == c+ must be shown as +(a & b) == c+.
       PREC = {
         :* => 12, :/ => 12, :+ => 11, :- => 11, :<< => 10, :>> => 10,
@@ -36,7 +36,7 @@ module SeccompTools
       # Renders a conjunction of facts, e.g. +"fd == 0x1 && (flags & 0xf) < 0x5"+.
       # @param [Array<Symbolic::Constraint, Qword>] constraints
       # @param [Symbol?] sys
-      #   The syscall the facts belong to, if pinned — names the arguments.
+      #   The syscall the facts belong to, if pinned - names the arguments.
       # @return [String]
       def conjunction(constraints, sys)
         constraints.map do |c|
@@ -88,7 +88,7 @@ module SeccompTools
       end
 
       # Should a +child_op+ nested under +parent_op+ be parenthesized purely for readability (beyond
-      # what precedence requires)? Yes when they sit at *different* precedence levels — mixing
+      # what precedence requires)? Yes when they sit at *different* precedence levels - mixing
       # families like +a & (b + c)+ or +(a + b) << c+ is easy to misjudge. The exceptions, where the
       # grouping is universally understood, are: any comparison parent (+a & b == c+ is already made
       # unambiguous by wrapping the looser +&+), a same-level pair (+a + b - c+, +a ^ b ^ c+), and
@@ -108,7 +108,7 @@ module SeccompTools
         end
       end
 
-      # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word — which is the
+      # Names one 32-bit word of a 64-bit field, appending +>> 32+ for the high word - which is the
       # second word on little-endian architectures but the first on big-endian ones.
       def qword_word_name(offset, sys)
         base = @fusion.base_of(offset)

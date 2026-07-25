@@ -58,7 +58,7 @@ module SeccompTools
       private
 
       # The taken branch of +A == src+ learns +A == value+. When A holds a plain data word and the
-      # compared side is (or resolves to) a constant, that pins the word — recorded as a
+      # compared side is (or resolves to) a constant, that pins the word - recorded as a
       # {Symbolic::Constraint} on the path. Anything else leaves the state unchanged.
       # @param [Symbolic::State] state
       # @return [Symbolic::State]

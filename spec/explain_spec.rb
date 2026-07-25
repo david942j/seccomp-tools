@@ -22,7 +22,7 @@ describe SeccompTools::Explain do
     File.binread(File.join(__dir__, 'data', name))
   end
 
-  context 'allow-list filter' do
+  context 'allowlist filter' do
     it 'groups allowed syscalls, the default action, and the x32 range' do
       expect(explain(fixture('libseccomp.bpf'), :amd64)).to eq(<<EOS)
 
@@ -443,7 +443,7 @@ EOS
     end
 
     it 'summarizes the 0CTF/TCTF 2023 "Nothing is True" filter' do
-      # A real CTF filter: separate 32-bit / 64-bit allow-lists, plus argument checks on
+      # A real CTF filter: separate 32-bit / 64-bit allowlists, plus argument checks on
       # open/mmap/execve. See https://github.com/nobodyisnobody/write-ups (0CTF.TCTF.2023).
       expect(explain(fixture('tctf-2023-nothing-is-true.bpf'), :amd64)).to eq(<<EOS)
 

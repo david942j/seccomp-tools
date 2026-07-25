@@ -28,10 +28,10 @@ module SeccompTools
       attr_reader :sys_range
       # Constraints not already conveyed by the syscall-number / architecture presentation.
       #
-      # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ — the named/ranged buckets
-      # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ — the
+      # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ - the named/ranged buckets
+      # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ - the
       # per-architecture sections and the "any other" fall-through express them; and any non-+==+
-      # fact on a word that some +==+ on the same path already pins (it is then redundant — a
+      # fact on a word that some +==+ on the same path already pins (it is then redundant - a
       # contradicting combination would have been pruned as infeasible).
       #
       # Everything else is kept so a kernel-valid check is never silently dropped: bit-tests on an
@@ -62,7 +62,7 @@ module SeccompTools
         end
       end
 
-      # Does the path match no syscall, no range, and no arguments — i.e. describe the filter's
+      # Does the path match no syscall, no range, and no arguments - i.e. describe the filter's
       # catch-all behavior?
       # @return [Boolean]
       def catch_all?

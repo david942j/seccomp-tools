@@ -62,12 +62,6 @@ $ seccomp-tools dump --help
 # NOTE : This function is only available on Linux.
 #
 # Usage: seccomp-tools dump [EXEC] [options]
-#     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
-#                                      Default: disasm
-#     -o, --output FILE                Output result into FILE instead of stdout.
-#                                      If multiple seccomp syscalls have been invoked (see --limit),
-#                                      results will be written to FILE, FILE_1, FILE_2.. etc.
-#                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
 #     -c, --sh-exec <command>          Executes the given command (via sh) and dumps its seccomp.
 #                                      Use this to pass arguments or pipe things to the execution file.
 #                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
@@ -79,6 +73,12 @@ $ seccomp-tools dump --help
 #                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
 #     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
 #                                      This option is ignored when --pid is given.
+#     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
+#                                      Default: disasm
+#     -o, --output FILE                Output result into FILE instead of stdout.
+#                                      If multiple seccomp syscalls have been invoked (see --limit),
+#                                      results will be written to FILE, FILE_1, FILE_2.. etc.
+#                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
 ```
 
 ### dump
@@ -388,11 +388,6 @@ $ seccomp-tools explain --help
 # explain - Summarize a seccomp filter as a per-action policy.
 #
 # Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
-#     -a, --arch ARCH                  Specify architecture.
-#                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
-#                                      Default: auto-detected from the host machine.
-#                                      Set it when the filter targets an architecture other than the host.
-#                                      With an executable or --pid the architecture is auto-detected instead.
 #     -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
 #                                      Use this to pass arguments or pipe things to the execution file.
 #                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
@@ -404,6 +399,11 @@ $ seccomp-tools explain --help
 #                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
 #     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
 #                                      This option is ignored when --pid is given.
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+#                                      Default: auto-detected from the host machine.
+#                                      Set it when the filter targets an architecture other than the host.
+#                                      With an executable or --pid the architecture is auto-detected instead.
 
 $ seccomp-tools explain spec/data/libseccomp.bpf -a amd64
 # Seccomp policy for spec/data/libseccomp.bpf

@@ -24,8 +24,8 @@ module SeccompTools
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
 
-          option_arch(opt, 'With an executable or --pid the architecture is auto-detected instead.')
           option_filter_source(opt, 'explain')
+          option_arch(opt, 'With an executable or --pid the architecture is auto-detected instead.')
         end
       end
 

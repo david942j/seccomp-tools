@@ -31,6 +31,8 @@ module SeccompTools
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
+          option_filter_source(opt, 'dump')
+
           opt.on('-f', '--format FORMAT', %i[disasm raw inspect],
                  'Output format. FORMAT can only be one of <disasm|raw|inspect>.',
                  'Default: disasm') do |f|
@@ -43,8 +45,6 @@ module SeccompTools
                  'For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...') do |o|
                    option[:ofile] = o
                  end
-
-          option_filter_source(opt, 'dump')
         end
       end
 

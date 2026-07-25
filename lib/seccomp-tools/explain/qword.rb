@@ -122,8 +122,8 @@ module SeccompTools
         constraints.find { |c| c.plain_data_fact?(lo_off(base)) && %i[< <=].include?(c.op) }
       end
 
-      # Fuses the first fusable pair of +lists+ in place — dropping the two branches and putting the
-      # fused one at the earlier slot — and returns it, or +nil+ when no pair fused.
+      # Fuses the first fusable pair of +lists+ in place - dropping the two branches and putting the
+      # fused one at the earlier slot - and returns it, or +nil+ when no pair fused.
       def merge_one_pair!(lists)
         lists.each_with_index do |a, i|
           lists.each_with_index do |b, j|

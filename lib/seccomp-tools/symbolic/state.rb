@@ -9,7 +9,7 @@ module SeccompTools
     # that must hold to have reached here). The walk fills values in as it interprets
     # instructions, starting from {.initial}.
     #
-    # A {State} is treated as immutable — stepping an instruction produces a *new* state via {#with},
+    # A {State} is treated as immutable - stepping an instruction produces a *new* state via {#with},
     # so the many paths of the walk can safely share the parts they have in common.
     class State
       # @return [Expr] Register A (the accumulator).
@@ -22,7 +22,7 @@ module SeccompTools
       attr_reader :path
 
       # The starting state, as the kernel sets it up: both registers zero (a classic BPF program is
-      # guaranteed +A = X = 0+ on entry — the cBPF-to-eBPF converter clears them first), the
+      # guaranteed +A = X = 0+ on entry - the cBPF-to-eBPF converter clears them first), the
       # scratch slots unknown, and no facts assumed. The slots stay {Expr.opaque} because nothing
       # can rely on them: the kernel rejects a filter that reads a slot before writing it.
       # @return [State]

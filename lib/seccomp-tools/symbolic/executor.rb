@@ -55,7 +55,7 @@ module SeccompTools
       # Walks every path and returns the reachable leaves.
       #
       # Leaves whose path condition is self-contradictory (e.g. +A == 1+ and +A == 2+ on the same
-      # word) are dropped — a conditional jump forks both ways regardless of feasibility, so the
+      # word) are dropped - a conditional jump forks both ways regardless of feasibility, so the
       # walk can construct paths that can never happen at runtime. See {#feasible?} for exactly
       # what can (and deliberately cannot) be proven contradictory.
       # @return [Array(Array<Leaf>, Boolean)]
@@ -154,7 +154,7 @@ module SeccompTools
       # Only facts of the shape "untransformed data word compared to a constant" are examined,
       # grouped by which word they constrain; any other fact (a transformed word, a comparison
       # against X, an opaque value) is assumed satisfiable. So an impossible path is never
-      # *wrongly* dropped — the cost of not understanding a fact is noise in the caller's output,
+      # *wrongly* dropped - the cost of not understanding a fact is noise in the caller's output,
       # never hidden behavior.
       #
       # That fragment is where essentially all real contradictions live. The walk forks every
@@ -183,8 +183,8 @@ module SeccompTools
       end
 
       # Are the constraints on a single data word jointly satisfiable? Two different +==+ values
-      # are impossible (+A == 1 && A == 2+). A single +==+ pins the word, so every other fact —
-      # +!=+, the four bounds, and both jset forms — is simply evaluated against it
+      # are impossible (+A == 1 && A == 2+). A single +==+ pins the word, so every other fact -
+      # +!=+, the four bounds, and both jset forms - is simply evaluated against it
       # (+A >= 0x40000000 && A == 2+ dies here). With no +==+, the inequalities must leave a
       # non-empty range (+A > 10 && A < 5+); +!=+ and jset facts are ignored in that case, since
       # ruling out a 32-bit word with them alone would take a filter no library generates.

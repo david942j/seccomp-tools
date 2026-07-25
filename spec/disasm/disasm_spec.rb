@@ -489,8 +489,8 @@ describe SeccompTools::Disasm do
 
   it 'names arguments by the filter-inferred arch, not the declared one' do
     # Assembled for amd64 but disassembled as aarch64. The `arch == X86_64` check lets disasm infer
-    # amd64, so syscall 1 and its arguments must read as amd64.write(fd, ...) — the same inference
-    # the jump line already uses — and not the aarch64 syscall 1 (io_destroy(ctx)).
+    # amd64, so syscall 1 and its arguments must read as amd64.write(fd, ...) - the same inference
+    # the jump line already uses - and not the aarch64 syscall 1 (io_destroy(ctx)).
     src = <<-EOS
       A = arch
       A == ARCH_X86_64 ? next : dead

@@ -12,7 +12,7 @@ module SeccompTools
     # A constraint keeps a lone constant on the right: BPF always compares the A register against X
     # or +k+, but A itself may hold the constant (e.g. +A = 5+ compared against a data word +tax+'d
     # into X earlier), and every consumer reads "expression op constant". So +Constraint.new(5, :>,
-    # word)+ normalizes to +word < 5+ at construction — the two spellings are one value.
+    # word)+ normalizes to +word < 5+ at construction - the two spellings are one value.
     class Constraint
       # The same comparison with its two sides swapped: +5 > x+ is +x < 5+. The bit tests are
       # symmetric (+&+ commutes).
@@ -21,7 +21,7 @@ module SeccompTools
       }.freeze
 
       # Applies one of the constraint operators to concrete operands: the +jset+ bit tests
-      # (+:set+/+:unset+) and the Integer comparisons. Stateless — used to evaluate a pinned
+      # (+:set+/+:unset+) and the Integer comparisons. Stateless - used to evaluate a pinned
       # constraint or a candidate value, without building a {Constraint}.
       # @param [Integer] value
       # @param [Symbol] op
@@ -53,7 +53,7 @@ module SeccompTools
         @rhs = rhs
       end
 
-      # Is this a fact about one plain data word compared against a constant — about the word at
+      # Is this a fact about one plain data word compared against a constant - about the word at
       # +offset+, when given? These are the facts rule-based consumers can reason about, e.g. the
       # feasibility pruning in +Symbolic::Executor+.
       # @param [Integer?] offset
@@ -62,7 +62,7 @@ module SeccompTools
         lhs.plain_data? && rhs.imm? && (offset.nil? || lhs.offset == offset)
       end
 
-      # Is this a +word == constant+ fact — about the word at +offset+, when given?
+      # Is this a +word == constant+ fact - about the word at +offset+, when given?
       # @param [Integer?] offset
       # @return [Boolean]
       def plain_data_eq?(offset = nil)

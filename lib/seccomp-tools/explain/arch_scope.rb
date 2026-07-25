@@ -8,7 +8,7 @@ module SeccompTools
   class Explain
     # A filter's leaves split by architecture. {Summary} (to render a per-arch policy) and {Audit}
     # (to assess each arch's reachable syscalls) reason per architecture the same way, so the
-    # arch-scoping — and the per-leaf {PathFacts} cache it needs — lives here, single-sourced.
+    # arch-scoping - and the per-leaf {PathFacts} cache it needs - lives here, single-sourced.
     class ArchScope
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       def initialize(leaves)

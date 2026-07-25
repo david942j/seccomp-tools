@@ -56,6 +56,9 @@ Naming/VariableNumber:
   Exclude:
     - lib/seccomp-tools/consts/**/*.rb
 
+Style/AsciiComments:
+  Enabled: true
+
 Style/FormatStringToken:
   Enabled: false
 

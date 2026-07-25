@@ -83,14 +83,18 @@ module SeccompTools
 
     # color code of light yellow
     LIGHT_YELLOW = "\e[38;5;230m"
-    # Color codes for pretty print.
+    # Color codes for pretty print. +error+, +warn+ and +info+ are severities rather than parts of a
+    # filter, shading from alarming to quiet; {SeccompTools::Logger} colors its own levels by the
+    # same names.
     COLOR_CODE = {
       esc_m: "\e[0m",
       syscall: "\e[38;5;120m", # light green
       arch: LIGHT_YELLOW,
       args: LIGHT_YELLOW,
       gray: "\e[2m",
-      error: "\e[38;5;196m" # heavy red
+      error: "\e[38;5;196m", # heavy red
+      warn: LIGHT_YELLOW,
+      info: "\e[38;5;110m" # light blue
     }.freeze
     # Wrap contents with terminal color codes.
     #

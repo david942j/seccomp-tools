@@ -30,6 +30,36 @@ module SeccompTools
       end
     end
 
+    # ELF +e_machine+ values (the halfword at offset 18) of the architectures seccomp-tools supports,
+    # as they are laid out in the file - so the big-endian s390x reads the other way around. The keys
+    # are binary strings (+.b+) to match what is read off the file: this source is UTF-8, where a
+    # literal such as +"\xb7\x00"+ would never compare equal to those bytes.
+    ELF_MACHINE = {
+      "\x03\x00".b => :i386,
+      "\x3e\x00".b => :amd64,
+      "\xb7\x00".b => :aarch64,
+      "\xf3\x00".b => :riscv64,
+      "\x00\x16".b => :s390x
+    }.freeze
+
+    # The architecture a running process was built for, read from the ELF header of its executable.
+    #
+    # Filters dumped from another process are numbered for *its* architecture, so this is what makes
+    # the syscall names right when it differs from the host.
+    # @param [Integer] pid
+    #   Process identifier.
+    # @return [Symbol?]
+    #   One of {supported_archs}, or +nil+ when the executable cannot be read (no +/proc+, the
+    #   process is gone, permission denied) or its machine type is not one we know.
+    def process_arch(pid)
+      File.open("/proc/#{pid}/exe", 'rb') do |f|
+        f.pos = 18
+        ELF_MACHINE[f.read(2)]
+      end
+    rescue SystemCallError
+      nil
+    end
+
     # Enable colorize.
     #
     # Colors are still only emitted when the output is a tty, see {colorize_enabled?}.

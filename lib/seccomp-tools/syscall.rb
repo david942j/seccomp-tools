@@ -4,6 +4,7 @@
 require 'os'
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/util'
 require 'seccomp-tools/ptrace' if OS.linux?
 
 module SeccompTools
@@ -119,21 +120,11 @@ module SeccompTools
       Array.new(len) { |i| Ptrace.peekdata(pid, filter + (i * 8), 0) }.pack('Q*')
     end
 
-    # Architecture of this syscall, determined by the ELF machine type of +/proc/pid/exe+.
+    # Architecture of this syscall, i.e. of the traced process.
     # @return [Symbol?]
-    #   One of +:i386+, +:amd64+, +:aarch64+, +:riscv64+, +:s390x+, or +nil+ if the machine type is
-    #   unrecognized.
+    #   See {SeccompTools::Util.process_arch}.
     def arch
-      @arch ||= File.open("/proc/#{pid}/exe", 'rb') do |f|
-        f.pos = 18
-        {
-          "\x03\x00" => :i386,
-          "\x3e\x00" => :amd64,
-          "\xb7\x00" => :aarch64,
-          "\xf3\x00" => :riscv64,
-          "\x00\x16" => :s390x
-        }[f.read(2)]
-      end
+      @arch ||= Util.process_arch(pid)
     end
 
     private

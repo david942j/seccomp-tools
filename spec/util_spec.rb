@@ -41,6 +41,30 @@ describe SeccompTools::Util do
     expect(described_class.elf?('/no/such/file')).to be false
   end
 
+  describe 'process_arch' do
+    it 'reads the architecture of a running process' do
+      # our own process: whatever ruby was built for, i.e. the host architecture
+      expect(described_class.process_arch(Process.pid)).to be described_class.system_arch
+    end
+
+    it 'is nil when the executable cannot be read' do
+      expect(described_class.process_arch(0x7fffffff)).to be_nil
+    end
+
+    it 'matches the machine bytes as read off a file, for every supported architecture' do
+      # Guards the encoding trap: a literal like "\xb7\x00" in a UTF-8 source never compares equal
+      # to the same bytes read in binary mode, which would silently stop detecting those arches.
+      described_class::ELF_MACHINE.each do |bytes, arch|
+        Tempfile.create(['seccomp-tools-', '']) do |f|
+          f.binmode
+          f.write(("\x00" * 18) + bytes) # e_machine is the halfword at offset 18
+          f.close
+          expect(described_class::ELF_MACHINE[File.binread(f.path, 2, 18)]).to be arch
+        end
+      end
+    end
+  end
+
   it 'colorize' do
     allow(described_class).to receive(:colorize_enabled?).and_return(true)
     expect(described_class.colorize('meow', t: :syscall)).to eq "\e[38;5;120mmeow\e[0m"

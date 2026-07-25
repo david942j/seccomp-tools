@@ -6,6 +6,7 @@ require 'timeout'
 require 'seccomp-tools/logger'
 require 'seccomp-tools/ptrace' if OS.linux?
 require 'seccomp-tools/syscall'
+require 'seccomp-tools/util'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
@@ -33,7 +34,8 @@ module SeccompTools
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
     # @yieldparam [Symbol?] arch
-    #   Architecture of the target process, always +nil+ right now.
+    #   Architecture of the target process, +nil+ when it cannot be determined.
+    #   See {SeccompTools::Util.process_arch}.
     # @return [Array<Object>, Array<String>]
     #   One entry per dumped filter: the block's return values when a block is given, otherwise the
     #   raw bytes. Empty on a non-Linux platform, where dumping is unsupported.
@@ -177,8 +179,9 @@ module SeccompTools
     #   Number of filters to dump. Negative number for unlimited.
     # @yieldparam [String] bpf
     #   Seccomp bpf in raw bytes.
-    # @yieldparam [Symbol] arch
-    #   Architecture of the target process (always nil right now).
+    # @yieldparam [Symbol?] arch
+    #   Architecture of the target process, +nil+ when it cannot be determined.
+    #   See {SeccompTools::Util.process_arch}.
     # @return [Array<Object>, Array<String>]
     #   Returns what the block returned. If a block is not given, an array of raw bytes will be returned.
     # @raise [Errno::ESRCH]
@@ -202,6 +205,7 @@ module SeccompTools
       return [] unless SUPPORTED
 
       collect = []
+      arch = Util.process_arch(pid)
       Ptrace.attach_and_wait(pid)
       begin
         i = 0
@@ -211,7 +215,7 @@ module SeccompTools
           rescue Errno::ENOENT, Errno::EINVAL
             break
           end
-          collect << (block.nil? ? bpf : yield(bpf, nil))
+          collect << (block.nil? ? bpf : yield(bpf, arch))
           i += 1
         end
       ensure

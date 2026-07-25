@@ -6,18 +6,18 @@ require 'seccomp-tools/explain/verdict'
 
 module SeccompTools
   class Explain
-    # A filter's leaves split by architecture. {Summary} (to render a per-arch policy) and {Audit}
-    # (to assess each arch's reachable syscalls) reason per architecture the same way, so the
-    # arch-scoping - and the per-leaf {PathFacts} cache it needs - lives here, single-sourced.
-    class ArchScope
+    # What a walk of one filter amounts to: the reachable returns, each one's facts read once, and
+    # the split into the architectures the filter distinguishes.
+    #
+    # Everything that reads a walk needs the same groundwork - {Summary} to render a per-architecture
+    # policy, {Audit} to assess each architecture's reachable syscalls - so it is derived here once
+    # rather than in each of them.
+    class Analysis
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       def initialize(leaves)
         @leaves = leaves
         @facts = Hash.new { |h, leaf| h[leaf] = PathFacts.new(leaf.path) }
       end
-
-      # @return [Array<Symbolic::Executor::Leaf>] All leaves of the filter.
-      attr_reader :leaves
 
       # The {PathFacts} of +leaf+, computed once and shared across all consumers.
       # @param [Symbolic::Executor::Leaf] leaf

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
-require 'seccomp-tools/explain/arch_scope'
+require 'seccomp-tools/explain/analysis'
 require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
@@ -37,7 +37,7 @@ module SeccompTools
         @truncated = truncated
         @fusion = QwordFusion.new(arch)
         @renderer = Renderer.new(@fusion)
-        @scope = ArchScope.new(leaves)
+        @analysis = Analysis.new(leaves)
       end
 
       # Renders the policy.
@@ -46,7 +46,7 @@ module SeccompTools
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
         out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
-        @scope.sections(@arch).each do |_arch_val, arch_sym, title, leaves|
+        @analysis.sections(@arch).each do |_arch_val, arch_sym, title, leaves|
           out << "\n" << render_section(title, section_buckets(arch_sym, leaves))
         end
         out << render_other_arches
@@ -55,19 +55,19 @@ module SeccompTools
 
       private
 
-      # The {PathFacts} of +leaf+, computed once (shared with {ArchScope}).
+      # The {PathFacts} of +leaf+, computed once (shared with {Analysis}).
       def facts(leaf)
-        @scope.facts(leaf)
+        @analysis.facts(leaf)
       end
 
       # Renders what happens on the architectures the filter does not explicitly check for. Usually
       # those paths just fall to one action and a one-liner suffices; when they carry rules of their
       # own, a full section is rendered so the rules are not silently dropped.
       def render_other_arches
-        return '' if @scope.arch_values.empty?
+        return '' if @analysis.arch_values.empty?
 
-        leaves = @scope.other_leaves
-        default = @scope.default_label(leaves)
+        leaves = @analysis.other_leaves
+        default = @analysis.default_label(leaves)
         return '' unless default
 
         buckets = rule_buckets(nil, leaves, default)
@@ -80,7 +80,7 @@ module SeccompTools
       # The action buckets of one section: its non-default rules plus the default rule. +arch_sym+
       # names syscalls/arguments; +nil+ (architecture unknown) leaves them numeric.
       def section_buckets(arch_sym, leaves)
-        default = @scope.default_label(leaves)
+        default = @analysis.default_label(leaves)
         buckets = rule_buckets(arch_sym, leaves, default)
         add_default(buckets, default)
         buckets

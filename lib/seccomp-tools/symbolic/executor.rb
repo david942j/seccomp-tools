@@ -159,7 +159,7 @@ module SeccompTools
       #
       # That fragment is where essentially all real contradictions live. The walk forks every
       # conditional both ways, so re-merging tests over the same word manufacture impossible
-      # paths: a syscall allow-list behind an x32 range guard yields
+      # paths: a syscall allowlist behind an x32 range guard yields
       # +sys >= 0x40000000 && sys == 2+, libseccomp's binary-search dispatch yields the same
       # equality-versus-range shapes, and sentinel tests yield +sys == 0xffffffff && sys == 2+.
       # All of these are caught, and since the data words are independent inputs, checking

@@ -37,11 +37,11 @@ Usage: seccomp-tools dump [EXEC] [options]
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
     -c, --sh-exec <command>          Executes the given command (via sh) and dumps its seccomp.
                                      Use this to pass arguments or pipe things to the execution file.
-                                     e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.
-                                     Takes precedence over the [EXEC] argument.
+                                     e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
+                                     Takes precedence over the positional argument.
     -l, --limit LIMIT                Dump only the first LIMIT installed filters.
                                      Only meaningful when the input is an executable or --pid. Default: 1
-                                     The target process is killed once it reaches LIMIT.
+                                     An executable is killed once it reaches LIMIT.
     -p, --pid PID                    Dump the seccomp filters installed on an existing process.
                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
@@ -97,11 +97,15 @@ Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
                                      With an executable or --pid the architecture is auto-detected instead.
     -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
                                      Use this to pass arguments or pipe things to the execution file.
+                                     e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
+                                     Takes precedence over the positional argument.
     -l, --limit LIMIT                Explain only the first LIMIT installed filters.
                                      Only meaningful when the input is an executable or --pid. Default: 1
+                                     An executable is killed once it reaches LIMIT.
     -p, --pid PID                    Explain the seccomp filters installed on an existing process.
                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
+                                     This option is ignored when --pid is given.
 EOS
   end
 

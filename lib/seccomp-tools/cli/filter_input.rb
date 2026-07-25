@@ -19,31 +19,32 @@ module SeccompTools
       # Registers the options every command taking its filter from a process shares - +-c/--sh-exec+,
       # +-l/--limit+, +-p/--pid+ and +-t/--timeout+ - and their defaults, so the four stay described
       # and parsed the same way wherever they appear. The counterpart of {Base#option_arch}.
+      #
+      # The descriptions hold for every including command, because the behaviour they describe lives
+      # in the shared code: {#collect_filters} gives +-c+ precedence, and {Dumpable#dump_seccomp}
+      # passes +--timeout+ only when running an executable, never when attaching to a +--pid+.
       # @param [OptionParser] opt
       # @param [String] action
       #   What the command does with each filter, woven into the descriptions.
-      # @param [Hash{Symbol => Array<String>}] extra
-      #   Extra description lines for one option, keyed by +:sh_exec+, +:limit+, +:pid+ or +:timeout+.
       # @return [void]
       # @example
       #   option_filter_source(opt, 'explain')
-      #   option_filter_source(opt, 'dump', timeout: ['This option is ignored when --pid is given.'])
-      def option_filter_source(opt, action, extra = {})
+      def option_filter_source(opt, action)
         option[:limit] = 1
         opt.on('-c', '--sh-exec <command>', "Executes the given command (via sh) and #{action}s its seccomp.",
                'Use this to pass arguments or pipe things to the execution file.',
-               *extra[:sh_exec]) { |command| option[:command] = command }
+               'e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.',
+               'Takes precedence over the positional argument.') { |command| option[:command] = command }
 
         opt.on('-l', '--limit LIMIT', Integer, "#{action.capitalize} only the first LIMIT installed filters.",
                'Only meaningful when the input is an executable or --pid. Default: 1',
-               *extra[:limit]) { |l| option[:limit] = l }
+               'An executable is killed once it reaches LIMIT.') { |l| option[:limit] = l }
 
         opt.on('-p', '--pid PID', Integer, "#{action.capitalize} the seccomp filters installed on an existing process.",
-               'You must have CAP_SYS_ADMIN (e.g. be root) to use this option.',
-               *extra[:pid]) { |p| option[:pid] = p }
+               'You must have CAP_SYS_ADMIN (e.g. be root) to use this option.') { |p| option[:pid] = p }
 
         opt.on('-t', '--timeout SEC', Float, 'Timeout (seconds) for the execution. Default: no timeout',
-               *extra[:timeout]) { |t| option[:timeout] = t }
+               'This option is ignored when --pid is given.') { |t| option[:timeout] = t }
       end
 
       # Resolves the input into an array of +[raw_bpf, arch, source]+ tuples, empty when there is

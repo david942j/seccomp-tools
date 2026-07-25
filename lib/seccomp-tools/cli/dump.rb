@@ -44,13 +44,7 @@ module SeccompTools
                    option[:ofile] = o
                  end
 
-          option_filter_source(
-            opt, 'dump',
-            sh_exec: ['e.g. use `-c "./bin > /dev/null"` to dump seccomp without being mixed with stdout.',
-                      'Takes precedence over the [EXEC] argument.'],
-            limit: ['The target process is killed once it reaches LIMIT.'],
-            timeout: ['This option is ignored when --pid is given.']
-          )
+          option_filter_source(opt, 'dump')
         end
       end
 

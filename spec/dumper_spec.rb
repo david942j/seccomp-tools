@@ -108,6 +108,18 @@ describe SeccompTools::Dumper do
   end
 
   describe 'by pid' do
+    it 'yields the architecture of the target process' do
+      skip 'ptrace is Linux-only' unless described_class::SUPPORTED
+
+      # Tracing our own pid, so /proc/self/exe is ruby: the filters are read through a stubbed
+      # ptrace, but the architecture is really detected - it used to always be nil here.
+      allow(SeccompTools::Ptrace).to receive(:attach_and_wait)
+      allow(SeccompTools::Ptrace).to receive(:detach)
+      allow(SeccompTools::Ptrace).to receive(:seccomp_get_filter).and_return("\x06\x00\x00\x00\x00\x00\xff\x7f")
+      arches = described_class.dump_by_pid(Process.pid, 1) { |_bpf, arch| arch }
+      expect(arches).to eq [SeccompTools::Util.system_arch]
+    end
+
     context 'two filters' do
       let(:bin) { bin_of('two_filters') }
 

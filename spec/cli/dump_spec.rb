@@ -85,32 +85,35 @@ EOS
   end
 
   context 'argument handling' do
+    # One `return ALLOW`, so a stubbed dump yields a filter the command can really format.
+    def allow_filter = "\x06\x00\x00\x00\x00\x00\xff\x7f"
+
     def stub_dump_capturing_command
       command = nil
-      allow(SeccompTools::Dumper).to receive(:dump) do |*args, **|
+      allow(SeccompTools::Dumper).to receive(:dump) do |*args, **, &blk|
         command = args[2]
-        ['filter'] # non-empty, so the "no filter" warning stays out of these argument checks
+        [blk.call(allow_filter, :amd64)]
       end
       -> { command }
     end
 
     it 'prefers -c over a positional exec and warns about the unused one' do
       command = stub_dump_capturing_command
-      expect { described_class.new(['-c', 'true', './extra']).handle }
-        .to output("[WARN] ignoring unused argument: ./extra\n").to_stdout
+      expect { described_class.new(['-c', 'true', './extra', '-f', 'raw']).handle }
+        .to output("[WARN] ignoring unused argument: ./extra\n#{allow_filter}").to_stdout
       expect(command.call).to eq 'true'
     end
 
     it 'uses a lone positional exec without warning' do
       command = stub_dump_capturing_command
-      expect { described_class.new(['./bin']).handle }.not_to output.to_stdout
+      expect { described_class.new(['./bin', '-f', 'raw']).handle }.to output(allow_filter).to_stdout
       expect(command.call).to eq './bin'
     end
 
     it 'warns about positional arguments left after --pid' do
-      allow(SeccompTools::Dumper).to receive(:dump_by_pid).and_return(['filter'])
-      expect { described_class.new(['-p', '123', './extra']).handle }
-        .to output("[WARN] ignoring unused argument: ./extra\n").to_stdout
+      allow(SeccompTools::Dumper).to receive(:dump_by_pid) { |*, &blk| [blk.call(allow_filter, :amd64)] }
+      expect { described_class.new(['-p', '123', './extra', '-f', 'raw']).handle }
+        .to output("[WARN] ignoring unused argument: ./extra\n#{allow_filter}").to_stdout
     end
   end
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/cli/base'
-require 'seccomp-tools/cli/dumpable'
+require 'seccomp-tools/cli/filter_input'
 require 'seccomp-tools/disasm/disasm'
 require 'seccomp-tools/dumper'
 
@@ -9,7 +9,7 @@ module SeccompTools
   module CLI
     # Handle 'dump' command.
     class Dump < Base
-      include Dumpable
+      include FilterInput
 
       # Summary of this command.
       SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
@@ -83,18 +83,26 @@ module SeccompTools
         return unless dumping_supported?
         return unless super
 
-        block = lambda do |bpf, arch|
-          case option[:format]
-          when :inspect then output { "\"#{bpf.bytes.map { |b| format('\\x%02X', b) }.join}\"\n" }
-          when :raw then output { bpf }
-          when :disasm then output { SeccompTools::Disasm.disasm(bpf, arch:) }
-          end
+        collect_filters.each { |bpf, arch| emit(bpf, arch) }
+      end
+
+      private
+
+      # A positional argument is always an executable to trace, never a raw BPF blob to read: that is
+      # +disasm+'s job, and a non-ELF executable (a shell script wrapping the target) must still run.
+      # @return [Boolean]
+      def accepts_raw_bpf?
+        false
+      end
+
+      # Writes one dumped filter in the requested format.
+      # @return [void]
+      def emit(bpf, arch)
+        case option[:format]
+        when :inspect then output { "\"#{bpf.bytes.map { |b| format('\\x%02X', b) }.join}\"\n" }
+        when :raw then output { bpf }
+        when :disasm then output { SeccompTools::Disasm.disasm(bpf, arch:) }
         end
-        # -c/--sh-exec takes precedence; a positional exec is used only when -c is absent.
-        option[:command] ||= argv.shift unless option[:pid]
-        warn_ignored_arguments
-        dump_seccomp(command: option[:command], pid: option[:pid], limit: option[:limit], timeout: option[:timeout],
-                     &block)
       end
     end
   end

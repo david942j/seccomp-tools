@@ -65,6 +65,14 @@ describe SeccompTools::Util do
     end
   end
 
+  it 'has a color for every severity, including the ones Logger names its levels after' do
+    allow(described_class).to receive(:colorize_enabled?).and_return(true)
+    # Logger colorizes by its downcased level, so a missing entry silently leaves the tag unpainted.
+    %i[error warn info].each do |severity|
+      expect(described_class.colorize(severity.to_s, t: severity)).to start_with("\e[38;5;")
+    end
+  end
+
   it 'colorize' do
     allow(described_class).to receive(:colorize_enabled?).and_return(true)
     expect(described_class.colorize('meow', t: :syscall)).to eq "\e[38;5;120mmeow\e[0m"

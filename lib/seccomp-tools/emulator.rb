@@ -13,7 +13,7 @@ module SeccompTools
     # @param [Integer?] sys_nr
     #   Syscall number.
     # @param [Array<Integer>] args
-    #   Syscall arguments
+    #   Syscall arguments.
     # @param [Integer?] instruction_pointer
     #   Program counter address when this syscall is invoked.
     # @param [Symbol?] arch

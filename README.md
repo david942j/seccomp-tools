@@ -492,7 +492,8 @@ $ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
 # Architectures: amd64
 #
 # [HIGH] Architecture is never validated
-#     The filter checks syscall numbers without ever comparing data[4] (arch). Numbers mean different syscalls under another AUDIT_ARCH, so the checks can be dodged by invoking through a different ABI (e.g. i386 numbering on amd64).
+#     The filter checks syscall numbers without ever comparing data[4] (arch). Numbers mean different syscalls under
+#     another AUDIT_ARCH, so the checks can be dodged by invoking through a different ABI (e.g. i386 numbering on amd64).
 #     fix:  Compare data[4] against your AUDIT_ARCH_* and KILL every architecture you do not explicitly handle.
 #
 # [HIGH] process_vm_readv is allowed (amd64)
@@ -508,11 +509,13 @@ $ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
 #     fix:  Block ptrace unless the program genuinely needs it.
 #
 # [HIGH] Default action is ALLOW (denylist) (amd64)
-#     Any syscall the filter does not explicitly block is allowed; a denylist is bypassable by any syscall the author overlooked.
+#     Any syscall the filter does not explicitly block is allowed; a denylist is bypassable by any syscall the author
+#     overlooked.
 #     fix:  Use an allowlist: default to KILL/ERRNO and permit only the needed syscalls.
 #
 # [HIGH] x32 ABI is not guarded (amd64)
-#     Syscalls blocked by their native number are reachable via their x32 number (nr | 0x40000000): open, clone, fork, vfork, execve, creat, openat, execveat.
+#     Syscalls blocked by their native number are reachable via their x32 number (nr | 0x40000000): open, clone, fork,
+#     vfork, execve, creat, openat, execveat.
 #     fix:  After the arch check, KILL when sys_number >= 0x40000000 (or jset 0x40000000).
 #
 # [MEDIUM] connect is allowed (amd64)

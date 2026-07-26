@@ -33,7 +33,8 @@ module SeccompTools
             title: "#{denied.join('/')} blocked but #{allowed.join('/')} allowed",
             detail: "#{denied.join(', ')} denied, but the equivalent #{allowed.join(', ')} reaches " \
                     'ALLOW - same capability, different syscall number.',
-            syscalls: allowed.map(&:to_s), condition: nil,
+            # Both sides: the finding is about the pair, and the detail says which is which.
+            syscalls: (denied + allowed).map(&:to_s), condition: nil,
             remediation: "Deny every equivalent in the group: also block #{allowed.join(', ')}."
           )
         end

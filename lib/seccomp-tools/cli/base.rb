@@ -75,7 +75,7 @@ module SeccompTools
       # @param [String] file
       #   Filename.
       # @param [Integer] serial
-      #   serial number, starts from zero.
+      #   Serial number, starts from zero.
       # @return [String]
       #   Result filename.
       # @example

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/cli/asm'
+require 'seccomp-tools/cli/audit'
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/cli/emu'
@@ -13,6 +14,7 @@ module SeccompTools
     # Handled commands
     COMMANDS = {
       'asm' => SeccompTools::CLI::Asm,
+      'audit' => SeccompTools::CLI::Audit,
       'disasm' => SeccompTools::CLI::Disasm,
       'dump' => SeccompTools::CLI::Dump,
       'emu' => SeccompTools::CLI::Emu,

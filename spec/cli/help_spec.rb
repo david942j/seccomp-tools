@@ -10,6 +10,7 @@ Usage: seccomp-tools [--version] [--help] <command> [<options>]
 List of commands:
 
 	asm	Seccomp bpf assembler.
+	audit	Assess a seccomp filter for weaknesses and escape routes.
 	disasm	Disassemble seccomp bpf.
 	dump	Automatically dump seccomp bpf from execution file(s).
 	emu	Emulate seccomp rules.
@@ -46,6 +47,32 @@ Usage: seccomp-tools dump [EXEC] [options]
                                      If multiple seccomp syscalls have been invoked (see --limit),
                                      results will be written to FILE, FILE_1, FILE_2.. etc.
                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+EOS
+  end
+
+  it 'help audit' do
+    expect { described_class.work(%w[audit --help]) }.to output(<<EOS).to_stdout
+audit - Assess a seccomp filter for weaknesses and escape routes.
+
+Usage: seccomp-tools audit [options] [BPF_FILE|EXEC]
+    -c, --sh-exec <command>          Executes the given command (via sh) and audits its seccomp.
+                                     Use this to pass arguments or pipe things to the execution file.
+                                     e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
+                                     Takes precedence over the positional argument.
+    -l, --limit LIMIT                Audit only the first LIMIT installed filters.
+                                     Only meaningful when the input is an executable or --pid. Default: 1
+                                     An executable is killed once it reaches LIMIT.
+    -p, --pid PID                    Audit the seccomp filters installed on an existing process.
+                                     You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+    -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
+                                     This option is ignored when --pid is given.
+    -a, --arch ARCH                  Specify architecture.
+                                     Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+                                     Default: auto-detected from the host machine.
+                                     Set it when the filter targets an architecture other than the host.
+                                     With an executable or --pid the architecture is auto-detected instead.
+    -f, --format FORMAT              Output format, one of <human|json>.
+                                     Default: human
 EOS
   end
 

@@ -24,6 +24,7 @@ Some features might be CTF-specific, but also useful for analyzing seccomp of re
 * Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
 * Explain - Summarizes a filter as a per-action policy (which syscalls are allowed/killed, and when).
+* Audit - Scans a filter for weaknesses and escape routes (missing arch/x32 guards, dangerous syscalls, ...).
 * Supports multi-architecture.
 
 ## Installation
@@ -449,6 +450,121 @@ $ seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64
 #     <default> (any other syscall)
 #
 # Other architectures: KILL
+```
+
+### Audit
+
+Scans a filter for weaknesses and likely escape routes - a missing architecture or x32 guard, a
+permissive (denylist) default, equivalent-syscall gaps (e.g. `execve` blocked but `execveat` not),
+an open/read/write chain, or dangerous syscalls reachable as `ALLOW` - and reports each with a
+severity. It runs on every supported architecture (architecture-specific quirks like amd64's x32 are
+applied only where they exist), and takes the same input as `explain` (a BPF file, an executable, or
+`--pid`).
+```bash
+$ seccomp-tools audit --help
+# audit - Assess a seccomp filter for weaknesses and escape routes.
+#
+# Usage: seccomp-tools audit [options] [BPF_FILE|EXEC]
+#     -c, --sh-exec <command>          Executes the given command (via sh) and audits its seccomp.
+#                                      Use this to pass arguments or pipe things to the execution file.
+#                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
+#                                      Takes precedence over the positional argument.
+#     -l, --limit LIMIT                Audit only the first LIMIT installed filters.
+#                                      Only meaningful when the input is an executable or --pid. Default: 1
+#                                      An executable is killed once it reaches LIMIT.
+#     -p, --pid PID                    Audit the seccomp filters installed on an existing process.
+#                                      You must have CAP_SYS_ADMIN (e.g. be root) to use this option.
+#     -t, --timeout SEC                Timeout (seconds) for the execution. Default: no timeout
+#                                      This option is ignored when --pid is given.
+#     -a, --arch ARCH                  Specify architecture.
+#                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
+#                                      Default: auto-detected from the host machine.
+#                                      Set it when the filter targets an architecture other than the host.
+#                                      With an executable or --pid the architecture is auto-detected instead.
+#     -f, --format FORMAT              Output format, one of <human|json>.
+#                                      Default: human
+```
+
+Auditing a denylist with several escape routes (the TokyoWesterns CTF 2016 "diary" filter):
+```bash
+$ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
+# Seccomp audit of spec/data/twctf-2016-diary.bpf
+# Architectures: amd64
+#
+# [HIGH] Architecture is never validated
+#     The filter checks syscall numbers without ever comparing data[4] (arch). Numbers mean different syscalls under another AUDIT_ARCH, so the checks can be dodged by invoking through a different ABI (e.g. i386 numbering on amd64).
+#     fix:  Compare data[4] against your AUDIT_ARCH_* and KILL every architecture you do not explicitly handle.
+#
+# [HIGH] process_vm_readv is allowed (amd64)
+#     process_vm_readv reaches ALLOW - read another process's memory.
+#     fix:  Block process_vm_readv unless the program genuinely needs it.
+#
+# [HIGH] process_vm_writev is allowed (amd64)
+#     process_vm_writev reaches ALLOW - write another process's memory.
+#     fix:  Block process_vm_writev unless the program genuinely needs it.
+#
+# [HIGH] ptrace is allowed (amd64)
+#     ptrace reaches ALLOW - inspect/inject into other processes.
+#     fix:  Block ptrace unless the program genuinely needs it.
+#
+# [HIGH] Default action is ALLOW (denylist) (amd64)
+#     Any syscall the filter does not explicitly block is allowed; a denylist is bypassable by any syscall the author overlooked.
+#     fix:  Use an allowlist: default to KILL/ERRNO and permit only the needed syscalls.
+#
+# [HIGH] x32 ABI is not guarded (amd64)
+#     Syscalls blocked by their native number are reachable via their x32 number (nr | 0x40000000): open, clone, fork, vfork, execve, creat, openat, execveat.
+#     fix:  After the arch check, KILL when sys_number >= 0x40000000 (or jset 0x40000000).
+#
+# [MEDIUM] connect is allowed (amd64)
+#     connect reaches ALLOW - network access (exfiltration).
+#     fix:  Block connect unless the program genuinely needs it.
+#
+# [MEDIUM] socket is allowed (amd64)
+#     socket reaches ALLOW - network access (exfiltration).
+#     fix:  Block socket unless the program genuinely needs it.
+```
+
+Use `--format json` for CI or tooling:
+```bash
+$ seccomp-tools audit spec/data/gctf-2019-quals-caas.bpf -a amd64 -f json
+# {
+#   "stacked_filters": 1,
+#   "reports": [
+#     {
+#       "source": "spec/data/gctf-2019-quals-caas.bpf",
+#       "arches": [
+#         "amd64"
+#       ],
+#       "truncated": false,
+#       "findings": [
+#         {
+#           "id": "dangerous-allow",
+#           "severity": "medium",
+#           "title": "connect is allowed",
+#           "detail": "connect reaches ALLOW - network access (exfiltration).",
+#           "arch": "amd64",
+#           "syscalls": [
+#             "connect"
+#           ],
+#           "condition": null,
+#           "remediation": "Block connect unless the program genuinely needs it."
+#         },
+#         {
+#           "id": "dangerous-allow",
+#           "severity": "medium",
+#           "title": "socket is allowed",
+#           "detail": "socket reaches ALLOW - network access (exfiltration).",
+#           "arch": "amd64",
+#           "syscalls": [
+#             "socket"
+#           ],
+#           "condition": "family == 0x2 && type == 0x1 && protocol == 0x0",
+#           "remediation": "Block socket unless the program genuinely needs it."
+#         }
+#       ]
+#     }
+#   ]
+# }
 ```
 
 ## Screenshots

@@ -24,6 +24,7 @@ Some features might be CTF-specific, but also useful for analyzing seccomp of re
 * Asm - Makes writing seccomp rules similar to writing codes.
 * Emu - Emulates seccomp rules.
 * Explain - Summarizes a filter as a per-action policy (which syscalls are allowed/killed, and when).
+* Audit - Scans a filter for weaknesses and escape routes (missing arch/x32 guards, dangerous syscalls, ...).
 * Supports multi-architecture.
 
 ## Installation
@@ -124,6 +125,28 @@ A more involved example - the 0CTF/TCTF 2023 "Nothing is True" filter, which has
 allowlists and argument checks on `open`, `mmap` and `execve`:
 ```bash
 SHELL_OUTPUT_OF(seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64)
+```
+
+### Audit
+
+Scans a filter for weaknesses and likely escape routes - a missing architecture or x32 guard, a
+permissive (denylist) default, equivalent-syscall gaps (e.g. `execve` blocked but `execveat` not),
+an open/read/write chain, or dangerous syscalls reachable as `ALLOW` - and reports each with a
+severity. It runs on every supported architecture (architecture-specific quirks like amd64's x32 are
+applied only where they exist), and takes the same input as `explain` (a BPF file, an executable, or
+`--pid`).
+```bash
+SHELL_OUTPUT_OF(seccomp-tools audit --help)
+```
+
+Auditing a denylist with several escape routes (the TokyoWesterns CTF 2016 "diary" filter):
+```bash
+SHELL_OUTPUT_OF(seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64)
+```
+
+Use `--format json` for CI or tooling:
+```bash
+SHELL_OUTPUT_OF(seccomp-tools audit spec/data/gctf-2019-quals-caas.bpf -a amd64 -f json)
 ```
 
 ## Screenshots

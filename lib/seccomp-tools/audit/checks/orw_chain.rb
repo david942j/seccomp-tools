@@ -21,11 +21,13 @@ module SeccompTools
 
           [Finding.new(
             id: 'orw-chain', severity: :high, arch: policy.arch_name,
-            title: 'Open, read and write are all allowed',
-            detail: "#{o}, #{r} and #{w} all reach ALLOW, so an arbitrary file (e.g. the flag) can " \
-                    'be opened, read, and written back out.',
+            title: 'A file can be opened and its contents copied out',
+            # The syscall names are painted wherever they appear, so keep them out of prose that
+            # merely describes the actions - only name one where the syscall itself is meant.
+            detail: "#{o}, #{r} and #{w} all reach ALLOW, so the contents of an arbitrary file " \
+                    '(e.g. the flag) can be copied straight back out.',
             syscalls: [o, r, w].map(&:to_s), condition: nil,
-            remediation: 'Drop the open-family syscalls if the program should not read arbitrary files.'
+            remediation: 'Deny the open-family syscalls unless the program genuinely needs arbitrary files.'
           )]
         end
 

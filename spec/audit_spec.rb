@@ -90,7 +90,7 @@ describe SeccompTools::Audit do
     gap = report.findings.find { |f| f.id == 'syscall-alt-gap' }
     expect(gap).not_to be_nil
     expect(gap.severity).to be :high
-    expect(gap.syscalls).to eq %w[execveat]
+    expect(gap.syscalls).to eq %w[execve execveat]
   end
 
   it 'detects the open/read/write chain' do

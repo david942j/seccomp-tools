@@ -26,7 +26,7 @@ module SeccompTools
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
-          opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.') do |o|
+          opt.on('-o', '--output FILE', 'Write output to FILE instead of stdout.') do |o|
             option[:ofile] = o
           end
 

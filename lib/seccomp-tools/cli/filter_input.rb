@@ -32,7 +32,7 @@ module SeccompTools
       def option_filter_source(opt, action)
         option[:limit] = 1
         opt.on('-c', '--sh-exec <command>', "Executes the given command (via sh) and #{action}s its seccomp.",
-               'Use this to pass arguments or pipe things to the execution file.',
+               'Use this to pass arguments or pipe things to the executable.',
                'e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.',
                'Takes precedence over the positional argument.') { |command| option[:command] = command }
 

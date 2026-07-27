@@ -27,7 +27,7 @@ module SeccompTools
       def parser
         @parser ||= OptionParser.new do |opt|
           opt.banner = usage
-          opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.') do |o|
+          opt.on('-o', '--output FILE', 'Write output to FILE instead of stdout.') do |o|
             option[:ofile] = o
           end
           option_arch(opt)
@@ -39,9 +39,9 @@ module SeccompTools
                  'Default: true') do |f|
                    option[:arg_infer] = f
                  end
-          opt.on('--asm-able', 'Output with this flag is a valid input of "seccomp-tools asm".',
-                 'By default, "seccomp-tools disasm" is in a human-readable format that easy for analysis.',
-                 'Passing this flag can have the output be simplified to a valid input for "seccomp-tools asm".',
+          opt.on('--asm-able', 'Make the output valid input for "seccomp-tools asm".',
+                 'By default, "seccomp-tools disasm" outputs a human-readable format meant for analysis.',
+                 'With this flag the output is simplified so it can be fed back to "seccomp-tools asm".',
                  'This flag implies "--no-bpf --no-arg-infer".',
                  'Default: false') do |_f|
                    option[:bpf] = false

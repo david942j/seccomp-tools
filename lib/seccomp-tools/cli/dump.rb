@@ -12,9 +12,9 @@ module SeccompTools
       include FilterInput
 
       # Summary of this command.
-      SUMMARY = 'Automatically dump seccomp bpf from execution file(s).'
+      SUMMARY = 'Automatically dump seccomp bpf from executable(s).'
       # Usage of this command.
-      USAGE = "dump - #{SUMMARY}\nNOTE : This function is only available on Linux." \
+      USAGE = "dump - #{SUMMARY}\nNOTE: This command is only available on Linux." \
               "\n\nUsage: seccomp-tools dump [EXEC] [options]".freeze
 
       # Instantiate a {Dump} object, dumping the first filter as disassembly by default.
@@ -39,10 +39,10 @@ module SeccompTools
                    option[:format] = f
                  end
 
-          opt.on('-o', '--output FILE', 'Output result into FILE instead of stdout.',
+          opt.on('-o', '--output FILE', 'Write output to FILE instead of stdout.',
                  'If multiple seccomp syscalls have been invoked (see --limit),',
-                 'results will be written to FILE, FILE_1, FILE_2.. etc.',
-                 'For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...') do |o|
+                 'results are written to FILE, FILE_1, FILE_2, etc.',
+                 'For example, with "--output out.bpf" the output files are out.bpf, out_1.bpf, ...') do |o|
                    option[:ofile] = o
                  end
         end

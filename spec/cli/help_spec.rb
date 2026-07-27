@@ -12,7 +12,7 @@ List of commands:
 	asm	Seccomp bpf assembler.
 	audit	Assess a seccomp filter for weaknesses and escape routes.
 	disasm	Disassemble seccomp bpf.
-	dump	Automatically dump seccomp bpf from execution file(s).
+	dump	Automatically dump seccomp bpf from executable(s).
 	emu	Emulate seccomp rules.
 	explain	Summarize a seccomp filter as a per-action policy.
 
@@ -26,12 +26,12 @@ See 'seccomp-tools <command> --help' to read about a specific subcommand.
 
   it '--help dump' do
     expect { described_class.work(%w[--help dump]) }.to output(<<EOS).to_stdout
-dump - Automatically dump seccomp bpf from execution file(s).
-NOTE : This function is only available on Linux.
+dump - Automatically dump seccomp bpf from executable(s).
+NOTE: This command is only available on Linux.
 
 Usage: seccomp-tools dump [EXEC] [options]
     -c, --sh-exec <command>          Executes the given command (via sh) and dumps its seccomp.
-                                     Use this to pass arguments or pipe things to the execution file.
+                                     Use this to pass arguments or pipe things to the executable.
                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
                                      Takes precedence over the positional argument.
     -l, --limit LIMIT                Dump only the first LIMIT installed filters.
@@ -43,10 +43,10 @@ Usage: seccomp-tools dump [EXEC] [options]
                                      This option is ignored when --pid is given.
     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
                                      Default: disasm
-    -o, --output FILE                Output result into FILE instead of stdout.
+    -o, --output FILE                Write output to FILE instead of stdout.
                                      If multiple seccomp syscalls have been invoked (see --limit),
-                                     results will be written to FILE, FILE_1, FILE_2.. etc.
-                                     For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+                                     results are written to FILE, FILE_1, FILE_2, etc.
+                                     For example, with "--output out.bpf" the output files are out.bpf, out_1.bpf, ...
 EOS
   end
 
@@ -56,7 +56,7 @@ audit - Assess a seccomp filter for weaknesses and escape routes.
 
 Usage: seccomp-tools audit [options] [BPF_FILE|EXEC]
     -c, --sh-exec <command>          Executes the given command (via sh) and audits its seccomp.
-                                     Use this to pass arguments or pipe things to the execution file.
+                                     Use this to pass arguments or pipe things to the executable.
                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
                                      Takes precedence over the positional argument.
     -l, --limit LIMIT                Audit only the first LIMIT installed filters.
@@ -81,7 +81,7 @@ EOS
 disasm - Disassemble seccomp bpf.
 
 Usage: seccomp-tools disasm BPF_FILE [options]
-    -o, --output FILE                Output result into FILE instead of stdout.
+    -o, --output FILE                Write output to FILE instead of stdout.
     -a, --arch ARCH                  Specify architecture.
                                      Supported architectures are <aarch64|amd64|i386|riscv64|s390x>.
                                      Default: auto-detected from the host machine.
@@ -90,9 +90,9 @@ Usage: seccomp-tools disasm BPF_FILE [options]
                                      Default: true
         --[no-]arg-infer             Display syscall arguments with parameter names when possible.
                                      Default: true
-        --asm-able                   Output with this flag is a valid input of "seccomp-tools asm".
-                                     By default, "seccomp-tools disasm" is in a human-readable format that easy for analysis.
-                                     Passing this flag can have the output be simplified to a valid input for "seccomp-tools asm".
+        --asm-able                   Make the output valid input for "seccomp-tools asm".
+                                     By default, "seccomp-tools disasm" outputs a human-readable format meant for analysis.
+                                     With this flag the output is simplified so it can be fed back to "seccomp-tools asm".
                                      This flag implies "--no-bpf --no-arg-infer".
                                      Default: false
 EOS
@@ -118,7 +118,7 @@ explain - Summarize a seccomp filter as a per-action policy.
 
 Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
     -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
-                                     Use this to pass arguments or pipe things to the execution file.
+                                     Use this to pass arguments or pipe things to the executable.
                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
                                      Takes precedence over the positional argument.
     -l, --limit LIMIT                Explain only the first LIMIT installed filters.

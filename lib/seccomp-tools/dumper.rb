@@ -21,7 +21,7 @@ module SeccompTools
     # Yields seccomp bpf whenever a +prctl(SET_SECCOMP)+ call is found.
     #
     # @param [Array<String>] args
-    #   The command to be executed, i.e. the target execution file followed by its arguments.
+    #   The command to be executed, i.e. the target executable followed by its arguments.
     # @param [Integer] limit
     #   By default, +dump+ will only dump the first +SET_SECCOMP+ call.
     #   Set +limit+ to the number of calling +prctl(SET_SECCOMP)+ then the child process will be killed when number of

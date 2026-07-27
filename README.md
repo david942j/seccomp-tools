@@ -10,22 +10,22 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](http://choosealicense.com/licenses/mit/)
 
 # Seccomp Tools
-Provide powerful tools for seccomp analysis.
+Powerful tools for seccomp analysis.
 
-This project targets to (but is not limited to) analyze seccomp sandbox in CTF pwn challenges.
-Some features might be CTF-specific, but also useful for analyzing seccomp of real cases.
+This project is aimed primarily (but not exclusively) at analyzing seccomp sandboxes in CTF pwn challenges.
+Some features are CTF-specific, but they're just as useful for analyzing real-world seccomp filters.
 
 ## Features
-* Dump - Automatically dumps seccomp BPF from execution file(s).
-* Disasm - Converts seccomp BPF to a human readable format.
+* Dump - Automatically dumps seccomp BPF from executables.
+* Disasm - Converts seccomp BPF to a human-readable format.
   - With simple decompilation.
   - With syscall names and arguments whenever possible.
   - Colorful!
-* Asm - Makes writing seccomp rules similar to writing codes.
+* Asm - Makes writing seccomp rules as easy as writing code.
 * Emu - Emulates seccomp rules.
 * Explain - Summarizes a filter as a per-action policy (which syscalls are allowed/killed, and when).
 * Audit - Scans a filter for weaknesses and escape routes (missing arch/x32 guards, dangerous syscalls, ...).
-* Supports multi-architecture.
+* Multi-architecture support.
 
 ## Installation
 
@@ -34,11 +34,11 @@ Available on RubyGems.org!
 $ gem install seccomp-tools
 ```
 
-If you failed when compiling, try:
+If compilation fails, try:
 ```
 sudo apt install gcc ruby-dev make
 ```
-and install seccomp-tools again.
+then install seccomp-tools again.
 
 ## Command Line Interface
 
@@ -51,20 +51,21 @@ $ seccomp-tools --help
 # List of commands:
 #
 # 	asm	Seccomp bpf assembler.
+# 	audit	Assess a seccomp filter for weaknesses and escape routes.
 # 	disasm	Disassemble seccomp bpf.
-# 	dump	Automatically dump seccomp bpf from execution file(s).
+# 	dump	Automatically dump seccomp bpf from executable(s).
 # 	emu	Emulate seccomp rules.
 # 	explain	Summarize a seccomp filter as a per-action policy.
 #
 # See 'seccomp-tools <command> --help' to read about a specific subcommand.
 
 $ seccomp-tools dump --help
-# dump - Automatically dump seccomp bpf from execution file(s).
-# NOTE : This function is only available on Linux.
+# dump - Automatically dump seccomp bpf from executable(s).
+# NOTE: This command is only available on Linux.
 #
 # Usage: seccomp-tools dump [EXEC] [options]
 #     -c, --sh-exec <command>          Executes the given command (via sh) and dumps its seccomp.
-#                                      Use this to pass arguments or pipe things to the execution file.
+#                                      Use this to pass arguments or pipe things to the executable.
 #                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
 #                                      Takes precedence over the positional argument.
 #     -l, --limit LIMIT                Dump only the first LIMIT installed filters.
@@ -76,18 +77,17 @@ $ seccomp-tools dump --help
 #                                      This option is ignored when --pid is given.
 #     -f, --format FORMAT              Output format. FORMAT can only be one of <disasm|raw|inspect>.
 #                                      Default: disasm
-#     -o, --output FILE                Output result into FILE instead of stdout.
+#     -o, --output FILE                Write output to FILE instead of stdout.
 #                                      If multiple seccomp syscalls have been invoked (see --limit),
-#                                      results will be written to FILE, FILE_1, FILE_2.. etc.
-#                                      For example, "--output out.bpf" and the output files are out.bpf, out_1.bpf, ...
+#                                      results are written to FILE, FILE_1, FILE_2, etc.
+#                                      For example, with "--output out.bpf" the output files are out.bpf, out_1.bpf, ...
 ```
 
 ### dump
 
-Dumps the seccomp BPF from an execution file.
-This work is done by utilizing the `ptrace` syscall.
+Dumps the seccomp BPF from an executable, using the `ptrace` syscall.
 
-NOTICE: beware of the execution file will be executed.
+NOTE: the target executable is actually run, so be careful with untrusted binaries.
 ```bash
 $ file spec/binary/twctf-2016-diary
 # spec/binary/twctf-2016-diary: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.24, BuildID[sha1]=3648e29153ac0259a0b7c3e25537a5334f50107f, not stripped
@@ -132,7 +132,7 @@ $ seccomp-tools dump spec/binary/twctf-2016-diary -f raw | xxd
 
 ### disasm
 
-Disassembles the seccomp from raw BPF.
+Disassembles raw seccomp BPF into a readable format.
 ```bash
 $ xxd spec/data/twctf-2016-diary.bpf | head -n 3
 # 00000000: 2000 0000 0000 0000 1500 0001 0200 0000   ...............
@@ -165,16 +165,16 @@ $ seccomp-tools disasm spec/data/twctf-2016-diary.bpf
 
 ### asm
 
-Assembles the seccomp rules into raw bytes.
-It's very useful when one wants to write custom seccomp rules.
+Assembles seccomp rules into raw bytes.
+Useful when you want to write your own seccomp rules.
 
-Supports labels for jumping and uses syscall names directly. See examples below.
+Supports jump labels and syscall names. See the examples below.
 ```bash
 $ seccomp-tools asm
 # asm - Seccomp bpf assembler.
 #
 # Usage: seccomp-tools asm IN_FILE [options]
-#     -o, --output FILE                Output result into FILE instead of stdout.
+#     -o, --output FILE                Write output to FILE instead of stdout.
 #     -f, --format FORMAT              Output format. FORMAT can only be one of <inspect|raw|c_array|c_source|assembly>.
 #                                      Default: inspect
 #     -a, --arch ARCH                  Specify architecture.
@@ -268,7 +268,7 @@ $ seccomp-tools asm spec/data/libseccomp.asm -f raw | seccomp-tools disasm -
 
 ```
 
-Since v1.6.0 [not released yet], `asm` has switched to using a yacc-based syntax parser, hence supports more flexible and intuitive syntax!
+Since v1.6.0 [not released yet], `asm` has switched to a yacc-based parser, which allows a more flexible and intuitive syntax!
 
 ```bash
 $ cat spec/data/example.asm
@@ -309,7 +309,7 @@ $ seccomp-tools asm spec/data/example.asm -f raw | seccomp-tools disasm -
 
 ```
 
-The output of `seccomp-tools disasm <file> --asm-able` is a valid input of `asm`:
+The output of `seccomp-tools disasm <file> --asm-able` is valid input for `asm`:
 ```bash
 $ seccomp-tools disasm spec/data/x32.bpf --asm-able
 # 0000: A = arch
@@ -390,7 +390,7 @@ $ seccomp-tools explain --help
 #
 # Usage: seccomp-tools explain [options] [BPF_FILE|EXEC]
 #     -c, --sh-exec <command>          Executes the given command (via sh) and explains its seccomp.
-#                                      Use this to pass arguments or pipe things to the execution file.
+#                                      Use this to pass arguments or pipe things to the executable.
 #                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
 #                                      Takes precedence over the positional argument.
 #     -l, --limit LIMIT                Explain only the first LIMIT installed filters.
@@ -466,7 +466,7 @@ $ seccomp-tools audit --help
 #
 # Usage: seccomp-tools audit [options] [BPF_FILE|EXEC]
 #     -c, --sh-exec <command>          Executes the given command (via sh) and audits its seccomp.
-#                                      Use this to pass arguments or pipe things to the execution file.
+#                                      Use this to pass arguments or pipe things to the executable.
 #                                      e.g. use `-c "./bin > /dev/null"` to keep the program output out of the result.
 #                                      Takes precedence over the positional argument.
 #     -l, --limit LIMIT                Audit only the first LIMIT installed filters.
@@ -589,11 +589,11 @@ $ seccomp-tools audit spec/data/gctf-2019-quals-caas.bpf -a amd64 -f json
 - [x] s390x (@iii-i)
 - [x] riscv64
 
-Pull Requests of adding more architectures support are welcome!
+Pull requests adding support for more architectures are welcome!
 
 ## Development
 
-I recommend to use [rbenv](https://github.com/rbenv/rbenv) for your Ruby environment.
+I recommend using [rbenv](https://github.com/rbenv/rbenv) to manage your Ruby environment.
 
 ### Setup
 
@@ -612,4 +612,4 @@ I recommend to use [rbenv](https://github.com/rbenv/rbenv) for your Ruby environ
 
 Any suggestions or feature requests are welcome!
 Feel free to file issues or send pull requests.
-And, if you like this work, I'll be happy to be [starred](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:
+And if you like this project, consider giving it a [star](https://github.com/david942j/seccomp-tools/stargazers) :grimacing:

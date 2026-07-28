@@ -37,7 +37,21 @@ module SeccompTools
         return CLI.show(parser.help) if argv.empty? || %w[-h --help].intersect?(argv)
 
         parser.parse!(argv)
-        option[:arch] ||= Util.system_arch
+
+        # Fill in the architecture from the host when --arch was not given. A command that offers
+        # --arch needs a concrete architecture to name syscalls; if the host CPU is one seccomp-tools
+        # does not recognize, auto-detection cannot supply one, so fail with a clear message instead
+        # of letting :unknown reach a syscall-table lookup and raise deep down.
+        return true unless option[:arch].nil?
+
+        arch = Util.system_arch
+        if arch == :unknown && @arch_option_offered
+          Logger.error('Could not detect the host architecture; specify one with ' \
+                       "--arch <#{Util.supported_archs.join('|')}>.")
+          return false
+        end
+
+        option[:arch] = arch
         true
       end
 
@@ -117,6 +131,7 @@ module SeccompTools
       #   Extra description lines appended after the default ones, for command-specific guidance.
       # @return [void]
       def option_arch(opt, *extra_desc)
+        @arch_option_offered = true
         supported = Util.supported_archs
         opt.on('-a', '--arch ARCH', supported, 'Specify architecture.',
                "Supported architectures are <#{supported.join('|')}>.",

@@ -109,4 +109,17 @@ EOS
 0011: return ALLOW
     EOS
   end
+
+  it 'fails clearly when the host arch is unrecognized and no --arch is given' do
+    allow(SeccompTools::Util).to receive(:system_arch).and_return(:unknown)
+    # It reports the error and stops, rather than crashing on a :UNKNOWN syscall-table lookup.
+    expect { described_class.new([@bpf]).handle }
+      .to output(/\A\[ERROR\] Could not detect the host architecture; specify one with --arch <[^>]+>\.\n\z/)
+      .to_stdout
+  end
+
+  it 'honors an explicit --arch even when the host arch is unrecognized' do
+    allow(SeccompTools::Util).to receive(:system_arch).and_return(:unknown)
+    expect { described_class.new([@bpf, '-a', 'amd64']).handle }.to output(/A = sys_number/).to_stdout
+  end
 end

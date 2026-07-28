@@ -44,16 +44,15 @@ module SeccompTools
         (@arch_sym || @title).to_s
       end
 
-      # This arch's +name => number+ table, or +nil+ when the arch is unknown to seccomp-tools.
+      # This arch's +name => number+ table, or +nil+ when the section has no known architecture.
+      #
+      # +@arch_sym+ is always +nil+ or a supported architecture (the CLI rejects an undetectable host
+      # before we get here), so the table lookup never fails.
       # @return [Hash{Symbol=>Integer}?]
       def table
         return @table if defined?(@table)
 
-        @table = @arch_sym && begin
-          Const::Syscall.const_get(@arch_sym.upcase)
-        rescue NameError
-          nil
-        end
+        @table = @arch_sym && Const::Syscall.const_get(@arch_sym.upcase)
       end
 
       # The number of syscall +name+ on this arch, or +nil+ if the arch lacks it.

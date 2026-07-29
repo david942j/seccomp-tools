@@ -89,6 +89,26 @@ describe SeccompTools::Emulator do
     end
   end
 
+  context 'division by zero' do
+    def insts_of(src, arch)
+      SeccompTools::Disasm.to_bpf(SeccompTools::Asm.asm(src, arch:), arch).map(&:inst)
+    end
+
+    it 'aborts with KILL_THREAD, matching the kernel, instead of raising' do
+      # `A /= X` with X == 0: the kernel returns 0 (KILL_THREAD) from the whole program and never
+      # reaches the ALLOW, so emulation must do the same, stopping on the div instruction.
+      insts = insts_of(<<-EOS, :amd64)
+        A = 0
+        X = A
+        A /= X
+        return ALLOW
+      EOS
+      result = described_class.new(insts, arch: :amd64).run
+      expect(result[:ret]).to be 0
+      expect(result[:pc]).to be 2 # the `A /= X` line, not the unreached ALLOW
+    end
+  end
+
   context 'bdooos' do
     before do
       raw = File.binread(File.join(__dir__, 'data', 'DEF-CON-2020-bdooos.bpf'))

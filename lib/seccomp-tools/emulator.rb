@@ -46,8 +46,6 @@ module SeccompTools
     def run
       @values = { pc: 0, a: 0, x: 0 }
       loop do
-        break if @values[:ret] # break when returned
-
         yield(@values) if block_given?
         inst = @instructions[pc]
         op, *args = inst.symbolize
@@ -60,6 +58,8 @@ module SeccompTools
         when :alu then alu(args[0], args[1]) # alu
         when :misc then misc(args[0]) # misc: txa/tax
         end
+        break if @values[:ret] # break when returned
+
         set(:pc, get(:pc) + 1) if %i[ld st alu misc].include?(op)
       end
       @values
@@ -115,6 +115,9 @@ module SeccompTools
         set(:a, (2**32) - get(:a))
       else
         src = get(:x) if src == :x
+        # Classic BPF aborts the whole program on division by zero.
+        return set(:ret, Const::BPF::ACTION[:KILL_THREAD]) if op == :/ && src.zero?
+
         set(:a, get(:a).__send__(op, src))
       end
     end

@@ -19,7 +19,7 @@ module SeccompTools
         lsh: :<<,
         rsh: :>>,
         # neg: :-, # should not be invoked
-        # mod: :%, # unsupported
+        # mod: :%, # the kernel rejects BPF_MOD (see Const::BPF::OP), so it never reaches here
         xor: :^
       }.freeze
       # Decompile instruction.

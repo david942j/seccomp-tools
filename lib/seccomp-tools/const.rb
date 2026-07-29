@@ -119,7 +119,8 @@ module SeccompTools
         lsh: 0x60,
         rsh: 0x70,
         neg: 0x80,
-        # mod: 0x90, # not supported
+        # mod (0x90) is intentionally omitted: the kernel's seccomp_check_filter() allowlist rejects
+        # BPF_MOD (EINVAL), so it can never appear in a loadable seccomp filter.
         xor: 0xa0
       }.freeze
 

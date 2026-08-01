@@ -11,6 +11,7 @@ List of commands:
 
 	asm	Seccomp bpf assembler.
 	audit	Assess a seccomp filter for weaknesses and escape routes.
+	completion	Print a shell completion script.
 	disasm	Disassemble seccomp bpf.
 	dump	Automatically dump seccomp bpf from executable(s).
 	emu	Emulate seccomp rules.

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `completion` command: print a shell completion script for bash, zsh or fish (e.g. `eval "$(seccomp-tools completion bash)"`).
 - `explain` command: summarize a whole filter as a per-action policy (which syscalls end in ALLOW/KILL/ERRNO, and under what argument constraints).
 - `audit` command: scan a filter for weaknesses and escape routes (missing architecture or x32 guard, permissive default, equivalent-syscall gaps, an open/read/write chain, dangerous syscalls reachable as ALLOW), with a `--format json` output.
 - RISC-V 64 (`riscv64`) architecture support across dump, disasm, asm and emu.

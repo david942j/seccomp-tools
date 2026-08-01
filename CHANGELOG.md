@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-01
+
 ### Added
 - `completion` command: print a shell completion script for bash, zsh or fish (e.g. `eval "$(seccomp-tools completion bash)"`).
 - `explain` command: summarize a whole filter as a per-action policy (which syscalls end in ALLOW/KILL/ERRNO, and under what argument constraints).
@@ -136,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release: the `dump` and `disasm` commands, ptrace-based dumping with `--limit` and `--output`, and i386 support.
 
-[Unreleased]: https://github.com/david942j/seccomp-tools/compare/v1.6.2...HEAD
+[Unreleased]: https://github.com/david942j/seccomp-tools/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/david942j/seccomp-tools/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/david942j/seccomp-tools/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/david942j/seccomp-tools/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/david942j/seccomp-tools/compare/v1.5.0...v1.6.0

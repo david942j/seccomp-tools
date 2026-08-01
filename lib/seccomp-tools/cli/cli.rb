@@ -2,6 +2,7 @@
 
 require 'seccomp-tools/cli/asm'
 require 'seccomp-tools/cli/audit'
+require 'seccomp-tools/cli/completion'
 require 'seccomp-tools/cli/disasm'
 require 'seccomp-tools/cli/dump'
 require 'seccomp-tools/cli/emu'
@@ -15,6 +16,7 @@ module SeccompTools
     COMMANDS = {
       'asm' => SeccompTools::CLI::Asm,
       'audit' => SeccompTools::CLI::Audit,
+      'completion' => SeccompTools::CLI::Completion,
       'disasm' => SeccompTools::CLI::Disasm,
       'dump' => SeccompTools::CLI::Dump,
       'emu' => SeccompTools::CLI::Emu,

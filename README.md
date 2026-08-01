@@ -52,6 +52,7 @@ $ seccomp-tools --help
 #
 # 	asm	Seccomp bpf assembler.
 # 	audit	Assess a seccomp filter for weaknesses and escape routes.
+# 	completion	Print a shell completion script.
 # 	disasm	Disassemble seccomp bpf.
 # 	dump	Automatically dump seccomp bpf from executable(s).
 # 	emu	Emulate seccomp rules.
@@ -569,6 +570,23 @@ $ seccomp-tools audit spec/data/gctf-2019-quals-caas.bpf -a amd64 -f json
 #   ]
 # }
 ```
+
+## Shell Completion
+
+`seccomp-tools completion <bash|zsh|fish>` prints a completion script for the given shell. Load it from your shell's startup file:
+
+```bash
+# bash (~/.bashrc)
+eval "$(seccomp-tools completion bash)"
+
+# zsh (~/.zshrc, after `compinit`)
+eval "$(seccomp-tools completion zsh)"
+
+# fish (~/.config/fish/config.fish)
+seccomp-tools completion fish | source
+```
+
+To avoid the startup cost of evaluating it every time, write the script to the directory your shell loads completions from instead, e.g. `seccomp-tools completion zsh > "${fpath[1]}/_seccomp-tools"`.
 
 ## Screenshots
 

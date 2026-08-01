@@ -1,0 +1,83 @@
+#compdef seccomp-tools
+
+# zsh completion for seccomp-tools
+#
+# Load it with either:
+#   eval "$(seccomp-tools completion zsh)"    # in ~/.zshrc, after `compinit`
+# or drop this file (named `_seccomp-tools`) into a directory on your $fpath.
+
+_seccomp-tools() {
+  local -a arches=(aarch64 amd64 i386 riscv64 s390x)
+
+  # $words is 1-indexed; words[1]=seccomp-tools, words[2]=subcommand.
+  if (( CURRENT == 2 )); then
+    local -a commands=(
+      'asm:Seccomp bpf assembler'
+      'audit:Assess a filter for weaknesses and escape routes'
+      'completion:Print a shell completion script'
+      'disasm:Disassemble seccomp bpf'
+      'dump:Automatically dump seccomp bpf from executable(s)'
+      'emu:Emulate seccomp rules'
+      'explain:Summarize a filter as a per-action policy'
+    )
+    _describe 'command' commands
+    return
+  fi
+
+  case ${words[2]} in
+    asm)
+      _arguments \
+        '(-o --output)'{-o,--output}'[write output to FILE]:file:_files' \
+        '(-f --format)'{-f,--format}'[output format]:format:(inspect raw c_array c_source assembly)' \
+        '(-a --arch)'{-a,--arch}"[architecture]:arch:($arches)" \
+        '1:input asm file:_files'
+      ;;
+    disasm)
+      _arguments \
+        '(-o --output)'{-o,--output}'[write output to FILE]:file:_files' \
+        '(-a --arch)'{-a,--arch}"[architecture]:arch:($arches)" \
+        '--asm-able[emit output that is valid input for asm]' \
+        '(--bpf --no-bpf)--no-bpf[hide the raw BPF bytes]' \
+        '(--arg-infer --no-arg-infer)--no-arg-infer[do not infer argument names]' \
+        '1:bpf file:_files'
+      ;;
+    dump)
+      _arguments \
+        '(-c --sh-exec)'{-c,--sh-exec}'[run command via sh and dump its seccomp]:command:' \
+        '(-p --pid)'{-p,--pid}'[dump filters of a running process]:pid:' \
+        '(-l --limit)'{-l,--limit}'[dump only the first N filters]:limit:' \
+        '(-t --timeout)'{-t,--timeout}'[timeout in seconds]:seconds:' \
+        '(-f --format)'{-f,--format}'[output format]:format:(disasm raw inspect)' \
+        '(-o --output)'{-o,--output}'[write output to FILE]:file:_files' \
+        '1:executable:_files'
+      ;;
+    audit|explain)
+      _arguments \
+        '(-c --sh-exec)'{-c,--sh-exec}'[run command via sh]:command:' \
+        '(-p --pid)'{-p,--pid}'[analyze a running process]:pid:' \
+        '(-l --limit)'{-l,--limit}'[analyze only the first N filters]:limit:' \
+        '(-t --timeout)'{-t,--timeout}'[timeout in seconds]:seconds:' \
+        '(-a --arch)'{-a,--arch}"[architecture]:arch:($arches)" \
+        '(-f --format)'{-f,--format}'[output format]:format:(human json)' \
+        '1:bpf file or executable:_files'
+      ;;
+    emu)
+      _arguments \
+        '(-a --arch)'{-a,--arch}"[architecture]:arch:($arches)" \
+        '(-q --quiet)'{-q,--quiet}'[only show the emulation result]' \
+        '(-i --ip)'{-i,--ip}'[set the instruction pointer]:ip:' \
+        '1:bpf file:_files'
+      ;;
+    completion)
+      _arguments '1:shell:(bash zsh fish)'
+      ;;
+  esac
+}
+
+# When autoloaded from $fpath the completion system calls this function directly;
+# when eval'd or sourced, register it instead of running it.
+if [ "${funcstack[1]}" = "_seccomp-tools" ]; then
+  _seccomp-tools "$@"
+else
+  compdef _seccomp-tools seccomp-tools
+fi

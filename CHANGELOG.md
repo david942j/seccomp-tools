@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Dropped the `os` gem dependency; host-OS detection now uses `RbConfig`, so seccomp-tools installs with fewer dependencies.
+
 ## [1.7.0] - 2026-08-01
 
 ### Added

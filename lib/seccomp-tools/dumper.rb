@@ -1,19 +1,18 @@
 # frozen_string_literal: true
 
-require 'os'
 require 'timeout'
 
 require 'seccomp-tools/logger'
-require 'seccomp-tools/ptrace' if OS.linux?
-require 'seccomp-tools/syscall'
 require 'seccomp-tools/util'
+require 'seccomp-tools/ptrace' if SeccompTools::Util.linux?
+require 'seccomp-tools/syscall'
 
 module SeccompTools
   # Dump seccomp-bpf using ptrace of binary.
   module Dumper
     # Whether the dumper is supported.
     # Dumper works based on ptrace, so we need the platform to be Linux.
-    SUPPORTED = OS.linux?
+    SUPPORTED = Util.linux?
 
     module_function
 

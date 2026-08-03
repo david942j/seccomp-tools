@@ -3,7 +3,6 @@ PATH
   specs:
     seccomp-tools (1.7.0)
       logger
-      os (~> 1.1, >= 1.1.1)
       racc (~> 1.8)
 
 GEM
@@ -15,7 +14,6 @@ GEM
     language_server-protocol (3.17.0.6)
     lint_roller (1.1.0)
     logger (1.7.0)
-    os (1.1.4)
     ostruct (0.6.3)
     parallel (1.28.0)
     parser (3.3.12.0)

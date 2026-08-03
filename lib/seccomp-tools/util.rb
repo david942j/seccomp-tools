@@ -16,6 +16,12 @@ module SeccompTools
                               .sort
     end
 
+    # Whether the host operating system is Linux, where the +ptrace+-based dumping works.
+    # @return [Boolean]
+    def linux?
+      RbConfig::CONFIG['host_os'].include?('linux')
+    end
+
     # Detect system architecture.
     # @return [Symbol]
     #   One of {supported_archs}, or +:unknown+ if the host CPU is not supported.

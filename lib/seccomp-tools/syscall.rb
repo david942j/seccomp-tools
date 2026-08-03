@@ -1,11 +1,9 @@
 # encoding: ascii-8bit
 # frozen_string_literal: true
 
-require 'os'
-
 require 'seccomp-tools/const'
 require 'seccomp-tools/util'
-require 'seccomp-tools/ptrace' if OS.linux?
+require 'seccomp-tools/ptrace' if SeccompTools::Util.linux?
 
 module SeccompTools
   # Record syscall number, arguments, return value.

@@ -27,6 +27,15 @@ describe SeccompTools::Util do
     RbConfig::CONFIG['host_cpu'] = org
   end
 
+  it 'linux?' do
+    org = RbConfig::CONFIG['host_os']
+    RbConfig::CONFIG['host_os'] = 'linux-gnu'
+    expect(described_class.linux?).to be true
+    RbConfig::CONFIG['host_os'] = 'darwin23'
+    expect(described_class.linux?).to be false
+    RbConfig::CONFIG['host_os'] = org
+  end
+
   it 'elf?' do
     Tempfile.create(['seccomp-tools-', '']) do |f|
       f.write("\x7fELF#{"\x00" * 12}")

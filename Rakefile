@@ -9,6 +9,7 @@ require 'yard'
 import 'tasks/readme.rake'
 import 'tasks/sasm.rake'
 import 'tasks/sys_arg.rake'
+import 'tasks/sys_nr.rake'
 
 task default: %i(sasm compile rubocop spec readme)
 

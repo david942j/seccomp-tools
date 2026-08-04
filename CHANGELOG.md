@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Updated the syscall tables to Linux 7.1: amd64, i386, aarch64 and s390x were years out of date and missing modern syscalls (io_uring, clone3, openat2, the landlock family, futex_waitv, mseal, ...), so they now show up by name in disasm/explain/audit instead of as raw numbers. Existing numbers are unchanged.
 - Dropped the `os` gem dependency; host-OS detection now uses `RbConfig`, so seccomp-tools installs with fewer dependencies.
 
 ## [1.7.0] - 2026-08-01

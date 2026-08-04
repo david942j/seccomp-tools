@@ -20,6 +20,19 @@ describe SeccompTools::Const::Audit do
   end
 end
 
+describe SeccompTools::Const::Syscall do
+  it 'knows the modern syscalls up to Linux 7.1 on every architecture' do
+    # A regression guard for the syscall tables: numbers are a stable kernel ABI, so these must not
+    # drift. io_uring/clone3/openat2 are the ones a filter is most often (mis)audited without.
+    expect(described_class::AMD64).to include(io_uring_setup: 425, clone3: 435, openat2: 437,
+                                              landlock_create_ruleset: 444, mseal: 462)
+    expect(described_class::I386).to include(clone3: 435, openat2: 437, io_uring_setup: 425)
+    expect(described_class::AARCH64).to include(clone3: 435, io_uring_setup: 425, landlock_create_ruleset: 444)
+    expect(described_class::RISCV64).to include(clone3: 435, io_uring_setup: 425)
+    expect(described_class::S390X).to include(clone3: 435, io_uring_setup: 425, futex_waitv: 449)
+  end
+end
+
 describe SeccompTools::Const::BPF do
   describe '.action_label' do
     it 'names a return value, showing the data ERRNO/TRACE/TRAP consume' do

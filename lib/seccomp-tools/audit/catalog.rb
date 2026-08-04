@@ -18,6 +18,9 @@ module SeccompTools
         ptrace: { severity: :high, why: 'inspect/inject into other processes' },
         process_vm_readv: { severity: :high, why: "read another process's memory" },
         process_vm_writev: { severity: :high, why: "write another process's memory" },
+        io_uring_setup: {
+          severity: :high, why: 'reads/writes/opens as ring operations, bypassing filters on those syscalls'
+        },
         socket: { severity: :medium, why: 'network access (exfiltration)' },
         connect: { severity: :medium, why: 'network access (exfiltration)' }
       }.freeze

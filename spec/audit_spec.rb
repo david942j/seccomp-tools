@@ -93,6 +93,37 @@ describe SeccompTools::Audit do
     expect(gap.syscalls).to eq %w[execve execveat]
   end
 
+  it 'flags io_uring as a read/write/open bypass' do
+    report = audit_asm(<<~ASM)
+      A = sys_number
+      A == io_uring_setup ? ok : next
+      return KILL
+      ok:
+      return ALLOW
+    ASM
+    iou = report.findings.find { |f| f.syscalls == %w[io_uring_setup] }
+    expect(iou).not_to be_nil
+    expect(iou.id).to eq 'dangerous-allow'
+    expect(iou.severity).to be :high
+    expect(iou.detail).to include('bypassing filters')
+  end
+
+  it 'detects a modern equivalent-syscall gap (open blocked, openat2 allowed)' do
+    report = audit_asm(<<~ASM)
+      A = sys_number
+      A == open ? dead : next
+      A == openat2 ? ok : next
+      return KILL
+      ok:
+      return ALLOW
+      dead:
+      return KILL
+    ASM
+    gap = report.findings.find { |f| f.id == 'syscall-alt-gap' }
+    expect(gap).not_to be_nil
+    expect(gap.syscalls).to eq %w[open openat2]
+  end
+
   it 'detects the open/read/write chain' do
     report = audit_asm(<<~ASM)
       A = sys_number

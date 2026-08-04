@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `audit` now flags `io_uring_setup` reaching ALLOW: io_uring performs reads/writes/opens as ring operations, bypassing seccomp filters on those syscalls. The `openat2`/`clone3` equivalent-syscall gaps are also detected now that the syscall tables know those names.
+
 ### Changed
 - Updated the syscall tables to Linux 7.1: amd64, i386, aarch64 and s390x were years out of date and missing modern syscalls (io_uring, clone3, openat2, the landlock family, futex_waitv, mseal, ...), so they now show up by name in disasm/explain/audit instead of as raw numbers. Existing numbers are unchanged.
 - Refreshed syscall argument names to Linux 7.1, so disasm labels the arguments of the modern syscalls (e.g. `openat2(dfd, filename, how, size)`) instead of showing bare `args[n]`.

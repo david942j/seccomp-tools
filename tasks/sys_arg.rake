@@ -4,6 +4,10 @@ desc 'Generate syscall arguments from Linux:include/linux/syscalls.h'
 task :sys_arg do
   content = File.binread('tasks/syscalls.h') + File.binread('tasks/syscalls_complement.h')
 
+  # The CONFIG_ARCH_SPLIT_ARG64 prototypes label a single u64 argument as two 32-bit words; seccomp
+  # always exposes 64-bit argument slots, so keep the unified (#else) prototype instead.
+  content.gsub!(/^#if defined\(CONFIG_ARCH_SPLIT_ARG64\).*?^#else\n/m, '')
+
   def error(name, args, msg)
     puts "[ERROR] #{msg}\n\t#{name}(#{args})"
   end

@@ -33,6 +33,18 @@ describe SeccompTools::Const::Syscall do
   end
 end
 
+describe 'SYS_ARG' do
+  it 'infers argument names for the modern syscalls, so disasm can label their args' do
+    arg = SeccompTools::Const::SYS_ARG
+    expect(arg[:openat2]).to eq %w[dfd filename how size]
+    expect(arg[:clone3]).to eq %w[uargs size]
+    expect(arg[:io_uring_setup]).to eq %w[entries p]
+    expect(arg[:landlock_create_ruleset]).to eq %w[attr size flags]
+    # A single u64 argument stays one slot, not the CONFIG_ARCH_SPLIT_ARG64 two-word form.
+    expect(arg[:fanotify_mark]).to eq %w[fanotify_fd flags mask fd pathname]
+  end
+end
+
 describe SeccompTools::Const::BPF do
   describe '.action_label' do
     it 'names a return value, showing the data ERRNO/TRACE/TRAP consume' do

@@ -282,7 +282,7 @@
   mq_timedreceive: 280,
   mq_notify: 281,
   mq_getsetattr: 282,
-  sys_kexec_load: 283,
+  kexec_load: 283,
   waitid: 284,
   add_key: 286,
   request_key: 287,

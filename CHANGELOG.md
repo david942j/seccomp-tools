@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refreshed syscall argument names to Linux 7.1, so disasm labels the arguments of the modern syscalls (e.g. `openat2(dfd, filename, how, size)`) instead of showing bare `args[n]`.
 - Dropped the `os` gem dependency; host-OS detection now uses `RbConfig`, so seccomp-tools installs with fewer dependencies.
 
+### Fixed
+- i386 syscall 283 is now named `kexec_load`, matching every other architecture; it was mistakenly `sys_kexec_load`, so `kexec_load` did not resolve in asm/disasm on i386.
+
 ## [1.7.0] - 2026-08-01
 
 ### Added

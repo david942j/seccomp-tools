@@ -497,6 +497,10 @@ $ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
 #     another AUDIT_ARCH, so the checks can be dodged by invoking through a different ABI (e.g. i386 numbering on amd64).
 #     fix:  Compare data[4] against your AUDIT_ARCH_* and KILL every architecture you do not explicitly handle.
 #
+# [HIGH] io_uring_setup is allowed (amd64)
+#     io_uring_setup reaches ALLOW - reads/writes/opens as ring operations, bypassing filters on those syscalls.
+#     fix:  Block io_uring_setup unless the program genuinely needs it.
+#
 # [HIGH] process_vm_readv is allowed (amd64)
 #     process_vm_readv reaches ALLOW - read another process's memory.
 #     fix:  Block process_vm_readv unless the program genuinely needs it.
@@ -509,10 +513,19 @@ $ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
 #     ptrace reaches ALLOW - inspect/inject into other processes.
 #     fix:  Block ptrace unless the program genuinely needs it.
 #
+# [HIGH] A file can be opened and its contents copied out (amd64)
+#     openat2, read and write all reach ALLOW, so the contents of an arbitrary file (e.g. the flag) can be copied straight
+#     back out.
+#     fix:  Deny the open-family syscalls unless the program genuinely needs arbitrary files.
+#
 # [HIGH] Default action is ALLOW (denylist) (amd64)
 #     Any syscall the filter does not explicitly block is allowed; a denylist is bypassable by any syscall the author
 #     overlooked.
 #     fix:  Use an allowlist: default to KILL/ERRNO and permit only the needed syscalls.
+#
+# [HIGH] open/openat blocked but openat2 allowed (amd64)
+#     open, openat denied, but the equivalent openat2 reaches ALLOW - same capability, different syscall number.
+#     fix:  Deny every equivalent in the group: also block openat2.
 #
 # [HIGH] x32 ABI is not guarded (amd64)
 #     Syscalls blocked by their native number are reachable via their x32 number (nr | 0x40000000): open, clone, fork,
@@ -526,6 +539,10 @@ $ seccomp-tools audit spec/data/twctf-2016-diary.bpf -a amd64
 # [MEDIUM] socket is allowed (amd64)
 #     socket reaches ALLOW - network access (exfiltration).
 #     fix:  Block socket unless the program genuinely needs it.
+#
+# [MEDIUM] fork/vfork/clone blocked but clone3 allowed (amd64)
+#     fork, vfork, clone denied, but the equivalent clone3 reaches ALLOW - same capability, different syscall number.
+#     fix:  Deny every equivalent in the group: also block clone3.
 ```
 
 Use `--format json` for CI or tooling:

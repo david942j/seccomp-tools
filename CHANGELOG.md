@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-06
+
 ### Added
 - `audit` now flags `io_uring_setup` reaching ALLOW: io_uring performs reads/writes/opens as ring operations, bypassing seccomp filters on those syscalls. The `openat2`/`clone3` equivalent-syscall gaps are also detected now that the syscall tables know those names.
 
@@ -149,7 +151,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release: the `dump` and `disasm` commands, ptrace-based dumping with `--limit` and `--output`, and i386 support.
 
-[Unreleased]: https://github.com/david942j/seccomp-tools/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/david942j/seccomp-tools/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/david942j/seccomp-tools/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/david942j/seccomp-tools/compare/v1.6.2...v1.7.0
 [1.6.2]: https://github.com/david942j/seccomp-tools/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/david942j/seccomp-tools/compare/v1.6.0...v1.6.1

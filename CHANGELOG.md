@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- The gem's `documentation_uri` and `changelog_uri` now point at the exact released version (rubydoc.info/gems and the release tag) instead of the latest master, so an installed gem links to the docs and changelog it was built from.
+
 ## [1.7.1] - 2026-08-06
 
 ### Added

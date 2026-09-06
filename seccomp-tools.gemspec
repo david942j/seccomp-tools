@@ -24,7 +24,8 @@ Visit https://github.com/david942j/seccomp-tools for more details.
 
   s.metadata = {
     'bug_tracker_uri' => 'https://github.com/david942j/seccomp-tools/issues',
-    'documentation_uri' => 'https://www.rubydoc.info/github/david942j/seccomp-tools/master',
+    'changelog_uri' => "https://github.com/david942j/seccomp-tools/blob/v#{SeccompTools::VERSION}/CHANGELOG.md",
+    'documentation_uri' => "https://www.rubydoc.info/gems/seccomp-tools/#{SeccompTools::VERSION}",
     'homepage_uri' => 'https://github.com/david942j/seccomp-tools',
     'source_code_uri' => 'https://github.com/david942j/seccomp-tools',
     'rubygems_mfa_required' => 'true'

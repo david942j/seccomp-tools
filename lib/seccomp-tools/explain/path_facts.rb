@@ -28,16 +28,16 @@ module SeccompTools
       attr_reader :sys_range
       # Constraints not already conveyed by the syscall-number / architecture presentation.
       #
-      # Consumed (dropped): +==+, +!=+ and range facts on +sys_number+ - the named/ranged buckets
-      # and the "any other syscall" default wording express them; +==+/+!=+ facts on +arch+ - the
-      # per-architecture sections and the "any other" fall-through express them; and any non-+==+
-      # fact on a word that some +==+ on the same path already pins (it is then redundant - a
-      # contradicting combination would have been pruned as infeasible).
-      #
-      # Everything else is kept so a kernel-valid check is never silently dropped: bit-tests on an
-      # unpinned +sys_number+ (e.g. an odd/even dispatch), bit-tests or ranges on +arch+ (e.g.
-      # testing the +__AUDIT_ARCH_64BIT+ flag instead of pinning one value), and any comparison
-      # against a register rather than a constant.
+      # Dropped where the presentation already conveys them: +==+, +!=+ and range facts on
+      # +sys_number+, +==+/+!=+ facts on +arch+, and any non-+==+ fact about a value some +==+
+      # already pins - that last rule reading a transform of a word as a value of its own.
+      # Everything else is kept, so a kernel-valid check is never silently dropped.
+      # @example Kept, the presentation having no other place for them
+      #   sys_number & 0x1                     #=> kept, a bit-test on an unpinned syscall number
+      #   arch & 0x80000000                    #=> kept, __AUDIT_ARCH_64BIT rather than one value
+      #   args[0] == X                         #=> kept, compared against a register
+      # @example Dropped, an earlier rule's failed check implying them
+      #   (op & 0xff) != 3 && (op & 0xff) == 4 #=> [(op & 0xff) == 4]
       # @return [Array<Symbolic::Constraint>]
       attr_reader :residual
 
@@ -93,11 +93,13 @@ module SeccompTools
       end
 
       def compute_residual
-        pinned = @path.filter_map { |c| c.lhs.offset if c.plain_data_eq? }
+        # Keyed by the expression each +==+ pins, so a transform of a word counts as pinned in its
+        # own right. Opaque values share one key, so pinning one must not read as pinning another.
+        pinned = @path.filter_map { |c| c.lhs.key if c.op == :== && c.rhs.imm? && !c.lhs.opaque? }
         @path.reject do |c|
-          next false unless c.plain_data_fact?
+          redundant = c.op != :== && c.rhs.imm? && pinned.include?(c.lhs.key)
+          next redundant unless c.plain_data_fact?
 
-          redundant = c.op != :== && pinned.include?(c.lhs.offset)
           case c.lhs.offset
           when SYS then redundant || !%i[set unset].include?(c.op)
           when ARCH then redundant || %i[== !=].include?(c.op)

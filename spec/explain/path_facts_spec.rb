@@ -50,6 +50,22 @@ describe SeccompTools::Explain::PathFacts do
       expect(facts(con(16, :==, 3), con(16, :>, 0)).residual.map(&:op)).to eq [:==]
       expect(facts(con(16, :==, 3), con(16, :==, 3)).residual.size).to eq 1
     end
+
+    it 'drops a non-== fact on a transform already pinned by ==' do
+      # What rules checked one after another against the same masked argument leave behind: the
+      # earlier rules' != facts add nothing once a later == pins the same masked value.
+      masked = SeccompTools::Symbolic::Constraint
+      pin = masked.new(e.data(16).apply(:&, e.imm(0xff)), :==, e.imm(4))
+      other = masked.new(e.data(16).apply(:&, e.imm(0xff)), :!=, e.imm(3))
+      expect(facts(other, pin).residual).to eq [pin]
+    end
+
+    it 'keeps facts about two distinct opaque values' do
+      # Every opaque value shares one key, so pinning one must not read as pinning the others.
+      pin = SeccompTools::Symbolic::Constraint.new(e.opaque, :==, e.imm(1))
+      other = SeccompTools::Symbolic::Constraint.new(e.opaque, :!=, e.imm(2))
+      expect(facts(pin, other).residual).to eq [pin, other]
+    end
   end
 
   describe '#arch_consistent?' do

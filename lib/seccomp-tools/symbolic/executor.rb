@@ -52,26 +52,13 @@ module SeccompTools
         @instructions = instructions
       end
 
-      # Walks every path and returns the reachable leaves.
-      #
-      # Leaves whose path condition is self-contradictory (e.g. +A == 1+ and +A == 2+ on the same
-      # word) are dropped - a conditional jump forks both ways regardless of feasibility, so the
-      # walk can construct paths that can never happen at runtime. See {#feasible?} for exactly
-      # what can (and deliberately cannot) be proven contradictory.
+      # Walks every path, depth first, and returns the reachable leaves. Jumps are always forward, so
+      # the walk terminates; an identical +(line, state)+ pair is visited once, so re-merging control
+      # flow does not explode. A branch that cannot happen at runtime is dropped where it forks (see
+      # {#feasible?}), so every leaf returned has a satisfiable path condition.
       # @return [Array(Array<Leaf>, Boolean)]
       #   The feasible leaves, and whether the walk was truncated at {STEP_CAP}.
       def run
-        leaves, truncated = walk
-        [leaves.select { |leaf| feasible?(leaf.path) }, truncated]
-      end
-
-      private
-
-      # Depth-first walk of the control-flow graph. Because jumps are always forward, every successor
-      # line is strictly greater, so the walk terminates; identical +(line, state)+ pairs are
-      # visited once so that re-merging control-flow does not explode.
-      # @return [Array(Array<Leaf>, Boolean)]
-      def walk
         leaves = []
         visited = Set.new
         stack = [[0, State.initial]]
@@ -88,6 +75,8 @@ module SeccompTools
         end
         [leaves, false]
       end
+
+      private
 
       # Interprets one instruction symbolically, pushing the successor state(s) onto +stack+ (or
       # appending a {Leaf} when it is a +return+).
@@ -130,9 +119,10 @@ module SeccompTools
       end
 
       # Forks a conditional jump into its taken and not-taken successors, recording the {Constraint}
-      # each branch implies. A comparison between two constants (e.g. against the guaranteed-zero
-      # initial A or X) does not fork: only the branch it actually selects is walked, and no fact
-      # is recorded.
+      # each implies. A comparison of two constants does not fork, and a successor the new fact
+      # contradicts is dropped (see {#feasible?}).
+      # @example A comparison of two constants, A and X both being zero on entry
+      #   A == X ? allow : kill #=> walks allow alone, recording no fact
       def branch_cmp(pc, st, args, stack)
         op, src, jt, jf = args
         # jt == jf: the jump is unconditional, so no fact is learned.
@@ -145,49 +135,41 @@ module SeccompTools
           return stack << [pc + j + 1, st]
         end
 
-        stack << [pc + jt + 1, st.with(path: st.path + [Constraint.new(st.a, taken, rhs)])]
-        stack << [pc + jf + 1, st.with(path: st.path + [Constraint.new(st.a, els, rhs)])]
+        [[jt, taken], [jf, els]].each do |jmp, op_taken|
+          path = st.path + [Constraint.new(st.a, op_taken, rhs)]
+          stack << [pc + jmp + 1, st.with(path:)] if feasible?(path)
+        end
       end
 
-      # Is +path+ satisfiable? Deliberately a small rule-based check, not a solver.
-      #
-      # Only facts of the shape "untransformed data word compared to a constant" are examined,
-      # grouped by which word they constrain; any other fact (a transformed word, a comparison
-      # against X, an opaque value) is assumed satisfiable. So an impossible path is never
-      # *wrongly* dropped - the cost of not understanding a fact is noise in the caller's output,
-      # never hidden behavior.
-      #
-      # That fragment is where essentially all real contradictions live. The walk forks every
-      # conditional both ways, so re-merging tests over the same word manufacture impossible
-      # paths: a syscall allowlist behind an x32 range guard yields
-      # +sys >= 0x40000000 && sys == 2+, libseccomp's binary-search dispatch yields the same
-      # equality-versus-range shapes, and sentinel tests yield +sys == 0xffffffff && sys == 2+.
-      # All of these are caught, and since the data words are independent inputs, checking
-      # word-by-word is exact for this fragment, not an approximation: a conjunction of
-      # single-word facts is satisfiable iff each word's facts are.
-      #
-      # What it cannot prove infeasible are contradictions through *derived* values:
-      # +(args[0] & 0xff) == 0x100+ (impossible by masking), wraparound arithmetic like
-      # +args[0] + 1 == 0 && args[0] == 5+, or relations between two transforms of one word
-      # (+sys >> 8 == 1 && sys < 0x100+). Deciding those in general is bit-vector SMT; a filter
-      # convoluted enough to produce them (a deliberately obfuscated challenge, not a seccomp
-      # library) calls for a real solver anyway, so rule-based pruning of that space would add
-      # complexity without making such filters readable. Their paths are kept and rendered with
-      # their full conditions instead.
+      # Is +path+ satisfiable? A rule-based check, not a solver: facts are grouped by the expression
+      # each constrains and every group checked alone, so only a contradiction within a single value
+      # is found. Any other fact is assumed satisfiable, so a path is never *wrongly* dropped.
+      # @example Caught, each contradiction lying within one group
+      #   sys >= 0x40000000 && sys == 2        #=> false, an allowlist behind an x32 guard
+      #   (op & 0xff) == 3 && (op & 0xff) == 4 #=> false, a rule rechecking a pinned argument
+      #   sys == 0xffffffff && sys == 2        #=> false, a sentinel test
+      # @example Not caught, each contradiction spanning two groups
+      #   (args[0] & 0xff) == 0x100            #=> true, though impossible by masking
+      #   args[0] + 1 == 0 && args[0] == 5     #=> true, though wraparound rules it out
+      #   sys >> 8 == 1 && sys < 0x100         #=> true, though the two transforms conflict
+      # @example Opaque values excluded, both sides keying alike
+      #   mem[0] == 1 && mem[1] == 2           #=> true, rightly - two unknowns, not one
       # @param [Array<Constraint>] path
       # @return [Boolean]
       def feasible?(path)
-        path.select(&:plain_data_fact?)
-            .group_by { |c| c.lhs.offset }
-            .all? { |_offset, cs| cell_feasible?(cs) }
+        # Only an opaque value can hide behind a shared key, and it never nests (see {Expr#apply}).
+        path.select { |c| c.rhs.imm? && !c.lhs.opaque? }
+            .group_by { |c| c.lhs.key }
+            .all? { |_key, cs| cell_feasible?(cs) }
       end
 
-      # Are the constraints on a single data word jointly satisfiable? Two different +==+ values
-      # are impossible (+A == 1 && A == 2+). A single +==+ pins the word, so every other fact -
-      # +!=+, the four bounds, and both jset forms - is simply evaluated against it
-      # (+A >= 0x40000000 && A == 2+ dies here). With no +==+, the inequalities must leave a
-      # non-empty range (+A > 10 && A < 5+); +!=+ and jset facts are ignored in that case, since
-      # ruling out a 32-bit word with them alone would take a filter no library generates.
+      # Are the constraints on a single value jointly satisfiable? An +==+ pins the value and every
+      # other fact is evaluated against it; with no +==+, the bounds must leave a non-empty range
+      # and +!=+ / jset facts are ignored, no library generating a filter that needs them.
+      # @example
+      #   A == 1 && A == 2          #=> false, two different pins
+      #   A >= 0x40000000 && A == 2 #=> false, evaluated against the pin
+      #   A > 10 && A < 5           #=> false, an empty range
       def cell_feasible?(constraints)
         eqs = constraints.select { |c| c.op == :== }.map { |c| c.rhs.val }.uniq
         return false if eqs.size > 1

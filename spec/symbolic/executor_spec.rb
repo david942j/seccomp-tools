@@ -195,6 +195,36 @@ describe SeccompTools::Symbolic::Executor do
       expect(rets(leaves_of(insts))).not_to include(0x7fff0000)
     end
 
+    it 'drops a path that requires one derived value to equal two different values' do
+      # A rule that masks an argument and then rechecks it below - the shape a filter gets when its
+      # rules re-join one chain. `(A & 0xff) == 3` and `== 4` constrain the same expression, so the
+      # path is impossible even though neither fact is about a bare data word.
+      insts = [
+        inst(cmd(:ld, mode: :abs), k: 0),                    # A = data[0]
+        inst(cmd(:alu, op: :and, src: :k), k: 0xff),         # A &= 0xff
+        inst(cmd(:jmp, jmp: :jeq), jt: 0, jf: 1, k: 3),      # == 3 -> next, else KILL(4)
+        inst(cmd(:jmp, jmp: :jeq), jt: 1, jf: 0, k: 4),      # == 4 -> ALLOW(5), else KILL(4)
+        inst(cmd(:ret), k: 0),
+        inst(cmd(:ret), k: 0x7fff0000)
+      ]
+      expect(rets(leaves_of(insts))).not_to include(0x7fff0000)
+    end
+
+    it 'keeps a path that pins two distinct opaque values to different constants' do
+      # Facts are grouped by the expression they constrain, and every opaque value shares one key.
+      # Grouping those together would read this path as `o == 1 && o == 2` and wrongly drop it,
+      # so opaque values are left out of the check entirely.
+      insts = [
+        inst(cmd(:ld, mode: :mem), k: 0),                    # A = mem[0] (opaque)
+        inst(cmd(:jmp, jmp: :jeq), jt: 0, jf: 2, k: 1),      # == 1 -> next, else KILL(4)
+        inst(cmd(:ld, mode: :mem), k: 1),                    # A = mem[1] (a *different* opaque)
+        inst(cmd(:jmp, jmp: :jeq), jt: 1, jf: 0, k: 2),      # == 2 -> ALLOW(5), else KILL(4)
+        inst(cmd(:ret), k: 0),
+        inst(cmd(:ret), k: 0x7fff0000)
+      ]
+      expect(rets(leaves_of(insts))).to include(0x7fff0000)
+    end
+
     it 'keeps and drops leaves by whether an inequality range is non-empty' do
       insts = [
         inst(cmd(:ld, mode: :abs), k: 0),

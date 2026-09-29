@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-
 # encoding: ascii-8bit
 # frozen_string_literal: true
 

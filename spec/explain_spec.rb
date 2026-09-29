@@ -59,6 +59,20 @@ Architecture: amd64
 Other architectures: KILL
 EOS
     end
+
+    it 'says which actions it left out when the walk does not finish' do
+      # The walk needs 662 states for this filter; cut it short and the ERRNO(13) rules are the
+      # first to go, exactly the bucket that went missing in issue #403. The policy has to own
+      # that rather than let those syscalls read as the default action.
+      stub_const('SeccompTools::Symbolic::Executor::STEP_CAP', 650)
+      out = explain(fixture('openssh-preauth.bpf'), :amd64)
+      expect(out).to include(<<~EOS)
+        WARNING: analysis truncated; results are incomplete - 12 of 54 return sites were never reached, so
+                 rules ending in ERRNO(13) x10, ALLOW x2 are missing.
+      EOS
+      expect(out).to include('<default> (any other syscall; incomplete)')
+      expect(out).not_to include('ERRNO(13):') # the whole bucket is gone, hence the warning
+    end
   end
 
   context 'allowlist filter' do

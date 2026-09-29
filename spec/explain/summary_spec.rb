@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/explain/completeness'
 require 'seccomp-tools/explain/summary'
 require 'seccomp-tools/symbolic/executor'
 require 'seccomp-tools/util'
@@ -17,6 +18,26 @@ describe SeccompTools::Explain::Summary do
     out = described_class.new([leaf(0x7fff0000)], arch: :amd64, source: 'a.bpf').to_s
     expect(out).to start_with("Seccomp policy for a.bpf\n\nArchitecture: amd64\n")
     expect(described_class.new([], arch: :amd64, truncated: true).to_s).to include('analysis truncated')
+  end
+
+  it "prints the walk's caveat and marks the default as partial when rules are missing" do
+    # The wording is Completeness's to decide (see its spec); Summary's part is emitting it and
+    # not letting the default bucket read as the whole story.
+    e = SeccompTools::Symbolic::Expr
+    path = [SeccompTools::Symbolic::Constraint.new(e.data(0), :==, e.imm(1))] # write
+    completeness = instance_double(
+      SeccompTools::Explain::Completeness, complete?: false, warning: "WARNING: cut short\n"
+    )
+    out = described_class.new([leaf(0x7fff0000, path:), leaf(0)],
+                              arch: :amd64, truncated: true, completeness:).to_s
+    expect(out).to include("WARNING: cut short\n")
+    expect(out).to include('<default> (any other syscall; incomplete)')
+  end
+
+  it 'reports a truncated walk that still reached every return as merely unreliable' do
+    out = described_class.new([leaf(0)], arch: :amd64, truncated: true).to_s
+    expect(out).to include('WARNING: analysis truncated; results may be incomplete.')
+    expect(out).to include('<default> (any syscall)')
   end
 
   it 'notes when a filter runs off the end without returning' do

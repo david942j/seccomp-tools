@@ -4,6 +4,7 @@ require 'seccomp-tools/audit/checks'
 require 'seccomp-tools/audit/policy'
 require 'seccomp-tools/audit/report'
 require 'seccomp-tools/explain/analysis'
+require 'seccomp-tools/explain/completeness'
 require 'seccomp-tools/symbolic/executor'
 
 module SeccompTools
@@ -42,7 +43,8 @@ module SeccompTools
         Checks.section_checks(policy.arch_sym).each { |check| findings.concat(check.call(policy)) }
       end
 
-      Report.new(source: @source, arches: policies.map(&:arch_name), findings:, truncated:)
+      Report.new(source: @source, arches: policies.map(&:arch_name), findings:, truncated:,
+                 completeness: Explain::Completeness.new(@instructions, leaves))
     end
   end
 end

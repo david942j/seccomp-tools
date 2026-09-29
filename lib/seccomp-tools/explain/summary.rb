@@ -2,6 +2,7 @@
 
 require 'seccomp-tools/const'
 require 'seccomp-tools/explain/analysis'
+require 'seccomp-tools/explain/completeness'
 require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
@@ -31,10 +32,14 @@ module SeccompTools
       #   Label shown in the header.
       # @param [Boolean] truncated
       #   Whether the walk hit {Symbolic::Executor::STEP_CAP}.
-      def initialize(leaves, arch:, source: nil, truncated: false)
+      # @param [Completeness] completeness
+      #   What the walk did not get to, used to qualify a truncated policy. Left at its default,
+      #   a truncated policy can only be reported as unreliable in general.
+      def initialize(leaves, arch:, source: nil, truncated: false, completeness: Completeness.new([], []))
         @arch = arch
         @source = source
         @truncated = truncated
+        @completeness = completeness
         @fusion = QwordFusion.new(arch)
         @renderer = Renderer.new(@fusion)
         @analysis = Analysis.new(leaves)
@@ -45,7 +50,7 @@ module SeccompTools
       def to_s
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
-        out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
+        out << @completeness.warning if @truncated
         @analysis.sections(@arch).each do |_arch_val, arch_sym, title, leaves|
           out << "\n" << render_section(title, section_buckets(arch_sym, leaves))
         end
@@ -165,9 +170,11 @@ module SeccompTools
         return unless default
 
         # "other" only makes sense when some syscall was singled out; otherwise the default is the
-        # whole policy.
-        text = buckets.empty? ? '<default> (any syscall)' : '<default> (any other syscall)'
-        add(buckets, default, text, simple: false)
+        # whole policy. A truncated walk leaves rules out, and the syscalls they name read as
+        # falling here, so the bucket says not to take it as the whole story.
+        scope = buckets.empty? ? 'any syscall' : 'any other syscall'
+        scope += '; incomplete' if @truncated && !@completeness.complete?
+        add(buckets, default, "<default> (#{scope})", simple: false)
       end
 
       def add(buckets, label, text, simple:)

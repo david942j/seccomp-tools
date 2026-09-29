@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/audit/finding'
+require 'seccomp-tools/explain/completeness'
 require 'seccomp-tools/util'
 
 module SeccompTools
@@ -17,11 +18,15 @@ module SeccompTools
       # @param [Array<String>] arches The architectures covered.
       # @param [Array<Finding>] findings
       # @param [Boolean] truncated Whether the symbolic walk was cut short.
-      def initialize(source:, arches:, findings:, truncated:)
+      # @param [Explain::Completeness] completeness
+      #   What the walk did not get to, stated the same way every reader of a walk states it.
+      def initialize(source:, arches:, findings:, truncated:,
+                     completeness: Explain::Completeness.new([], []))
         @source = source
         @arches = arches
         @findings = findings.sort_by(&:rank)
         @truncated = truncated
+        @completeness = completeness
       end
 
       # @return [Array<Finding>]
@@ -37,7 +42,7 @@ module SeccompTools
         out << "Architectures: #{@arches.join(', ')}\n" unless @arches.empty?
         # A truncated walk can only hide weaknesses, so it qualifies the whole report rather than
         # being a finding of its own.
-        out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
+        out << @completeness.warning(width: WIDTH) if @truncated
         return out << "\nNo weaknesses found.\n" if @findings.empty?
 
         @findings.each { |f| out << render(f) }

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'seccomp-tools/explain/completeness'
 require 'seccomp-tools/explain/summary'
 require 'seccomp-tools/symbolic/executor'
 
@@ -32,7 +33,8 @@ module SeccompTools
     # @return [Summary]
     def summarize
       leaves, truncated = Symbolic::Executor.new(@instructions).run
-      Summary.new(leaves, arch: @arch, source: @source, truncated:)
+      completeness = Completeness.new(@instructions, leaves)
+      Summary.new(leaves, arch: @arch, source: @source, truncated:, completeness:)
     end
   end
 end

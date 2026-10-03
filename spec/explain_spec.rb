@@ -22,6 +22,45 @@ describe SeccompTools::Explain do
     File.binread(File.join(__dir__, 'data', name))
   end
 
+  context "OpenSSH's pre-authentication filter" do
+    # Every rule of this filter re-joins one chain: OpenSSH's SC_ALLOW_ARG reloads the syscall
+    # number after an argument test fails, so the failing paths continue into the rules below.
+    # Walking those re-joins without pruning the impossible combinations (a path cannot pin the
+    # syscall number to two values at once) costs more than STEP_CAP states, and the walk used to
+    # be cut short - reporting a truncated policy that named none of the ERRNO(13) syscalls and
+    # left them to read as "any other syscall". See issue #403.
+    it 'describes every rule without truncating the walk' do
+      out = explain(fixture('openssh-preauth.bpf'), :amd64)
+      expect(out).to eq(<<EOS)
+
+Architecture: amd64
+
+  ALLOW:
+    read, write, close, poll, munmap, brk, rt_sigprocmask, writev, select
+    mremap, nanosleep, getpid, shutdown, exit, gettimeofday, getuid, geteuid
+    getpgid, gettid, time, clock_gettime, clock_nanosleep, exit_group
+    pselect6, ppoll, getrandom
+    mmap when (flags & 0xffefffcd) == 0x0 && (flags >> 32 & 0xffffffff) == 0x0 && (prot & 0xfffffffc) == 0x0 && (prot >> 32 & 0xffffffff) == 0x0
+    mprotect when (prot & 0xfffffffc) == 0x0 && (prot >> 32 & 0xffffffff) == 0x0
+    madvise when behavior == 0x12 or behavior == 0x10 or behavior == 0xa or behavior == 0x4 or behavior == 0x8 or behavior == 0x0
+    futex when (op & 0xfffffe7f) != 0x0 && (op & 0xfffffe7f) != 0x9 && (op & 0xfffffe7f) != 0x1 && (op & 0xfffffe7f) != 0xa && (op & 0xfffffe7f) != 0x3 && (op & 0xfffffe7f) == 0x4 && (op >> 32 & 0xffffffff) == 0x0 or (op & 0xfffffe7f) != 0x0 && (op & 0xfffffe7f) != 0x9 && (op & 0xfffffe7f) != 0x1 && (op & 0xfffffe7f) != 0xa && (op & 0xfffffe7f) == 0x3 && (op >> 32 & 0xffffffff) == 0x0 or (op & 0xfffffe7f) != 0x0 && (op & 0xfffffe7f) != 0x9 && (op & 0xfffffe7f) != 0x1 && (op & 0xfffffe7f) == 0xa && (op >> 32 & 0xffffffff) == 0x0 or (op & 0xfffffe7f) != 0x0 && (op & 0xfffffe7f) != 0x9 && (op & 0xfffffe7f) == 0x1 && (op >> 32 & 0xffffffff) == 0x0 or (op & 0xfffffe7f) != 0x0 && (op & 0xfffffe7f) == 0x9 && (op >> 32 & 0xffffffff) == 0x0 or (op & 0xfffffe7f) == 0x0 && (op >> 32 & 0xffffffff) == 0x0
+
+  ERRNO(13):
+    open, stat, fstat, lstat, shmget, shmat, shmdt, openat, newfstatat
+    statx
+
+  ERRNO(22):
+    mmap when (flags & 0xffefffcd) != 0x0 or (flags & 0xffefffcd) == 0x0 && (flags >> 32 & 0xffffffff) != 0x0
+    madvise when behavior != 0x0 && behavior != 0x8 && behavior != 0x4 && behavior != 0xa && behavior != 0x10 && behavior != 0x12 or behavior == 0x12 && behavior >> 32 != 0x0 or behavior == 0x10 && behavior >> 32 != 0x0 or behavior == 0xa && behavior >> 32 != 0x0 or behavior == 0x4 && behavior >> 32 != 0x0 or behavior == 0x8 && behavior >> 32 != 0x0 or behavior == 0x0 && behavior >> 32 != 0x0
+
+  KILL:
+    <default> (any other syscall)
+
+Other architectures: KILL
+EOS
+    end
+  end
+
   context 'allowlist filter' do
     it 'groups allowed syscalls, the default action, and the x32 range' do
       expect(explain(fixture('libseccomp.bpf'), :amd64)).to eq(<<EOS)

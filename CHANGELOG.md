@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - The gem's `documentation_uri` and `changelog_uri` now point at the exact released version (rubydoc.info/gems and the release tag) instead of the latest master, so an installed gem links to the docs and changelog it was built from.
+- `explain` states a rule's `when` clause in terms of the check that identifies it, dropping the facts an earlier rule's failed check already implies. A filter that tests the same masked argument rule after rule used to restate every earlier rule's `!=` in each branch; OpenSSH's `futex` rule rendered as 13,075 characters, and now reads as the six operations it actually permits.
 
 ### Fixed
 - `explain` and `audit` no longer cut the analysis short on filters whose rules re-join a single chain, such as OpenSSH's pre-authentication filter. A branch whose conditions cannot hold together is now dropped as the walk forks rather than after it, and contradictions on a derived value (a masked argument, say) are recognized alongside those on a plain word. The OpenSSH filter needed more than the 100,000-state cap and was reported as truncated, naming none of its `ERRNO(13)` syscalls and leaving 22 calls to read as `<default> (any other syscall)`; it now settles in 662 states and is described in full ([#403](https://github.com/david942j/seccomp-tools/issues/403)).

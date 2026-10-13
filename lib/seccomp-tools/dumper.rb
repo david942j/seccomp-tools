@@ -124,7 +124,7 @@ module SeccompTools
         if [Ptrace::EVENT_CLONE, Ptrace::EVENT_FORK, Ptrace::EVENT_VFORK].include?(status.to_i >> 16)
           # New child launched!
           # newpid = SeccompTools::Ptrace.geteventmsg(child)
-        elsif status.stopped? && status.stopsig & 0x80 != 0
+        elsif status.stopped? && status.stopsig.anybits?(0x80)
           cont = yield(child)
         end
         Ptrace.syscall(child, 0, 0) unless status.exited?

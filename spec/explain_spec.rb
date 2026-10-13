@@ -59,6 +59,20 @@ Architecture: amd64
 Other architectures: KILL
 EOS
     end
+
+    it 'owns up to an unfinished walk instead of letting the default speak for it' do
+      # The walk needs 662 states here; cut it short and whole rules drop out - in issue #403 the
+      # ERRNO(13) bucket vanished and its syscalls read as killed. What is missing cannot be named
+      # without the analysis that was cut, so the policy says plainly that it is partial.
+      stub_const('SeccompTools::Symbolic::Executor::STEP_CAP', 650)
+      out = explain(fixture('openssh-preauth.bpf'), :amd64)
+      expect(out).to include(<<~EOS)
+        WARNING: analysis truncated; this policy is incomplete - rules the walk did not reach are
+                 absent below, and the syscalls they name read as the default action.
+      EOS
+      expect(out).to include('<default> (any other syscall; incomplete)')
+      expect(out).not_to include('ERRNO(13):') # the bucket the truncation swallowed
+    end
   end
 
   context 'allowlist filter' do

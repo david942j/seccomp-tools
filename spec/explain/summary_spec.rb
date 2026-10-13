@@ -19,6 +19,23 @@ describe SeccompTools::Explain::Summary do
     expect(described_class.new([], arch: :amd64, truncated: true).to_s).to include('analysis truncated')
   end
 
+  it 'marks the default bucket when the walk was cut short' do
+    # The rules the walk never reached are absent, and the syscalls they name land here, so the
+    # bucket must not read as a settled statement about them.
+    e = SeccompTools::Symbolic::Expr
+    path = [SeccompTools::Symbolic::Constraint.new(e.data(0), :==, e.imm(1))] # write
+    leaves = [leaf(0x7fff0000, path:), leaf(0)]
+    expect(described_class.new(leaves, arch: :amd64, truncated: true).to_s)
+      .to include('<default> (any other syscall; incomplete)')
+    expect(described_class.new(leaves, arch: :amd64).to_s)
+      .to include('<default> (any other syscall)')
+  end
+
+  it 'marks a whole-policy default too, when no syscall was singled out' do
+    expect(described_class.new([leaf(0)], arch: :amd64, truncated: true).to_s)
+      .to include('<default> (any syscall; incomplete)')
+  end
+
   it 'notes when a filter runs off the end without returning' do
     expect(described_class.new([], arch: :amd64).to_s).to include('no return reached')
   end

@@ -23,6 +23,14 @@ module SeccompTools
       X32_SYSCALL_BIT = 0x40000000
       # Widest a wrapped bucket line may get, in columns.
       WRAP_WIDTH = 72
+      # Qualifies a policy whose walk did not finish. Saying results "may be incomplete" undersells
+      # it: the rules the walk never reached are absent from the buckets outright, and the syscalls
+      # they name are left reading as the default action - which is why the default bucket marks
+      # itself too. What those rules were cannot be told without the analysis that was cut.
+      TRUNCATION_WARNING = <<~WARNING
+        WARNING: analysis truncated; this policy is incomplete - rules the walk did not reach are
+                 absent below, and the syscalls they name read as the default action.
+      WARNING
 
       # @param [Array<Symbolic::Executor::Leaf>] leaves
       # @param [Symbol] arch
@@ -45,7 +53,7 @@ module SeccompTools
       def to_s
         out = +''
         out << "Seccomp policy for #{@source}\n" if @source
-        out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
+        out << TRUNCATION_WARNING if @truncated
         @analysis.sections(@arch).each do |_arch_val, arch_sym, title, leaves|
           out << "\n" << render_section(title, section_buckets(arch_sym, leaves))
         end
@@ -165,9 +173,11 @@ module SeccompTools
         return unless default
 
         # "other" only makes sense when some syscall was singled out; otherwise the default is the
-        # whole policy.
-        text = buckets.empty? ? '<default> (any syscall)' : '<default> (any other syscall)'
-        add(buckets, default, text, simple: false)
+        # whole policy. A truncated walk leaves rules out, and the syscalls they name read as
+        # falling here, so the bucket says not to take it as the whole story.
+        scope = buckets.empty? ? 'any syscall' : 'any other syscall'
+        scope += '; incomplete' if @truncated
+        add(buckets, default, "<default> (#{scope})", simple: false)
       end
 
       def add(buckets, label, text, simple:)

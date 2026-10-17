@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'seccomp-tools/const'
+require 'seccomp-tools/emulator'
 require 'seccomp-tools/explain/qword'
 require 'seccomp-tools/explain/renderer'
 require 'seccomp-tools/explain/verdict'
@@ -31,8 +32,10 @@ module SeccompTools
 
       # @param [Explain::Analysis] analysis
       # @param [Array] section One +[arch_val, arch_sym, title, leaves]+ entry from {Explain::Analysis#sections}.
-      def initialize(analysis, section)
+      # @param [Array<Instruction::Base>] instructions The filter, so a check can run it concretely.
+      def initialize(analysis, section, instructions)
         @analysis = analysis
+        @instructions = instructions
         @arch_val, @arch_sym, @title, @leaves = section
         @fusion = @arch_sym && Explain::QwordFusion.new(@arch_sym)
         @renderer = @fusion && Explain::Renderer.new(@fusion)
@@ -106,14 +109,41 @@ module SeccompTools
         conds.include?('') ? nil : conds.join(' or ')
       end
 
+      # The leaves syscall +nr+ can reach.
+      # @param [Integer] nr
+      # @param [Array<Symbolic::Executor::Leaf>] among The leaves to pick from, all of them by default.
+      # @return [Array<Symbolic::Executor::Leaf>]
+      def reachable_leaves(nr, among = @leaves)
+        among.select { |l| sys_satisfied?(l, nr) }
+      end
+
+      # The byte offsets of the low and high 32-bit words of argument +idx+, in this arch's word
+      # order. Needs a known architecture.
+      # @param [Integer] idx
+      # @return [Array(Integer, Integer)]
+      def arg_word_offsets(idx)
+        base = Const::BPF::SeccompData::ARGS + (8 * idx)
+        [@fusion.lo_off(base), @fusion.hi_off(base)]
+      end
+
+      # The action the filter returns for syscall +nr+ when the 64-bit fields of +seccomp_data+
+      # hold +words+, found by running it. Needs a known architecture.
+      # @param [Integer] nr
+      # @param [{Integer => Integer}] words
+      #   Byte offset of a 32-bit word to its value; a word not given is zero.
+      # @return [String]
+      def action_for(nr, words)
+        ip, *args = Const::BPF::SeccompData::QWORD_BASES.map do |base|
+          (words.fetch(@fusion.hi_off(base), 0) << 32) | words.fetch(@fusion.lo_off(base), 0)
+        end
+        ret = Emulator.new(@instructions, sys_nr: nr, args:, instruction_pointer: ip, arch: @arch_sym).run[:ret]
+        Explain::Verdict.label(Symbolic::Expr.imm(ret))
+      end
+
       private
 
       def name_of(nr)
         table && table.invert[nr]
-      end
-
-      def reachable_leaves(nr)
-        @leaves.select { |l| sys_satisfied?(l, nr) }
       end
 
       def sys_satisfied?(leaf, nr)

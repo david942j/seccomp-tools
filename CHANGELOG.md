@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `audit` flags an `int` syscall argument whose upper 32 bits can skip a deny ([#407](https://github.com/david942j/seccomp-tools/issues/407)). On a 64-bit architecture the filter sees the whole 64-bit argument while the kernel reads only the low 32 bits, so a rule like libseccomp's `SCMP_CMP_EQ` - which skips the check when the upper half is nonzero - lets `socket(0x100000028, ...)` through although the kernel still reads `AF_VSOCK`. The finding names the argument and a bypass value confirmed by running the filter. A filter that checks only the low word, or denies a nonzero upper half, is not flagged.
+
 ### Changed
 - The gem's `documentation_uri` and `changelog_uri` now point at the exact released version (rubydoc.info/gems and the release tag) instead of the latest master, so an installed gem links to the docs and changelog it was built from.
 - `explain` states a rule's `when` clause in terms of the check that identifies it, dropping the facts an earlier rule's failed check already implies. A filter that tests the same masked argument rule after rule used to restate every earlier rule's `!=` in each branch; OpenSSH's `futex` rule rendered as 13,075 characters, and now reads as the six operations it actually permits.

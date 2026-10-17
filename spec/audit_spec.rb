@@ -166,6 +166,104 @@ describe SeccompTools::Audit do
     expect(report.findings.map(&:severity).uniq - described_class::SEVERITIES).to eq []
   end
 
+  describe 'int-arg-upper-bits' do
+    def upper_bits(report)
+      report.findings.select { |f| f.id == 'int-arg-upper-bits' }
+    end
+
+    # A filter whose +rule+ guards +sys+, jumping to +allow+ or +deny+; other syscalls are allowed.
+    def guarded(rule, arch: :amd64, sys: 'socket')
+      <<~ASM
+        A = arch
+        A == #{SeccompTools::Const::Audit::ARCH_NAME[arch]} ? next : kill
+        A = sys_number
+        A == #{sys} ? next : allow
+        #{rule.chomp.gsub("\n", "\n  ")}
+        allow:
+        return ALLOW
+        deny:
+        return ERRNO(1)
+        kill:
+        return KILL
+      ASM
+    end
+
+    # The SCMP_CMP_EQ shape libseccomp emits: a nonzero upper half skips the deny.
+    let(:skips_deny) do
+      <<~RULE
+        A = args[0] >> 32
+        A == 0 ? next : allow
+        A = args[0]
+        A == 0x28 ? deny : allow
+      RULE
+    end
+
+    it 'flags a deny the upper half skips, with a bypass value the filter allows' do
+      report = audit_asm(guarded(skips_deny))
+      expect(upper_bits(report).size).to eq 1
+      f = upper_bits(report).first
+      expect([f.severity, f.arch, f.syscalls]).to eq [:high, 'amd64', ['socket']]
+      expect(f.title).to eq "socket's family check is bypassable through its upper 32 bits"
+      expect(f.condition).to eq 'family == 0x100000028'
+      expect(f.detail).to include('0x100000028 reaches ALLOW while 0x28 gets ERRNO(1)')
+
+      insts = SeccompTools::Disasm.to_bpf(SeccompTools::Asm.asm(guarded(skips_deny), arch: :amd64), :amd64).map(&:inst)
+      emulate = ->(family) { SeccompTools::Emulator.new(insts, sys_nr: 41, args: [family], arch: :amd64).run[:ret] }
+      expect([emulate.call(0x100000028), emulate.call(0x28)]).to eq [0x7fff0000, 0x00050001]
+    end
+
+    it 'reads the words in big-endian order on s390x' do
+      report = audit_asm(guarded(skips_deny, arch: :s390x), :s390x)
+      expect(upper_bits(report).map(&:condition)).to eq ['family == 0x100000028']
+    end
+
+    it 'flags a sign-extended negative whose zero-padded twin is still denied' do
+      # libseccomp compares a negative int against its sign-extended 64-bit value
+      report = audit_asm(guarded(<<~RULE, sys: 'kill'))
+        A = args[0] >> 32
+        A == 0xffffffff ? next : allow
+        A = args[0]
+        A == 0xffffffff ? deny : allow
+      RULE
+      expect(upper_bits(report).map(&:detail)).to eq [
+        'The kernel reads only the low 32 bits of pid, so 0x1ffffffff and 0xffffffffffffffff are the same call, ' \
+        'yet the filter tests the upper half: 0x1ffffffff reaches ALLOW while 0xffffffffffffffff gets ERRNO(1).'
+      ]
+    end
+
+    it 'flags an allow that needs both an odd upper half and another argument' do
+      report = audit_asm(guarded(<<~RULE))
+        A = args[0] >> 32
+        A == 0 ? deny : next
+        A = args[1]
+        A == 7 ? allow : deny
+      RULE
+      expect(upper_bits(report).map(&:condition)).to eq ['family == 0x100000000']
+    end
+
+    it 'stays quiet when the upper half cannot skip a deny' do
+      {
+        'only the low word is checked' => "A = args[0]\nA == 0x28 ? deny : allow",
+        'a nonzero upper half is denied' => "A = args[0] >> 32\nA == 0 ? next : deny\nA = args[0]\n" \
+                                            'A == 0x28 ? deny : allow',
+        'only AF_UNIX with a zero upper half is allowed' => "A = args[0] >> 32\nA == 0 ? next : deny\nA = args[0]\n" \
+                                                            'A == 1 ? allow : deny'
+      }.each do |why, rule|
+        expect(upper_bits(audit_asm(guarded(rule)))).to eq([]), why
+      end
+    end
+
+    it 'stays quiet about an argument the kernel reads whole' do
+      report = audit_asm(guarded(skips_deny, sys: 'clone'))
+      expect(upper_bits(report)).to eq []
+    end
+
+    it 'stays quiet on a 32-bit architecture, whose arguments are zero-extended' do
+      report = audit_asm(guarded(skips_deny, arch: :i386), :i386)
+      expect(upper_bits(report)).to eq []
+    end
+  end
+
   it 'only reports the severities it declares' do
     report = audit_file('twctf-2016-diary.bpf', :amd64)
     expect(report.findings.map(&:severity).uniq).to all(satisfy { |s| described_class::SEVERITIES.include?(s) })

@@ -2,6 +2,7 @@
 
 require 'seccomp-tools/audit/checks/arch_unchecked'
 require 'seccomp-tools/audit/checks/dangerous_allow'
+require 'seccomp-tools/audit/checks/int_arg_upper_bits'
 require 'seccomp-tools/audit/checks/orw_chain'
 require 'seccomp-tools/audit/checks/permissive_default'
 require 'seccomp-tools/audit/checks/syscall_alt_gap'
@@ -24,7 +25,7 @@ module SeccompTools
       FILTER = [ArchUnchecked].freeze
 
       # Per-architecture checks that apply everywhere; each takes a {Policy}.
-      SECTION = [PermissiveDefault, SyscallAltGap, OrwChain, DangerousAllow].freeze
+      SECTION = [PermissiveDefault, SyscallAltGap, OrwChain, DangerousAllow, IntArgUpperBits].freeze
 
       # Per-architecture checks that apply only to the keyed architecture (amd64's x32 is the exemplar).
       SECTION_BY_ARCH = { amd64: [X32Guard] }.freeze

@@ -35,7 +35,7 @@ module SeccompTools
     def audit
       leaves, truncated = Symbolic::Executor.new(@instructions).run
       analysis = Explain::Analysis.new(leaves)
-      policies = analysis.sections(@arch).map { |section| Policy.new(analysis, section) }
+      policies = analysis.sections(@arch).map { |section| Policy.new(analysis, section, @instructions) }
 
       findings = Checks::FILTER.flat_map { |check| check.call(analysis) }
       policies.each do |policy|

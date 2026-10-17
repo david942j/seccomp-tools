@@ -456,8 +456,9 @@ $ seccomp-tools explain spec/data/tctf-2023-nothing-is-true.bpf -a amd64
 
 Scans a filter for weaknesses and likely escape routes - a missing architecture or x32 guard, a
 permissive (denylist) default, equivalent-syscall gaps (e.g. `execve` blocked but `execveat` not),
-an open/read/write chain, or dangerous syscalls reachable as `ALLOW` - and reports each with a
-severity. It runs on every supported architecture (architecture-specific quirks like amd64's x32 are
+an open/read/write chain, dangerous syscalls reachable as `ALLOW`, or an `int` argument whose upper
+32 bits skip a deny (the kernel ignores them, so `socket(0x100000028, ...)` is still `AF_VSOCK`) -
+and reports each with a severity. It runs on every supported architecture (architecture-specific quirks like amd64's x32 are
 applied only where they exist), and takes the same input as `explain` (a BPF file, an executable, or
 `--pid`).
 ```bash

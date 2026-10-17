@@ -14,7 +14,7 @@ describe SeccompTools::Audit::Policy do
     insts = SeccompTools::Disasm.to_bpf(SeccompTools::Asm.asm(src, arch:), arch).map(&:inst)
     leaves, = SeccompTools::Symbolic::Executor.new(insts).run
     analysis = SeccompTools::Explain::Analysis.new(leaves)
-    described_class.new(analysis, analysis.sections(arch).first)
+    described_class.new(analysis, analysis.sections(arch).first, insts)
   end
 
   let(:allowlist) do

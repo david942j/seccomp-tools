@@ -158,7 +158,10 @@ describe SeccompTools::Audit do
   it 'warns when the analysis was truncated, rather than reporting it as a weakness' do
     stub_const('SeccompTools::Symbolic::Executor::STEP_CAP', 1)
     report = audit_file('libseccomp.bpf', :amd64)
-    expect(report.to_s).to include('WARNING: analysis truncated')
+    expect(report.to_s).to include(<<~EOS)
+      WARNING: analysis truncated; this report is incomplete - weaknesses in the rules the walk
+               did not reach are not listed.
+    EOS
     expect(report.to_h[:truncated]).to be true
     expect(report.findings.map(&:severity).uniq - described_class::SEVERITIES).to eq []
   end

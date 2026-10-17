@@ -12,6 +12,12 @@ module SeccompTools
 
       # Widest a rendered line may get, so a finding reads without wrapping on a standard terminal.
       WIDTH = 120
+      # Qualifies a report whose walk did not finish. A cut-short walk can only hide weaknesses, so
+      # it qualifies the whole report rather than being a finding of its own.
+      TRUNCATION_WARNING = <<~WARNING
+        WARNING: analysis truncated; this report is incomplete - weaknesses in the rules the walk
+                 did not reach are not listed.
+      WARNING
 
       # @param [String?] source Label for the audited filter.
       # @param [Array<String>] arches The architectures covered.
@@ -35,9 +41,7 @@ module SeccompTools
         out = +''
         out << "Seccomp audit of #{@source}\n" if @source
         out << "Architectures: #{@arches.join(', ')}\n" unless @arches.empty?
-        # A truncated walk can only hide weaknesses, so it qualifies the whole report rather than
-        # being a finding of its own.
-        out << "WARNING: analysis truncated (filter too large); results may be incomplete.\n" if @truncated
+        out << TRUNCATION_WARNING if @truncated
         return out << "\nNo weaknesses found.\n" if @findings.empty?
 
         @findings.each { |f| out << render(f) }

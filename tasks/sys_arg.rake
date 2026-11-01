@@ -51,6 +51,9 @@ task :sys_arg do
     parse_args(args).tap do |res|
       next parse_failed[name] = args if res.nil?
 
+      # A repeated name would collapse in the generated hash literal and shift every later argument.
+      next error(name, args, 'duplicate argument name') unless res.map(&:first).uniq.size == res.size
+
       widths = res.map { |_arg, type| width.call(type) }
       next error(name, args, 'unknown argument type') unless widths.all?
 

@@ -45,6 +45,35 @@ describe 'SYS_ARG' do
   end
 end
 
+describe 'SYS_ARG_BITS' do
+  it 'gives the bits the kernel reads of each argument slot' do
+    bits = SeccompTools::Const::SYS_ARG_BITS
+    expect(bits[:socket]).to eq [32, 32, 32]
+    expect(bits[:ioctl]).to eq [32, 32, 64]
+    expect(bits[:kill]).to eq [32, 32]
+    expect(bits[:clone].first).to eq 64
+    expect(bits[:chmod]).to eq [64, 16]
+    expect(bits[:landlock_add_rule]).to eq [32, 32, 64, 32]
+    expect(bits[:getpid]).to eq []
+  end
+
+  it 'falls back to the native prototype for an x32 name, like SYS_ARG' do
+    bits = SeccompTools::Const::SYS_ARG_BITS
+    expect(bits[:x32_socket]).to eq bits[:socket]
+    expect(bits[:x32_nope]).to be_nil
+    expect(bits[:nope]).to be_nil
+  end
+end
+
+describe SeccompTools::Const::Audit do
+  describe '.bits64?' do
+    it 'reads __AUDIT_ARCH_64BIT from the architecture value' do
+      expect(%i[amd64 aarch64 riscv64 s390x].map { |a| described_class.bits64?(a) }).to all(be true)
+      expect(described_class.bits64?(:i386)).to be false
+    end
+  end
+end
+
 describe SeccompTools::Const::BPF do
   describe '.action_label' do
     it 'names a return value, showing the data ERRNO/TRACE/TRAP consume' do

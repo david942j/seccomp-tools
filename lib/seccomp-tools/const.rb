@@ -179,13 +179,35 @@ module SeccompTools
         const_set(cons, instance_eval(File.read(filename)))
       end
 
-      # Helper for loading syscall prototypes from generated sys_arg.rb.
+      # Helper for loading syscall argument names from generated sys_arg.rb.
       #
       # @return [{Symbol => Array<String>}]
       #   Syscall name to its argument names. Lookups of an +x32_+-prefixed name fall back to the
       #   unprefixed one, and unknown names give +nil+.
       def load_args
-        hash = instance_eval(File.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
+        by_name(prototypes.transform_values { |args| args.keys.map(&:to_s) })
+      end
+
+      # Helper for loading syscall argument widths from generated sys_arg.rb.
+      #
+      # @return [{Symbol => Array<Integer>}]
+      #   Syscall name to how many bits of each 64-bit argument slot the kernel reads, in argument
+      #   order. Lookups fall back like {.load_args}.
+      def load_arg_bits
+        by_name(prototypes.transform_values(&:values))
+      end
+
+      # The prototypes in sys_arg.rb, as syscall name to an ordered +{argument name => bits}+.
+      # @return [{Symbol => {Symbol => Integer}}]
+      def prototypes
+        @prototypes ||= instance_eval(File.read(File.join(__dir__, 'consts', 'sys_arg.rb')))
+      end
+
+      # +hash+, looked up so that an +x32_+-prefixed name falls back to the unprefixed one and an
+      # unknown name gives +nil+.
+      # @param [{Symbol => Object}] hash
+      # @return [{Symbol => Object}]
+      def by_name(hash)
         Hash.new do |_h, k|
           next hash[k] if hash[k]
           next hash[k.to_s[4..].to_sym] if k.to_s.start_with?('x32_')
@@ -197,6 +219,13 @@ module SeccompTools
 
     # The argument names of all syscalls.
     SYS_ARG = Syscall.load_args.freeze
+
+    # How many bits of each 64-bit argument slot the kernel reads, per syscall. A parameter the
+    # kernel declares narrower than 64 bits ignores the slot's upper bits.
+    # @example
+    #   SYS_ARG_BITS[:socket] #=> [32, 32, 32]
+    #   SYS_ARG_BITS[:chmod] #=> [64, 16]
+    SYS_ARG_BITS = Syscall.load_arg_bits.freeze
 
     # Constants from https://github.com/torvalds/linux/blob/master/include/uapi/linux/audit.h.
     module Audit
@@ -217,6 +246,17 @@ module SeccompTools
         'ARCH_RISCV64' => 0xc00000f3,
         'ARCH_S390X' => 0x80000016
       }.freeze
+
+      # +__AUDIT_ARCH_64BIT+ from +uapi/linux/audit.h+: the bit an +AUDIT_ARCH_*+ value carries iff
+      # the architecture is 64-bit, i.e. passes syscall arguments in 64-bit registers.
+      ARCH_64BIT = 0x80000000
+
+      # Whether +arch+ is a 64-bit architecture, read from its +AUDIT_ARCH_*+ value.
+      # @param [Symbol] arch
+      # @return [Boolean]
+      def self.bits64?(arch)
+        ARCH[ARCH_NAME[arch]].anybits?(ARCH_64BIT)
+      end
 
       # The architecture symbol (e.g. +:amd64+) for an +AUDIT_ARCH_*+ value, or +nil+ when it is
       # not one seccomp-tools knows.
